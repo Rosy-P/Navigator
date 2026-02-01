@@ -1,65 +1,73 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { Search, Map as MapIcon, Home, Microscope, UtensilsCrossed, Mic } from "lucide-react";
+import Sidebar from "./components/Sidebar";
+import MapView from "./components/MapView";
+import MapControls from "./components/MapControls";
+import { useState } from "react";
+
+export default function HomePage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="h-screen w-screen relative flex overflow-hidden bg-white">
+      {/* Sidebar - Now floats over the map */}
+      <Sidebar />
+
+      {/* Main Content Area - Full width (No margin) */}
+      <main className="flex-1 relative transition-all duration-300 overflow-hidden">
+        {/* The Map */}
+        <div className="absolute inset-0 z-0">
+          <MapView />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* 
+            PREMIUM SEARCH BAR 
+        */}
+        <div className="absolute top-8 left-1/2 -translate-x-1/2 z-30 w-full max-w-lg px-4">
+          <div className="flex items-center gap-2 p-1.5 bg-white/40 backdrop-blur-xl border border-white/60 rounded-[24px] shadow-[0_25px_60px_rgba(0,0,0,0.12)] transition-all hover:bg-white/60 group">
+
+            <div className="flex-1 flex items-center gap-3 pl-4 pr-1 bg-white rounded-[20px] h-12 shadow-sm border border-slate-100 group-hover:border-slate-200 transition-all focus-within:border-orange-200 focus-within:ring-2 focus-within:ring-orange-500/5">
+              <Search className="text-slate-400 group-focus-within:text-orange-500 transition-colors" size={18} />
+              <input
+                className="w-full bg-transparent outline-none text-[14.5px] text-slate-900 placeholder:text-slate-400 font-semibold"
+                placeholder="Search campus..."
+              />
+              <button className="px-3 py-2 text-slate-300 hover:text-slate-600 transition-colors">
+                <Mic size={18} />
+              </button>
+            </div>
+
+            <button className="flex items-center justify-center w-12 h-12 bg-[#111827] text-white rounded-[20px] hover:bg-slate-800 transition-all shadow-lg active:scale-95 group/btn">
+              <MapIcon size={18} className="group-hover/btn:scale-110 transition-transform" />
+            </button>
+          </div>
+        </div>
+
+        {/* Custom Map Controls */}
+        <div className="absolute bottom-8 right-8 z-30 scale-90">
+          <MapControls
+            onZoomIn={() => { }}
+            onZoomOut={() => { }}
+          />
+        </div>
+
+        {/* Right Side Action Buttons */}
+        <div className="absolute top-10 right-8 z-30 flex flex-col gap-3">
+          <QuickActionButton icon={<Home size={18} />} label="Hostel" />
+          <QuickActionButton icon={<Microscope size={18} />} label="Lab" />
+          <QuickActionButton icon={<UtensilsCrossed size={18} />} label="Canteen" />
         </div>
       </main>
     </div>
+  );
+}
+
+function QuickActionButton({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <button className="flex items-center gap-3 px-4 h-11 bg-white/90 backdrop-blur-md border border-white/50 shadow-[0_10px_35px_rgba(0,0,0,0.05)] rounded-xl font-bold text-slate-800 hover:bg-white transition-all group active:scale-95">
+      <div className="w-8 h-8 flex items-center justify-center bg-slate-50 rounded-lg text-orange-500 group-hover:bg-orange-50 transition-colors">
+        {icon}
+      </div>
+      <span className="text-[13px] tracking-tight">{label}</span>
+    </button>
   );
 }

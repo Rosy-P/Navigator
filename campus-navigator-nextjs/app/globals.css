@@ -1,26 +1,69 @@
-@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --icon-bar-bg: #111827;
+  --menu-bar-bg: #ffffff;
+  --content-bg: #f8fafc;
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --text-light: #94a3b8;
+  --accent: #f59e0b;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+html,
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  height: 100%;
+  margin: 0;
+  font-family: 'Outfit', sans-serif;
+  background-color: var(--content-bg);
+  overflow: hidden;
+}
+
+/* 
+   REFINED BITE EFFECT (Sharper, Aligned)
+   Sized exactly for 46px items. 
+*/
+.bite-active {
+  background-color: var(--menu-bar-bg);
+  border-radius: 12px 0 0 12px;
+  position: relative;
+  z-index: 10;
+}
+
+.bite-active::before,
+.bite-active::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  width: 14px;
+  height: 14px;
+  background-color: transparent;
+  pointer-events: none;
+}
+
+.bite-active::before {
+  top: -14px;
+  border-bottom-right-radius: 14px;
+  box-shadow: 4px 4px 0 4px var(--menu-bar-bg);
+}
+
+.bite-active::after {
+  bottom: -14px;
+  border-top-right-radius: 14px;
+  box-shadow: 4px -4px 0 4px var(--menu-bar-bg);
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.premium-shadow {
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.08);
 }
