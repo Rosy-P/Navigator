@@ -7,6 +7,7 @@ interface InfoPanelProps {
     landmark: any;
     startLabel?: string;
     isPlanning: boolean;
+    originType?: "gps" | "manual" | null;
     onSetPlanning: (planning: boolean) => void;
     onClose: () => void;
     onGetGPSLocation: () => void;
@@ -19,6 +20,7 @@ export default function InfoPanel({
     landmark,
     startLabel = "Current Location",
     isPlanning,
+    originType,
     onSetPlanning,
     onClose,
     onGetGPSLocation,
@@ -30,7 +32,7 @@ export default function InfoPanel({
 
     return (
         <div className="fixed top-0 right-0 h-screen w-[320px] bg-white shadow-2xl z-[60] flex flex-col animate-in slide-in-from-right duration-500 ease-out border-l border-slate-100">
-            {/* Header Content */}
+            {/* ... previous code remains same up to planning mode ... */}
             {!isPlanning ? (
                 <>
                     {/* Header Image */}
@@ -127,27 +129,35 @@ export default function InfoPanel({
 
                             <button
                                 onClick={onGetGPSLocation}
-                                className="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100 hover:border-[#fb923c]/20 hover:bg-white transition-all group shadow-sm"
+                                className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all group shadow-sm ${originType === "gps"
+                                    ? "bg-orange-50 border-[#fb923c] ring-1 ring-[#fb923c]/20"
+                                    : "bg-slate-50 border-slate-100 hover:border-[#fb923c]/20 hover:bg-white"
+                                    }`}
                             >
-                                <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-500 group-hover:scale-105 transition-transform">
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform ${originType === "gps" ? "bg-orange-500 text-white" : "bg-blue-50 text-blue-500"
+                                    }`}>
                                     <Target size={16} />
                                 </div>
                                 <div className="text-left">
-                                    <p className="text-[13px] font-bold text-slate-800 leading-tight">My Location</p>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase">GPS</p>
+                                    <p className={`text-[13px] font-bold leading-tight ${originType === "gps" ? "text-orange-900" : "text-slate-800"}`}>My Location</p>
+                                    <p className={`text-[10px] font-bold uppercase ${originType === "gps" ? "text-orange-500" : "text-slate-400"}`}>GPS</p>
                                 </div>
                             </button>
 
                             <button
                                 onClick={onPickOnMap}
-                                className="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100 hover:border-[#fb923c]/20 hover:bg-white transition-all group shadow-sm"
+                                className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all group shadow-sm ${originType === "manual"
+                                    ? "bg-orange-50 border-[#fb923c] ring-1 ring-[#fb923c]/20"
+                                    : "bg-slate-50 border-slate-100 hover:border-[#fb923c]/20 hover:bg-white"
+                                    }`}
                             >
-                                <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center text-purple-500 group-hover:scale-105 transition-transform">
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform ${originType === "manual" ? "bg-orange-500 text-white" : "bg-purple-50 text-purple-500"
+                                    }`}>
                                     <MapPin size={16} />
                                 </div>
                                 <div className="text-left">
-                                    <p className="text-[13px] font-bold text-slate-800 leading-tight">Pick on Map</p>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase">Manual</p>
+                                    <p className={`text-[13px] font-bold leading-tight ${originType === "manual" ? "text-orange-900" : "text-slate-800"}`}>Pick on Map</p>
+                                    <p className={`text-[10px] font-bold uppercase ${originType === "manual" ? "text-orange-500" : "text-slate-400"}`}>Manual</p>
                                 </div>
                             </button>
                         </div>
@@ -183,22 +193,22 @@ export default function InfoPanel({
                     {/* Footer Action */}
                     <div className="p-4 bg-white border-t border-slate-50 mt-auto flex flex-col gap-2">
                         <button
-                            disabled={!startLabel || startLabel === "Current Location"}
+                            disabled={!startLabel}
                             onClick={onStartDemo}
-                            className={`w-full h-11 rounded-xl font-black text-[14px] flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg border-2 ${!startLabel || startLabel === "Current Location"
-                                    ? "bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed"
-                                    : "bg-white text-[#3b82f6] border-[#3b82f6] hover:bg-blue-50"
+                            className={`w-full h-11 rounded-xl font-black text-[14px] flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg border-2 ${!startLabel
+                                ? "bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed"
+                                : "bg-white text-[#3b82f6] border-[#3b82f6] hover:bg-blue-50"
                                 }`}
                         >
                             Demo Simulation
                             <Zap size={15} />
                         </button>
                         <button
-                            disabled={!startLabel || startLabel === "Current Location"}
+                            disabled={!startLabel}
                             onClick={() => onStartNavigation([landmark.lng, landmark.lat])}
-                            className={`w-full h-11 rounded-xl font-black text-[14px] flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg ${!startLabel || startLabel === "Current Location"
-                                    ? "bg-slate-100 text-slate-400 cursor-not-allowed"
-                                    : "bg-[#111827] text-white hover:bg-[#fb923c]"
+                            className={`w-full h-11 rounded-xl font-black text-[14px] flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg ${!startLabel
+                                ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+                                : "bg-[#111827] text-white hover:bg-[#fb923c]"
                                 }`}
                         >
                             Start Navigation

@@ -7,11 +7,12 @@ import MapView from "./components/MapView";
 import MapControls from "./components/MapControls";
 import InfoPanel from "./components/InfoPanel";
 import SettingsOverlay from "./components/SettingsOverlay";
+import NavigationOverlay from "./components/NavigationOverlay";
 
 export default function HomePage() {
   // Navigation States
   const [startLocation, setStartLocation] = useState<[number, number] | undefined>();
-  const [startLabel, setStartLabel] = useState<string>("Current Location");
+  const [startLabel, setStartLabel] = useState<string>("");
   const [isSelectingStart, setIsSelectingStart] = useState(false);
   const [isPlanning, setIsPlanning] = useState(false);
   const [isGuidanceActive, setIsGuidanceActive] = useState(false);
@@ -21,6 +22,12 @@ export default function HomePage() {
   const [selectedLandmark, setSelectedLandmark] = useState<any>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [pendingPickerLocation, setPendingPickerLocation] = useState<[number, number] | undefined>();
+  const [originType, setOriginType] = useState<"gps" | "manual" | null>(null);
+  const [isPaused, setIsPaused] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [recenterCount, setRecenterCount] = useState(0);
+  const [currentInstruction, setCurrentInstruction] = useState("Continue straight");
+  const [currentDistance, setCurrentDistance] = useState("60m");
 
   // Settings States
   const [showSettings, setShowSettings] = useState(false);
@@ -54,6 +61,7 @@ export default function HomePage() {
     const mainGate: [number, number] = [80.120584, 12.923163];
     setStartLocation(mainGate);
     setStartLabel("Main Gate (My Location)");
+    setOriginType("gps");
   };
 
   const handlePickOnMapRequested = () => {
@@ -69,6 +77,7 @@ export default function HomePage() {
     if (pendingPickerLocation) {
       setStartLocation(pendingPickerLocation);
       setStartLabel("Point on Map");
+      setOriginType("manual");
       setIsSelectingStart(false);
       setPendingPickerLocation(undefined);
     }
@@ -82,9 +91,13 @@ export default function HomePage() {
   const handleSelectLandmark = (landmark: any) => {
     setSelectedLandmark(landmark);
     setIsSidebarCollapsed(true);
-    setIsPlanning(false);
+    // If we already have a start location, stay in planning mode to show the route
+    setIsPlanning(!!startLocation);
     setRouteInfo(null);
     setDestination([landmark.lng, landmark.lat]);
+    setStartLocation(undefined);
+    setStartLabel("");
+    setOriginType(null);
     setIsSelectingStart(false);
     setIsGuidanceActive(false);
     setIsDemoMode(false);
@@ -128,11 +141,43 @@ export default function HomePage() {
             onLocationSelected={handleLocationSelectedOnMap}
             onSelectLandmark={handleSelectLandmark}
             onRouteCalculated={handleRouteCalculated}
+            isPaused={isPaused}
+            recenterCount={recenterCount}
+            onSimulationUpdate={(coord, path, instruction, distance) => {
+              setCurrentInstruction(instruction);
+              setCurrentDistance(distance);
+            }}
           />
         </div>
 
+        {/* Navigation Overlay */}
+        {isGuidanceActive && (
+          <NavigationOverlay
+            isPaused={isPaused}
+            isMuted={isMuted}
+            onPauseToggle={() => setIsPaused(!isPaused)}
+            onMuteToggle={() => setIsMuted(!isMuted)}
+            onEndNavigation={() => {
+              setIsGuidanceActive(false);
+              setIsDemoMode(false);
+              setDestination(undefined);
+              setRouteInfo(null);
+              setIsPaused(false);
+              setIsSidebarCollapsed(false);
+              setSelectedLandmark(null);
+              setIsPlanning(false);
+            }}
+            onRecenter={() => setRecenterCount(prev => prev + 1)}
+            instruction={currentInstruction}
+            distance={currentDistance}
+            totalDistance={routeInfo ? `${Math.round(routeInfo.distance)} m` : undefined}
+            totalTime={routeInfo ? `${routeInfo.time} min` : undefined}
+            theme={theme}
+          />
+        )}
+
         {/* Route Info Card */}
-        {routeInfo && (
+        {routeInfo && !isGuidanceActive && (
           <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-40 animate-in fade-in slide-in-from-bottom-5 duration-500">
             <div className={`px-6 py-4 backdrop-blur-2xl border rounded-3xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.15)] flex items-center gap-6 ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700/60' : 'bg-white/80 border-white/60'}`}>
               <div className="flex flex-col">
@@ -160,26 +205,28 @@ export default function HomePage() {
         )}
 
         {/* PREMIUM SEARCH BAR */}
-        <div className="absolute top-8 left-1/2 -translate-x-1/2 z-30 w-full max-w-lg px-4">
-          <div className={`flex items-center gap-2 p-1.5 backdrop-blur-xl border rounded-[24px] shadow-[0_25px_60px_rgba(0,0,0,0.12)] transition-all group ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700/60 hover:bg-slate-900/60' : 'bg-white/40 border-white/60 hover:bg-white/60'}`}>
-            <div className={`flex-1 flex items-center gap-3 pl-4 pr-1 rounded-[20px] h-12 shadow-sm border transition-all focus-within:ring-2 focus-within:ring-orange-500/5 ${theme === 'dark' ? 'bg-slate-900 border-slate-800 focus-within:border-slate-600' : 'bg-white border-slate-100 focus-within:border-orange-200'}`}>
-              <Search className="text-slate-400 group-focus-within:text-orange-500 transition-colors" size={18} />
-              <input
-                className={`w-full bg-transparent outline-none text-[14.5px] placeholder:text-slate-500 font-semibold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}
-                placeholder="Search campus..."
-              />
-              <button className="px-3 py-2 text-slate-300 hover:text-slate-600 transition-colors">
-                <Mic size={18} />
+        {!isGuidanceActive && (
+          <div className="absolute top-8 left-1/2 -translate-x-1/2 z-30 w-full max-w-lg px-4 animate-in fade-in duration-500">
+            <div className={`flex items-center gap-2 p-1.5 backdrop-blur-xl border rounded-[24px] shadow-[0_25px_60px_rgba(0,0,0,0.12)] transition-all group ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700/60 hover:bg-slate-900/60' : 'bg-white/40 border-white/60 hover:bg-white/60'}`}>
+              <div className={`flex-1 flex items-center gap-3 pl-4 pr-1 rounded-[20px] h-12 shadow-sm border transition-all focus-within:ring-2 focus-within:ring-orange-500/5 ${theme === 'dark' ? 'bg-slate-900 border-slate-800 focus-within:border-slate-600' : 'bg-white border-slate-100 focus-within:border-orange-200'}`}>
+                <Search className="text-slate-400 group-focus-within:text-orange-500 transition-colors" size={18} />
+                <input
+                  className={`w-full bg-transparent outline-none text-[14.5px] placeholder:text-slate-500 font-semibold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}
+                  placeholder="Search campus..."
+                />
+                <button className="px-3 py-2 text-slate-300 hover:text-slate-600 transition-colors">
+                  <Mic size={18} />
+                </button>
+              </div>
+              <button
+                onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                className={`flex items-center justify-center w-12 h-12 rounded-[20px] transition-all shadow-lg active:scale-95 group/btn ${theme === 'dark' ? 'bg-orange-500 text-white hover:bg-orange-600' : 'bg-[#111827] text-white hover:bg-slate-800'}`}
+              >
+                <MapIcon size={18} className="group-hover/btn:scale-110 transition-transform" />
               </button>
             </div>
-            <button
-              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              className={`flex items-center justify-center w-12 h-12 rounded-[20px] transition-all shadow-lg active:scale-95 group/btn ${theme === 'dark' ? 'bg-orange-500 text-white hover:bg-orange-600' : 'bg-[#111827] text-white hover:bg-slate-800'}`}
-            >
-              <MapIcon size={18} className="group-hover/btn:scale-110 transition-transform" />
-            </button>
           </div>
-        </div>
+        )}
 
         {/* Info Panel */}
         {selectedLandmark && !isSelectingStart && (
@@ -194,6 +241,7 @@ export default function HomePage() {
               setDestination(undefined);
               setStartLocation(undefined);
               setStartLabel("Current Location");
+              setOriginType(null);
               setRouteInfo(null);
               setIsSelectingStart(false);
               setIsGuidanceActive(false);
@@ -202,6 +250,7 @@ export default function HomePage() {
             }}
             onGetGPSLocation={handleGetGPSLocation}
             onPickOnMap={handlePickOnMapRequested}
+            originType={originType}
             onStartNavigation={(coord) => {
               setDestination(coord);
               setIsGuidanceActive(true);
@@ -238,8 +287,8 @@ export default function HomePage() {
                   disabled={!pendingPickerLocation}
                   onClick={handleConfirmLocation}
                   className={`flex-1 h-11 rounded-xl font-black text-[14px] flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg ${pendingPickerLocation
-                      ? (theme === 'dark' ? "bg-orange-500 text-white hover:bg-orange-600" : "bg-[#111827] text-white hover:bg-[#fb923c]")
-                      : (theme === 'dark' ? "bg-slate-800 text-slate-600 cursor-not-allowed" : "bg-slate-50 text-slate-300 cursor-not-allowed")
+                    ? (theme === 'dark' ? "bg-orange-500 text-white hover:bg-orange-600" : "bg-[#111827] text-white hover:bg-[#fb923c]")
+                    : (theme === 'dark' ? "bg-slate-800 text-slate-600 cursor-not-allowed" : "bg-slate-50 text-slate-300 cursor-not-allowed")
                     }`}
                 >
                   Confirm
@@ -250,9 +299,11 @@ export default function HomePage() {
         )}
 
         {/* Custom Map Controls */}
-        <div className="absolute bottom-8 right-8 z-30 scale-90">
-          <MapControls onZoomIn={() => { }} onZoomOut={() => { }} />
-        </div>
+        {!isGuidanceActive && (
+          <div className="absolute bottom-8 right-8 z-30 scale-90">
+            <MapControls onZoomIn={() => { }} onZoomOut={() => { }} />
+          </div>
+        )}
 
         {/* Settings Overlay */}
         <SettingsOverlay
@@ -266,11 +317,13 @@ export default function HomePage() {
         />
 
         {/* Right Side Action Buttons */}
-        <div className="absolute top-10 right-8 z-30 flex flex-col gap-3">
-          <QuickActionBtn icon={<Home size={18} />} label="Hostel" onClick={() => setDestination(quickActions.hostel)} theme={theme} />
-          <QuickActionBtn icon={<Microscope size={18} />} label="Lab" onClick={() => setDestination(quickActions.lab)} theme={theme} />
-          <QuickActionBtn icon={<UtensilsCrossed size={18} />} label="Canteen" onClick={() => setDestination(quickActions.canteen)} theme={theme} />
-        </div>
+        {!isGuidanceActive && (
+          <div className="absolute top-10 right-8 z-30 flex flex-col gap-3 animate-in slide-in-from-right-10 duration-500">
+            <QuickActionBtn icon={<Home size={18} />} label="Hostel" onClick={() => setDestination(quickActions.hostel)} theme={theme} />
+            <QuickActionBtn icon={<Microscope size={18} />} label="Lab" onClick={() => setDestination(quickActions.lab)} theme={theme} />
+            <QuickActionBtn icon={<UtensilsCrossed size={18} />} label="Canteen" onClick={() => setDestination(quickActions.canteen)} theme={theme} />
+          </div>
+        )}
       </main>
     </div>
   );

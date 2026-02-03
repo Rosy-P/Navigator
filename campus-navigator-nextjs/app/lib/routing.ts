@@ -173,3 +173,63 @@ export function aStar(
 
     return [];
 }
+
+/**
+ * Calculates the bearing between two points in degrees.
+ */
+export function getBearing(a: [number, number], b: [number, number]): number {
+    const lon1 = (a[0] * Math.PI) / 180;
+    const lat1 = (a[1] * Math.PI) / 180;
+    const lon2 = (b[0] * Math.PI) / 180;
+    const lat2 = (b[1] * Math.PI) / 180;
+    const y = Math.sin(lon2 - lon1) * Math.cos(lat2);
+    const x =
+        Math.cos(lat1) * Math.sin(lat2) -
+        Math.sin(lat1) * Math.cos(lat2) * Math.cos(lon2 - lon1);
+    const bearing = (Math.atan2(y, x) * 180) / Math.PI;
+    return (bearing + 360) % 360;
+}
+
+/**
+ * Determines the maneuver based on the change in bearing.
+ */
+export function getManeuver(b1: number, b2: number): string {
+    let diff = b2 - b1;
+    while (diff > 180) diff -= 360;
+    while (diff < -180) diff += 360;
+
+    if (diff > 35) return "Turn right";
+    if (diff < -35) return "Turn left";
+    return "Continue straight";
+}
+/**
+ * Helper to get a full GeoJSON LineString for a route between two points.
+ * This encapsulates snapping, pathfinding, and formatting.
+ */
+export function getRouteGeoJSON(
+    graph: Map<string, Node>,
+    start: [number, number],
+    end: [number, number]
+): any {
+    const sNode = findNearestNode(start, graph);
+    const eNode = findNearestNode(end, graph);
+    const nodePath = aStar(graph, sNode.id, eNode.id);
+
+    if (nodePath.length === 0) return null;
+
+    const coordinates = nodePath.map(id => graph.get(id)!.coord);
+
+    return {
+        type: "Feature",
+        properties: {
+            distance: coordinates.reduce((acc, coord, i) => {
+                if (i === 0) return 0;
+                return acc + distance(coordinates[i - 1], coord);
+            }, 0)
+        },
+        geometry: {
+            type: "LineString",
+            coordinates: coordinates
+        }
+    };
+}

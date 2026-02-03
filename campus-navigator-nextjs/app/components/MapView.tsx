@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { buildGraph, findNearestNode, aStar, Node, distance } from "../lib/routing";
+import { buildGraph, findNearestNode, aStar, Node, distance, getBearing, getManeuver, getRouteGeoJSON } from "../lib/routing";
 
 interface MapViewProps {
     startLocation?: [number, number];
@@ -15,9 +15,11 @@ interface MapViewProps {
     mapStyle?: string;
     simulationSpeed?: string;
     onLocationSelected?: (coord: [number, number]) => void;
-    onSimulationUpdate?: (coord: [number, number], coveredPoints: [number, number][]) => void;
+    onSimulationUpdate?: (coord: [number, number], coveredPoints: [number, number][], instruction: string, distanceToNext: string) => void;
     onRouteCalculated?: (distance: number) => void;
     onSelectLandmark?: (landmark: any) => void;
+    isPaused?: boolean;
+    recenterCount?: number;
 }
 
 export default function MapView({
@@ -32,7 +34,9 @@ export default function MapView({
     onLocationSelected,
     onSimulationUpdate,
     onRouteCalculated,
-    onSelectLandmark
+    onSelectLandmark,
+    isPaused = false,
+    recenterCount = 0
 }: MapViewProps) {
     const mapRef = useRef<HTMLDivElement>(null);
     const mapInstance = useRef<maplibregl.Map | null>(null);
@@ -42,7 +46,14 @@ export default function MapView({
     const destMarkerRef = useRef<maplibregl.Marker | null>(null);
 
     const currentRouteRef = useRef<[number, number][]>([]);
-    const simulationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const animFrameRef = useRef<number | null>(null);
+
+    // Camera Management Refs
+    const cameraModeRef = useRef<"IDLE" | "FOLLOW" | "TURN">("IDLE");
+    const lastCameraPosRef = useRef<[number, number] | null>(null);
+    const lastCameraBearingRef = useRef<number>(0);
+    const smoothedBearingRef = useRef<number>(0);
+    const smoothedSpeedRef = useRef<number>(0);
 
     // Refs for state
     const isSelectingStartRef = useRef(isSelectingStart);
@@ -149,6 +160,25 @@ export default function MapView({
                     paint: { "text-color": "#fb923c" }
                 });
 
+                map.addLayer({
+                    id: "landmarks-labels",
+                    type: "symbol",
+                    source: "landmarks",
+                    layout: {
+                        "text-field": ["get", "name"],
+                        "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+                        "text-size": ["interpolate", ["linear"], ["zoom"], 15, 0, 16, 11, 18, 14],
+                        "text-offset": [0, 1.5],
+                        "text-anchor": "top",
+                        "text-allow-overlap": false
+                    },
+                    paint: {
+                        "text-color": mapStyle === "satellite" ? "#ffffff" : "#1e293b",
+                        "text-halo-color": mapStyle === "satellite" ? "#000000" : "#ffffff",
+                        "text-halo-width": 2
+                    }
+                });
+
                 // 3. Paths
                 const pathsRes = await fetch("/data/mcc-paths.geojson");
                 const pathsData = await pathsRes.json();
@@ -189,8 +219,8 @@ export default function MapView({
                 // Marker
                 const el = document.createElement('div');
                 el.className = 'user-marker-container';
-                el.innerHTML = '<div class="user-marker-pulse"></div><div class="user-marker-dot"></div>';
-                startMarkerRef.current = new maplibregl.Marker({ element: el }).setLngLat(currentUserLocation).addTo(map);
+                el.innerHTML = '<div class="nav-shadow"></div><div class="nav-arrow"></div><div class="user-marker-pulse"></div>';
+                startMarkerRef.current = new maplibregl.Marker({ element: el, rotationAlignment: 'map' }).setLngLat(currentUserLocation).addTo(map);
 
                 // 5. Interaction
                 map.on("click", (e) => {
@@ -224,45 +254,204 @@ export default function MapView({
         };
     }, [mapStyle]);
 
-    // Guidance mode & Demo
+
+    // Zoom to Destination
     useEffect(() => {
-        if (!mapInstance.current) return;
-        if (isGuidanceActive) {
-            mapInstance.current.easeTo({ pitch: 45, duration: 1000 });
-        } else {
-            mapInstance.current.easeTo({ pitch: 0, duration: 1000 });
-        }
-    }, [isGuidanceActive]);
+        if (!mapInstance.current || !destination || isGuidanceActive) return;
+        mapInstance.current.easeTo({
+            center: destination,
+            zoom: 18,
+            duration: 1200
+        });
+    }, [destination, isGuidanceActive]);
+
+    // Speed configuration (meters per second)
+    const speedTable = {
+        "slow": 3,
+        "normal": 7,
+        "fast": 15
+    };
 
     useEffect(() => {
-        if (!isDemoMode || !isGuidanceActive || currentRouteRef.current.length === 0 || !mapInstance.current) {
-            if (simulationIntervalRef.current) clearInterval(simulationIntervalRef.current);
+        if (!isDemoMode || !isGuidanceActive || currentRouteRef.current.length === 0 || !mapInstance.current || isPaused) {
+            if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+            cameraModeRef.current = "IDLE";
             return;
         }
 
-        let step = 0;
-        const fullPath = currentRouteRef.current;
-        const interval = (speedMap as any)[simulationSpeed] || 800;
+        const path = currentRouteRef.current;
+        let segmentIndex = 0;
+        let segmentStartPos = path[0];
+        let segmentEndPos = path[1];
+        let segmentStartTime = performance.now();
+        let segmentDistance = distance(segmentStartPos, segmentEndPos);
+        const map = mapInstance.current!;
+        const speed = (speedTable as any)[simulationSpeed] || 7;
+        let segmentDuration = (segmentDistance / speed) * 1000;
 
-        simulationIntervalRef.current = setInterval(() => {
-            if (step >= fullPath.length) {
-                if (simulationIntervalRef.current) clearInterval(simulationIntervalRef.current);
+        cameraModeRef.current = "FOLLOW";
+        smoothedBearingRef.current = getBearing(segmentStartPos, segmentEndPos);
+
+        const animate = (time: number) => {
+            if (isPaused) {
+                segmentStartTime = time - (time - segmentStartTime); // Pause logic
+                animFrameRef.current = requestAnimationFrame(animate);
                 return;
             }
-            const currentPos = fullPath[step] as [number, number];
-            if (startMarkerRef.current) startMarkerRef.current.setLngLat(currentPos);
 
+            let elapsed = time - segmentStartTime;
+            let t = Math.min(elapsed / segmentDuration, 1);
+
+            // Interpolate position
+            const currentLng = segmentStartPos[0] + (segmentEndPos[0] - segmentStartPos[0]) * t;
+            const currentLat = segmentStartPos[1] + (segmentEndPos[1] - segmentStartPos[1]) * t;
+            const currentPos: [number, number] = [currentLng, currentLat];
+
+            const targetBearing = getBearing(segmentStartPos, segmentEndPos);
+
+            // Smoothing for map bearing
+            const alpha = 0.08;
+            let diff = targetBearing - smoothedBearingRef.current;
+            while (diff > 180) diff -= 360;
+            while (diff < -180) diff += 360;
+            smoothedBearingRef.current = (smoothedBearingRef.current + diff * alpha + 360) % 360;
+
+            if (startMarkerRef.current) {
+                startMarkerRef.current.setLngLat(currentPos);
+                startMarkerRef.current.setRotation(targetBearing);
+            }
+
+            // Camera Throttling: Only easeTo when needed to prevent stutter
+            const distChanged = !lastCameraPosRef.current || distance(currentPos, lastCameraPosRef.current) > 0.4;
+            const bearingChanged = Math.abs(smoothedBearingRef.current - lastCameraBearingRef.current) > 1.0;
+
+            if (distChanged || bearingChanged) {
+                if (segmentIndex < path.length - 2) {
+                    const b1 = getBearing(segmentStartPos, segmentEndPos);
+                    const bNext = getBearing(path[segmentIndex + 1], path[segmentIndex + 2]);
+                    const maneuver = getManeuver(b1, bNext);
+                    cameraModeRef.current = maneuver !== "Continue straight" ? "TURN" : "FOLLOW";
+                }
+
+                // Calculate and Smooth Velocity
+                const targetSpeed = speed; // Use segment speed
+                const speedAlpha = 0.03; // Smooth velocity transitions
+                smoothedSpeedRef.current = smoothedSpeedRef.current + (targetSpeed - smoothedSpeedRef.current) * speedAlpha;
+
+                // Map speed to dynamic offset (110px at 3m/s -> 220px at 15m/s)
+                const speedFactor = Math.max(0, Math.min(1, (smoothedSpeedRef.current - 3) / (15 - 3)));
+                const dynamicOffset = 110 + speedFactor * (220 - 110);
+
+                const rad = smoothedBearingRef.current * (Math.PI / 180);
+                const x = Math.sin(rad);
+                const y = Math.cos(rad);
+
+                const offsetX = -x * dynamicOffset;
+                const offsetY = y * dynamicOffset;
+
+                map.easeTo({
+                    center: currentPos,
+                    bearing: smoothedBearingRef.current,
+                    pitch: cameraModeRef.current === "TURN" ? 45 : 60,
+                    offset: [offsetX, offsetY],
+                    duration: 150,
+                    easing: (t) => t
+                });
+
+                lastCameraPosRef.current = currentPos;
+                lastCameraBearingRef.current = smoothedBearingRef.current;
+            }
+
+            // Update Route Layers
             const cSrc = mapInstance.current!.getSource("route-covered") as maplibregl.GeoJSONSource;
-            if (cSrc) cSrc.setData({ type: "Feature", geometry: { type: "LineString", coordinates: fullPath.slice(0, step + 1) } } as any);
+            if (cSrc) {
+                const covered = [...path.slice(0, segmentIndex + 1), currentPos];
+                cSrc.setData({ type: "Feature", geometry: { type: "LineString", coordinates: covered } } as any);
+            }
 
             const rSrc = mapInstance.current!.getSource("route") as maplibregl.GeoJSONSource;
-            if (rSrc) rSrc.setData({ type: "Feature", geometry: { type: "LineString", coordinates: fullPath.slice(step) } } as any);
+            if (rSrc) {
+                const remaining = [currentPos, ...path.slice(segmentIndex + 1)];
+                rSrc.setData({ type: "Feature", geometry: { type: "LineString", coordinates: remaining } } as any);
+            }
 
-            step++;
-        }, interval);
+            // Navigation Instructions calculation
+            let instruction = "Continue straight";
+            let distToManeuver = segmentDistance * (1 - t);
 
-        return () => { if (simulationIntervalRef.current) clearInterval(simulationIntervalRef.current); };
-    }, [isDemoMode, isGuidanceActive, simulationSpeed]);
+            // Look ahead for turns
+            if (segmentIndex < path.length - 2) {
+                const b1 = getBearing(segmentStartPos, segmentEndPos);
+                const bNext = getBearing(path[segmentIndex + 1], path[segmentIndex + 2]);
+                const nextManeuver = getManeuver(b1, bNext);
+
+                if (nextManeuver !== "Continue straight") {
+                    instruction = nextManeuver;
+                } else {
+                    // Accumulate distance if straight
+                    let lookaheadDist = distToManeuver;
+                    for (let i = segmentIndex + 1; i < path.length - 1; i++) {
+                        const bCurr = getBearing(path[i - 1], path[i]);
+                        const bNextCheck = getBearing(path[i], path[i + 1]);
+                        const m = getManeuver(bCurr, bNextCheck);
+                        if (m !== "Continue straight") {
+                            instruction = m;
+                            break;
+                        }
+                        lookaheadDist += distance(path[i], path[i + 1]);
+                    }
+                    distToManeuver = lookaheadDist;
+                }
+            } else {
+                if (segmentIndex === path.length - 2 && t > 0.95) {
+                    instruction = "You have arrived";
+                    distToManeuver = 0;
+                }
+            }
+
+            const distText = distToManeuver >= 1000
+                ? `${(distToManeuver / 1000).toFixed(1)}km`
+                : `${Math.round(distToManeuver)}m`;
+
+            if (onSimulationUpdate) {
+                onSimulationUpdate(currentPos, path.slice(0, segmentIndex + 1), instruction, distText);
+            }
+
+            if (t < 1) {
+                animFrameRef.current = requestAnimationFrame(animate);
+            } else {
+                // Move to next segment
+                segmentIndex++;
+                if (segmentIndex < path.length - 1) {
+                    segmentStartPos = path[segmentIndex];
+                    segmentEndPos = path[segmentIndex + 1];
+                    segmentStartTime = performance.now();
+                    segmentDistance = distance(segmentStartPos, segmentEndPos);
+                    segmentDuration = (segmentDistance / speed) * 1000;
+                    animFrameRef.current = requestAnimationFrame(animate);
+                } else {
+                    // Finished
+                }
+            }
+        };
+
+        animFrameRef.current = requestAnimationFrame(animate);
+
+        return () => {
+            if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+        };
+    }, [isDemoMode, isGuidanceActive, isPaused, simulationSpeed]);
+
+    // Manual Recenter
+    useEffect(() => {
+        if (recenterCount > 0 && mapInstance.current && startMarkerRef.current) {
+            mapInstance.current.easeTo({
+                center: startMarkerRef.current.getLngLat(),
+                zoom: 18,
+                duration: 1000
+            });
+        }
+    }, [recenterCount]);
 
     useEffect(() => {
         if (!mapInstance.current) return;
@@ -294,24 +483,25 @@ export default function MapView({
             return;
         }
 
-        const sNode = findNearestNode(currentUserLocation, graphRef.current);
-        const eNode = findNearestNode(destination, graphRef.current);
-        const nodePath = aStar(graphRef.current, sNode.id, eNode.id);
+        const routeFeature = getRouteGeoJSON(graphRef.current, currentUserLocation, destination);
 
-        if (nodePath.length > 0) {
-            const routeCoords = nodePath.map(id => graphRef.current!.get(id)!.coord);
+        if (routeFeature) {
+            const routeCoords = routeFeature.geometry.coordinates;
             currentRouteRef.current = routeCoords;
-            if (onRouteCalculated) onRouteCalculated(distance(routeCoords[0] as any, routeCoords[routeCoords.length - 1] as any)); // rough dist
+
+            if (onRouteCalculated) {
+                onRouteCalculated(routeFeature.properties.distance);
+            }
 
             const rSrc = mapInstance.current.getSource("route") as maplibregl.GeoJSONSource;
-            if (rSrc) rSrc.setData({ type: "Feature", geometry: { type: "LineString", coordinates: routeCoords } } as any);
+            if (rSrc) rSrc.setData(routeFeature);
 
             if (destMarkerRef.current) destMarkerRef.current.remove();
             destMarkerRef.current = new maplibregl.Marker({ color: "#ef4444" }).setLngLat(destination).addTo(mapInstance.current);
 
             const b = new maplibregl.LngLatBounds();
-            routeCoords.forEach(c => b.extend(c as [number, number]));
-            mapInstance.current.fitBounds(b, { padding: 100 });
+            routeCoords.forEach((c: any) => b.extend(c as [number, number]));
+            mapInstance.current.fitBounds(b, { padding: 100, duration: 1000 });
         }
     }, [startLocation, destination, pendingLocation, isSelectingStart, isDemoMode, mapStyle]);
 

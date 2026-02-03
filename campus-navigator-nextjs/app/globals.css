@@ -68,34 +68,56 @@ body {
   box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.08);
 }
 
-/* User Location Pulsing Effect */
+/* Navigation Arrow Marker */
 .user-marker-container {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   position: relative;
 }
 
-.user-marker-dot {
-  width: 14px;
-  height: 14px;
-  background: #3b82f6;
-  border: 2px solid white;
-  border-radius: 50%;
+.nav-arrow {
+  width: 32px;
+  height: 32px;
+  background: white;
+  clip-path: polygon(50% 0%, 100% 100%, 50% 80%, 0% 100%);
+  position: relative;
   z-index: 2;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-arrow::after {
+  content: "";
+  width: 26px;
+  height: 26px;
+  background: #3b82f6;
+  clip-path: polygon(50% 0%, 100% 100%, 50% 80%, 0% 100%);
+}
+
+.nav-shadow {
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  background: rgba(0, 0, 0, 0.15);
+  clip-path: polygon(50% 0%, 100% 100%, 50% 80%, 0% 100%);
+  top: 4px;
+  filter: blur(2px);
+  z-index: 1;
 }
 
 .user-marker-pulse {
   position: absolute;
   width: 14px;
   height: 14px;
-  background: rgba(59, 130, 246, 0.5);
+  background: rgba(59, 130, 246, 0.4);
   border-radius: 50%;
   animation: marker-pulse 2s infinite;
-  z-index: 1;
+  z-index: 0;
 }
 
 @keyframes marker-pulse {
@@ -105,7 +127,7 @@ body {
   }
 
   100% {
-    transform: scale(4);
+    transform: scale(5);
     opacity: 0;
   }
 }
