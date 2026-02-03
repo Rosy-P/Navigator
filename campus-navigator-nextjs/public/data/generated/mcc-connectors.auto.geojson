@@ -1,0 +1,709 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "conn_a_block_room_101",
+        "landmarkId": "a_block_room_101",
+        "landmarkName": "A-Block Room 101",
+        "type": "connector"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            80.1284184,
+            12.9184334
+          ],
+          [
+            80.1385,
+            12.9181
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "conn_cs_lab_201",
+        "landmarkId": "cs_lab_201",
+        "landmarkName": "CS Lab 201",
+        "type": "connector"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            80.1284184,
+            12.9184334
+          ],
+          [
+            80.1396,
+            12.9186
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "conn_computer_science_dept",
+        "landmarkId": "computer_science_dept",
+        "landmarkName": "Computer Science Dept",
+        "type": "connector"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            80.1284184,
+            12.9184334
+          ],
+          [
+            80.1395,
+            12.9185
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "conn_commerce_block",
+        "landmarkId": "commerce_block",
+        "landmarkName": "Commerce Block",
+        "type": "connector"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            80.11969241316484,
+            12.922850513647386
+          ],
+          [
+            80.1196958,
+            12.9228986
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "conn_main_gate",
+        "landmarkId": "main_gate",
+        "landmarkName": "Main Gate",
+        "type": "connector"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            80.12048685941141,
+            12.92313641924193
+          ],
+          [
+            80.120584,
+            12.923163
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "conn_library",
+        "landmarkId": "library",
+        "landmarkName": "Library",
+        "type": "connector"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            80.1284184,
+            12.9184334
+          ],
+          [
+            80.139,
+            12.9182
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "conn_thomas_hall",
+        "landmarkId": "thomas_hall",
+        "landmarkName": "Thomas Hall",
+        "type": "connector"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            80.1205502611404,
+            12.922097133416578
+          ],
+          [
+            80.1199855,
+            12.9221401
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "conn_iob_atm",
+        "landmarkId": "iob_atm",
+        "landmarkName": "IOB ATM",
+        "type": "connector"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            80.12052584850134,
+            12.921680240832796
+          ],
+          [
+            80.12053,
+            12.92168
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "conn_boxing_ring",
+        "landmarkId": "boxing_ring",
+        "landmarkName": "Boxing Ring",
+        "type": "connector"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            80.12113533204933,
+            12.921084760984607
+          ],
+          [
+            80.121124,
+            12.920936
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "conn_center_for_media_studies",
+        "landmarkId": "center_for_media_studies",
+        "landmarkName": "Center for Media Studies",
+        "type": "connector"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            80.1207928210135,
+            12.920211933824527
+          ],
+          [
+            80.120561,
+            12.920227
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "conn_miller_memorial_library",
+        "landmarkId": "miller_memorial_library",
+        "landmarkName": "Miller Memorial Library",
+        "type": "connector"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            80.12078243273564,
+            12.920052090929758
+          ],
+          [
+            80.120353,
+            12.92008
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "conn_macphails_arts_center",
+        "landmarkId": "macphails_arts_center",
+        "landmarkName": "Macphails Arts Center",
+        "type": "connector"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            80.1216666,
+            12.9193654
+          ],
+          [
+            80.121757,
+            12.919368
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "conn_mcc_stone_bench",
+        "landmarkId": "mcc_stone_bench",
+        "landmarkName": "MCC Stone Bench",
+        "type": "connector"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            80.12092870433973,
+            12.921100501102263
+          ],
+          [
+            80.120926,
+            12.921065
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "conn_anderson_hall",
+        "landmarkId": "anderson_hall",
+        "landmarkName": "Anderson Hall",
+        "type": "connector"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            80.12220953417906,
+            12.921298499667655
+          ],
+          [
+            80.122281,
+            12.921221
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "conn_institute_for_advanced_christian_studies",
+        "landmarkId": "institute_for_advanced_christian_studies",
+        "landmarkName": "Institute for Advanced Christian Studies",
+        "type": "connector"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            80.11920052181254,
+            12.911166331606132
+          ],
+          [
+            80.121098,
+            12.91087
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "conn_mcc_school_of_continuing_education",
+        "landmarkId": "mcc_school_of_continuing_education",
+        "landmarkName": "MCC School of Continuing Education",
+        "type": "connector"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            80.12029572110511,
+            12.919493207634215
+          ],
+          [
+            80.120293,
+            12.919464
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "conn_quadrangle_mcc",
+        "landmarkId": "quadrangle_mcc",
+        "landmarkName": "Quadrangle MCC",
+        "type": "connector"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            80.12212427356857,
+            12.921957391569352
+          ],
+          [
+            80.122117,
+            12.921766
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "conn_bishop_heber_chapel",
+        "landmarkId": "bishop_heber_chapel",
+        "landmarkName": "Bishop Heber Chapel",
+        "type": "connector"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            80.12378843421503,
+            12.918677374665814
+          ],
+          [
+            80.1237943,
+            12.9187664
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "conn_heber_hall",
+        "landmarkId": "heber_hall",
+        "landmarkName": "Heber Hall",
+        "type": "connector"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            80.12315537463246,
+            12.919545100250607
+          ],
+          [
+            80.1237728,
+            12.9195085
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "conn_mcc_campus_clinic",
+        "landmarkId": "mcc_campus_clinic",
+        "landmarkName": "MCC Campus Clinic",
+        "type": "connector"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            80.1229010743055,
+            12.9208926737966
+          ],
+          [
+            80.122765,
+            12.9207435
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "conn_zoology_tank",
+        "landmarkId": "zoology_tank",
+        "landmarkName": "Zoology tank",
+        "type": "connector"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            80.1232056947238,
+            12.92039375823572
+          ],
+          [
+            80.1231177,
+            12.920399
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "conn_college_union_society",
+        "landmarkId": "college_union_society",
+        "landmarkName": "College Union society",
+        "type": "connector"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            80.12720700231552,
+            12.919180758449428
+          ],
+          [
+            80.1277314,
+            12.9203866
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "conn_mcc_cafeteria",
+        "landmarkId": "mcc_cafeteria",
+        "landmarkName": "MCC Cafeteria",
+        "type": "connector"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            80.12274340717478,
+            12.920539521467669
+          ],
+          [
+            80.12273,
+            12.92034
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "conn_botany_tank",
+        "landmarkId": "botany_tank",
+        "landmarkName": "Botany Tank",
+        "type": "connector"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            80.12098495569602,
+            12.920657683521014
+          ],
+          [
+            80.1209786,
+            12.9205631
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "conn_mcc_pavilion",
+        "landmarkId": "mcc_pavilion",
+        "landmarkName": "MCC Pavilion",
+        "type": "connector"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            80.1218752,
+            12.9169316
+          ],
+          [
+            80.12156,
+            12.91694
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "conn_selaiyur_hall",
+        "landmarkId": "selaiyur_hall",
+        "landmarkName": "Selaiyur Hall",
+        "type": "connector"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            80.12419312186047,
+            12.92106921988595
+          ],
+          [
+            80.12421,
+            12.92138
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "conn_mcc_gate_2",
+        "landmarkId": "mcc_gate_2",
+        "landmarkName": "MCC Gate 2",
+        "type": "connector"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            80.12395997420239,
+            12.922940461318102
+          ],
+          [
+            80.12393,
+            12.92295
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "conn_mcc_main_hospital",
+        "landmarkId": "mcc_main_hospital",
+        "landmarkName": "MCC Main Hospital",
+        "type": "connector"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            80.12539683039327,
+            12.917459822739822
+          ],
+          [
+            80.12539,
+            12.91724
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "conn_mcc_farm",
+        "landmarkId": "mcc_farm",
+        "landmarkName": "MCC Farm",
+        "type": "connector"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            80.12606862045654,
+            12.915613365591808
+          ],
+          [
+            80.12586,
+            12.91562
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "conn_mcc_lake",
+        "landmarkId": "mcc_lake",
+        "landmarkName": "MCC Lake",
+        "type": "connector"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            80.11696424003709,
+            12.915746407118846
+          ],
+          [
+            80.11732,
+            12.91572
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "conn_mcc_international_guest_house",
+        "landmarkId": "mcc_international_guest_house",
+        "landmarkName": "MCC International Guest House",
+        "type": "connector"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            80.11978169360388,
+            12.918759801949168
+          ],
+          [
+            80.11978,
+            12.91873
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "conn_mcc_indoor_stadium",
+        "landmarkId": "mcc_indoor_stadium",
+        "landmarkName": "MCC Indoor Stadium",
+        "type": "connector"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            80.11936982624698,
+            12.916483174514198
+          ],
+          [
+            80.1194,
+            12.91691
+          ]
+        ]
+      }
+    }
+  ]
+}

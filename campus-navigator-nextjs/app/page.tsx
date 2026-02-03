@@ -1,15 +1,26 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Search, Map as MapIcon, Home, Microscope, UtensilsCrossed, Mic } from "lucide-react";
+import { Search, Map as MapIcon, Home, Microscope, UtensilsCrossed, Mic, Navigation } from "lucide-react";
 import Sidebar from "./components/Sidebar";
 import MapView from "./components/MapView";
 import MapControls from "./components/MapControls";
 import InfoPanel from "./components/InfoPanel";
 import SettingsOverlay from "./components/SettingsOverlay";
 import NavigationOverlay from "./components/NavigationOverlay";
+import { useMediaQuery } from "./hooks/use-media-query";
+
+type UIState = "IDLE" | "SEARCHING" | "PLACE_SELECTED" | "NAVIGATION_ACTIVE";
+type SheetState = "PEEK" | "HALF" | "FULL";
 
 export default function HomePage() {
+  const isMobile = useMediaQuery("(max-width: 768px)");
+
+  // UI States
+  const [uiState, setUiState] = useState<UIState>("IDLE");
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [sheetState, setSheetState] = useState<SheetState>("HALF");
+
   // Navigation States
   const [startLocation, setStartLocation] = useState<[number, number] | undefined>();
   const [startLabel, setStartLabel] = useState<string>("");
@@ -101,6 +112,8 @@ export default function HomePage() {
     setIsSelectingStart(false);
     setIsGuidanceActive(false);
     setIsDemoMode(false);
+    setUiState("PLACE_SELECTED");
+    setSheetState("HALF");
   };
 
   const quickActions = {
@@ -118,15 +131,89 @@ export default function HomePage() {
 
   return (
     <div className={`h-screen w-screen relative flex overflow-hidden transition-colors duration-500 ${theme === 'dark' ? 'bg-[#0f172a]' : 'bg-white'}`}>
+      {/* Sidebar Overlay for Mobile */}
+      {isMobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-[45] md:hidden animate-in fade-in duration-300"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
       <Sidebar
         isCollapsed={isSidebarCollapsed}
+        isMobileOpen={isMobileMenuOpen}
+        isDisabled={uiState === "NAVIGATION_ACTIVE"}
+        onCloseMobile={() => setIsMobileMenuOpen(false)}
         onOpenSettings={() => setShowSettings(true)}
         forceActiveLabel={showSettings ? "Settings" : (selectedLandmark ? "Locations" : undefined)}
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 relative transition-all duration-300 overflow-hidden">
+      <main className={`
+        flex-1 relative transition-all duration-500 overflow-hidden
+        ${/* On desktop, add left margin to prevent map from being under the sidebar */ ""}
+        ${!isSidebarCollapsed ? "md:ml-[320px] 2xl:ml-[340px]" : "md:ml-[64px]"}
+      `}>
+        {/* Hamburger Menu & Search Bar - Integrated for Mobile, Centered for Desktop */}
+        {!isGuidanceActive && (
+          <div className={`
+            fixed top-6 left-0 right-0 z-[40] px-4 flex items-center gap-2 transition-all duration-500
+            md:absolute md:top-8 md:left-1/2 md:-translate-x-1/2 md:px-0 md:w-auto
+            ${uiState === "SEARCHING" ? "scale-95 opacity-50 pointer-events-none" : "scale-100 opacity-100"}
+          `}>
+            {/* Hamburger (Mobile Only) */}
+            {uiState !== "NAVIGATION_ACTIVE" && (
+              <button
+                onClick={() => setIsMobileMenuOpen(true)}
+                className="md:hidden flex-shrink-0 w-12 h-12 bg-white rounded-2xl shadow-xl flex items-center justify-center text-slate-900 active:scale-95 transition-all border border-slate-100"
+              >
+                <div className="flex flex-col gap-1">
+                  <span className="w-5 h-0.5 bg-current rounded-full" />
+                  <span className="w-5 h-0.5 bg-current rounded-full" />
+                  <span className="w-3 h-0.5 bg-current rounded-full" />
+                </div>
+              </button>
+            )}
+
+            {/* Search Bar Container - Double Layered for Desktop */}
+            <div className="flex-1 md:w-[440px] 2xl:w-[500px]">
+              <div className="group relative">
+                {/* Outer Layer (Desktop only glass effect) */}
+                <div className={`
+                  absolute -inset-1 backdrop-blur-md rounded-[22px] transition-all opacity-0 md:opacity-100
+                  ${theme === 'dark' ? 'bg-slate-800/20' : 'bg-white/40 shadow-2xl shadow-black/5'}
+                `} />
+
+                {/* Inner Layer */}
+                <div className={`
+                  relative h-12 md:h-14 2xl:h-16 px-5 md:px-6 flex items-center gap-3 md:gap-4 rounded-2xl border shadow-xl backdrop-blur-xl transition-all
+                  ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700/60' : 'bg-white/90 border-slate-200/60'}
+                `}>
+                  <Search className="text-slate-400" size={18} />
+                  <input
+                    type="text"
+                    placeholder="Search MCC..."
+                    className="flex-1 bg-transparent border-none outline-none font-bold text-[14px] 2xl:text-lg text-slate-600 placeholder:text-slate-400/60"
+                    onFocus={() => setUiState("SEARCHING")}
+                  />
+
+                  {/* Icons Layer / Toggle Layer */}
+                  <div className="flex items-center gap-2">
+                    {!isMobile && (
+                      <div className="w-8 h-8 2xl:w-10 2xl:h-10 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors">
+                        <Mic size={18} />
+                      </div>
+                    )}
+                    <div className="w-8 h-8 2xl:w-10 2xl:h-10 bg-orange-500 rounded-xl flex items-center justify-center text-white shadow-lg active:scale-90 transition-transform cursor-pointer">
+                      <Navigation size={14} fill="white" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         {/* The Map */}
         <div className="absolute inset-0 z-0">
           <MapView
@@ -166,6 +253,7 @@ export default function HomePage() {
               setIsSidebarCollapsed(false);
               setSelectedLandmark(null);
               setIsPlanning(false);
+              setUiState("IDLE"); // Ensure UI state resets to IDLE
             }}
             onRecenter={() => setRecenterCount(prev => prev + 1)}
             instruction={currentInstruction}
@@ -179,15 +267,15 @@ export default function HomePage() {
         {/* Route Info Card */}
         {routeInfo && !isGuidanceActive && (
           <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-40 animate-in fade-in slide-in-from-bottom-5 duration-500">
-            <div className={`px-6 py-4 backdrop-blur-2xl border rounded-3xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.15)] flex items-center gap-6 ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700/60' : 'bg-white/80 border-white/60'}`}>
+            <div className={`px-6 py-4 2xl:px-8 2xl:py-6 backdrop-blur-2xl border rounded-3xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.15)] flex items-center gap-6 2xl:gap-8 ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700/60' : 'bg-white/80 border-white/60'}`}>
               <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Estimated Time</span>
-                <span className={`text-2xl font-black leading-none ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{routeInfo.time} min</span>
+                <span className="text-[10px] 2xl:text-[12px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Time</span>
+                <span className={`text-2xl 2xl:text-3xl font-black leading-none ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{routeInfo.time} min</span>
               </div>
-              <div className="w-px h-8 bg-slate-200" />
+              <div className="w-px h-8 2xl:h-10 bg-slate-200" />
               <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Distance</span>
-                <span className="text-xl font-bold text-orange-500 leading-none">{Math.round(routeInfo.distance)} m</span>
+                <span className="text-[10px] 2xl:text-[12px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Dist</span>
+                <span className="text-xl 2xl:text-2xl font-bold text-orange-500 leading-none">{Math.round(routeInfo.distance)} m</span>
               </div>
               <button
                 onClick={() => {
@@ -196,7 +284,7 @@ export default function HomePage() {
                   setIsGuidanceActive(false);
                   setIsDemoMode(false);
                 }}
-                className={`ml-2 w-10 h-10 flex items-center justify-center rounded-2xl transition-colors shadow-lg active:scale-95 ${theme === 'dark' ? 'bg-orange-500 text-white hover:bg-orange-600' : 'bg-slate-900 text-white hover:bg-slate-800'}`}
+                className={`ml-2 w-10 h-10 2xl:w-12 2xl:h-12 flex items-center justify-center rounded-2xl transition-colors shadow-lg active:scale-95 ${theme === 'dark' ? 'bg-orange-500 text-white hover:bg-orange-600' : 'bg-slate-900 text-white hover:bg-slate-800'}`}
               >
                 <Search size={18} />
               </button>
@@ -204,37 +292,19 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* PREMIUM SEARCH BAR */}
-        {!isGuidanceActive && (
-          <div className="absolute top-8 left-1/2 -translate-x-1/2 z-30 w-full max-w-lg px-4 animate-in fade-in duration-500">
-            <div className={`flex items-center gap-2 p-1.5 backdrop-blur-xl border rounded-[24px] shadow-[0_25px_60px_rgba(0,0,0,0.12)] transition-all group ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700/60 hover:bg-slate-900/60' : 'bg-white/40 border-white/60 hover:bg-white/60'}`}>
-              <div className={`flex-1 flex items-center gap-3 pl-4 pr-1 rounded-[20px] h-12 shadow-sm border transition-all focus-within:ring-2 focus-within:ring-orange-500/5 ${theme === 'dark' ? 'bg-slate-900 border-slate-800 focus-within:border-slate-600' : 'bg-white border-slate-100 focus-within:border-orange-200'}`}>
-                <Search className="text-slate-400 group-focus-within:text-orange-500 transition-colors" size={18} />
-                <input
-                  className={`w-full bg-transparent outline-none text-[14.5px] placeholder:text-slate-500 font-semibold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}
-                  placeholder="Search campus..."
-                />
-                <button className="px-3 py-2 text-slate-300 hover:text-slate-600 transition-colors">
-                  <Mic size={18} />
-                </button>
-              </div>
-              <button
-                onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                className={`flex items-center justify-center w-12 h-12 rounded-[20px] transition-all shadow-lg active:scale-95 group/btn ${theme === 'dark' ? 'bg-orange-500 text-white hover:bg-orange-600' : 'bg-[#111827] text-white hover:bg-slate-800'}`}
-              >
-                <MapIcon size={18} className="group-hover/btn:scale-110 transition-transform" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Info Panel */}
+        {/* Info Panel / Bottom Sheet */}
         {selectedLandmark && !isSelectingStart && (
           <InfoPanel
             landmark={selectedLandmark}
             startLabel={startLabel}
             isPlanning={isPlanning}
-            onSetPlanning={(p) => setIsPlanning(p)}
+            isNavigationActive={uiState === "NAVIGATION_ACTIVE"}
+            sheetState={sheetState}
+            onSetSheetState={setSheetState}
+            onSetPlanning={(p) => {
+              setIsPlanning(p);
+              if (p) setSheetState("HALF");
+            }}
             onClose={() => {
               setSelectedLandmark(null);
               setIsSidebarCollapsed(false);
@@ -256,11 +326,13 @@ export default function HomePage() {
               setIsGuidanceActive(true);
               setIsDemoMode(false);
               setSelectedLandmark(null);
+              setUiState("NAVIGATION_ACTIVE");
             }}
             onStartDemo={() => {
               setIsGuidanceActive(true);
               setIsDemoMode(true);
               setSelectedLandmark(null);
+              setUiState("NAVIGATION_ACTIVE");
             }}
           />
         )}
@@ -300,7 +372,12 @@ export default function HomePage() {
 
         {/* Custom Map Controls */}
         {!isGuidanceActive && (
-          <div className="absolute bottom-8 right-8 z-30 scale-90">
+          <div className={`
+            absolute z-30 scale-90 transition-all duration-500
+            ${selectedLandmark
+              ? (isMobile ? "bottom-[52vh] right-4" : "bottom-8 right-[340px]")
+              : "bottom-8 right-8"}
+          `}>
             <MapControls onZoomIn={() => { }} onZoomOut={() => { }} />
           </div>
         )}
@@ -316,12 +393,15 @@ export default function HomePage() {
           onClearHistory={handleClearHistory}
         />
 
-        {/* Right Side Action Buttons */}
-        {!isGuidanceActive && (
-          <div className="absolute top-10 right-8 z-30 flex flex-col gap-3 animate-in slide-in-from-right-10 duration-500">
-            <QuickActionBtn icon={<Home size={18} />} label="Hostel" onClick={() => setDestination(quickActions.hostel)} theme={theme} />
-            <QuickActionBtn icon={<Microscope size={18} />} label="Lab" onClick={() => setDestination(quickActions.lab)} theme={theme} />
-            <QuickActionBtn icon={<UtensilsCrossed size={18} />} label="Canteen" onClick={() => setDestination(quickActions.canteen)} theme={theme} />
+        {/* Map Category Chips / Right Side Action Buttons */}
+        {!isGuidanceActive && !selectedLandmark && (
+          <div className={`
+            fixed top-[88px] left-0 right-0 z-30 flex flex-row gap-2 px-4 overflow-x-auto no-scrollbar
+            md:absolute md:top-10 md:right-8 md:left-auto md:w-auto md:flex-col md:gap-3 md:animate-in md:slide-in-from-right-10 md:duration-500
+          `}>
+            <QuickActionBtn icon={<Home size={18} />} label="Hostel" onClick={() => setDestination(quickActions.hostel)} theme={theme} isMobile={isMobile} />
+            <QuickActionBtn icon={<Microscope size={18} />} label="Lab" onClick={() => setDestination(quickActions.lab)} theme={theme} isMobile={isMobile} />
+            <QuickActionBtn icon={<UtensilsCrossed size={18} />} label="Canteen" onClick={() => setDestination(quickActions.canteen)} theme={theme} isMobile={isMobile} />
           </div>
         )}
       </main>
@@ -329,16 +409,20 @@ export default function HomePage() {
   );
 }
 
-function QuickActionBtn({ icon, label, onClick, theme }: { icon: React.ReactNode; label: string; onClick?: () => void; theme: 'light' | 'dark' }) {
+function QuickActionBtn({ icon, label, onClick, theme, isMobile }: { icon: React.ReactNode; label: string; onClick?: () => void; theme: 'light' | 'dark'; isMobile: boolean }) {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-3 px-4 h-11 backdrop-blur-md border shadow-[0_10px_35px_rgba(0,0,0,0.05)] rounded-xl font-bold transition-all group active:scale-95 ${theme === 'dark' ? 'bg-slate-900/90 border-slate-700/50 text-white hover:bg-slate-800' : 'bg-white/90 border-white/50 text-slate-800 hover:bg-white'}`}
+      className={`
+        flex items-center gap-2 md:gap-3 px-3 md:px-4 h-9 md:h-11 backdrop-blur-md border shadow-[0_10px_35px_rgba(0,0,0,0.05)] font-bold transition-all group active:scale-95 whitespace-nowrap
+        ${isMobile ? "rounded-full" : "rounded-xl"}
+        ${theme === 'dark' ? 'bg-slate-900/90 border-slate-700/50 text-white hover:bg-slate-800' : 'bg-white/90 border-white/50 text-slate-800 hover:bg-white'}
+      `}
     >
-      <div className={`w-8 h-8 flex items-center justify-center rounded-lg text-orange-500 transition-colors ${theme === 'dark' ? 'bg-slate-800 group-hover:bg-slate-700' : 'bg-slate-50 group-hover:bg-orange-50'}`}>
+      <div className={`w-6 h-6 md:w-8 md:h-8 flex items-center justify-center rounded-lg text-orange-500 transition-colors ${theme === 'dark' ? 'bg-slate-800 group-hover:bg-slate-700' : 'bg-slate-50 group-hover:bg-orange-50'}`}>
         {icon}
       </div>
-      <span className="text-[13px] tracking-tight">{label}</span>
+      <span className="text-[12px] md:text-[13px] tracking-tight">{label}</span>
     </button>
   );
 }

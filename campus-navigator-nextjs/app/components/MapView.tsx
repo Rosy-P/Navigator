@@ -116,7 +116,7 @@ export default function MapView({
         const loadResources = async () => {
             try {
                 // 1. Boundary
-                fetch("/data/mcc-boundary.geojson").then(r => r.json()).then(data => {
+                fetch("/data/raw/mcc-boundary.geojson").then(r => r.json()).then(data => {
                     map.addSource("mcc-boundary", { type: "geojson", data });
                 });
 
@@ -179,8 +179,8 @@ export default function MapView({
                     }
                 });
 
-                // 3. Paths
-                const pathsRes = await fetch("/data/mcc-paths.geojson");
+                // 3. Paths (Using unified walk network)
+                const pathsRes = await fetch("/data/final/mcc-walk-network.geojson");
                 const pathsData = await pathsRes.json();
                 graphRef.current = buildGraph(pathsData);
                 map.addSource("mcc-paths", { type: "geojson", data: pathsData });
