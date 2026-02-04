@@ -1,19 +1,21 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Search, Map as MapIcon, Home, Microscope, UtensilsCrossed, Mic, Navigation } from "lucide-react";
+import { Search, Building2, MapPin, Menu, X, Mic, Navigation, Home, Map as MapIcon, Microscope, UtensilsCrossed } from "lucide-react";
 import Sidebar from "./components/Sidebar";
 import MapView from "./components/MapView";
 import MapControls from "./components/MapControls";
 import InfoPanel from "./components/InfoPanel";
 import SettingsOverlay from "./components/SettingsOverlay";
 import NavigationOverlay from "./components/NavigationOverlay";
+import SearchPanel from "./components/SearchPanel";
 import { useMediaQuery } from "./hooks/use-media-query";
 
 type UIState = "IDLE" | "SEARCHING" | "PLACE_SELECTED" | "NAVIGATION_ACTIVE";
 type SheetState = "PEEK" | "HALF" | "FULL";
 
 export default function HomePage() {
+  // Version: 2.0.1 - Search UI fixes
   const isMobile = useMediaQuery("(max-width: 768px)");
 
   // UI States
@@ -40,6 +42,13 @@ export default function HomePage() {
   const [currentInstruction, setCurrentInstruction] = useState("Continue straight");
   const [currentDistance, setCurrentDistance] = useState("60m");
 
+  // Search State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredResults, setFilteredResults] = useState<any[]>([]);
+  const [allLandmarks, setAllLandmarks] = useState<any[]>([]);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+
   // Settings States
   const [showSettings, setShowSettings] = useState(false);
   const [settings, setSettings] = useState({
@@ -63,6 +72,44 @@ export default function HomePage() {
       locationAccuracy: true
     });
   }, []);
+
+  // Fetch landmarks for search
+  useEffect(() => {
+    fetch("/data/raw/mcc-landmarks.json")
+      .then(r => r.json())
+      .then(data => {
+        const flattened = [
+          ...(data.classrooms || []),
+          ...(data.departments || []),
+          ...(data.facilities || [])
+        ];
+        setAllLandmarks(flattened);
+      });
+  }, []);
+
+  // Filter landmarks logic
+  useEffect(() => {
+    if (searchQuery.trim().length < 2) {
+      setFilteredResults([]);
+      setSelectedIndex(-1);
+      return;
+    }
+    const query = searchQuery.toLowerCase();
+    const filtered = allLandmarks.filter(l =>
+      l.name.toLowerCase().includes(query) ||
+      l.category.toLowerCase().includes(query)
+    ).slice(0, 6); // Limit to top 6
+    console.log(`🔎 Search query: "${searchQuery}" found ${filtered.length} results:`, filtered.map(f => f.name));
+    setFilteredResults(filtered);
+    setSelectedIndex(-1);
+  }, [searchQuery, allLandmarks]);
+
+  // Log dropdown visibility
+  useEffect(() => {
+    if (isSearchFocused && filteredResults.length > 0) {
+      console.log(`📋 Dropdown should be visible with ${filteredResults.length} results`);
+    }
+  }, [isSearchFocused, filteredResults]);
 
   const handleClearHistory = useCallback(() => {
     alert("Search history has been cleared.");
@@ -100,12 +147,14 @@ export default function HomePage() {
   };
 
   const handleSelectLandmark = (landmark: any) => {
+    console.log("🔍 Search: Selected landmark:", landmark.name, "at", [landmark.lng, landmark.lat]);
     setSelectedLandmark(landmark);
     setIsSidebarCollapsed(true);
     // If we already have a start location, stay in planning mode to show the route
     setIsPlanning(!!startLocation);
     setRouteInfo(null);
     setDestination([landmark.lng, landmark.lat]);
+    console.log("📍 Destination set to:", [landmark.lng, landmark.lat]);
     setStartLocation(undefined);
     setStartLabel("");
     setOriginType(null);
@@ -160,7 +209,7 @@ export default function HomePage() {
           <div className={`
             fixed top-6 left-0 right-0 z-[40] px-4 flex items-center gap-2 transition-all duration-500
             md:absolute md:top-8 md:left-1/2 md:-translate-x-1/2 md:px-0 md:w-auto
-            ${uiState === "SEARCHING" ? "scale-95 opacity-50 pointer-events-none" : "scale-100 opacity-100"}
+            ${uiState === "NAVIGATION_ACTIVE" ? "scale-95 opacity-50 pointer-events-none" : "scale-100 opacity-100"}
           `}>
             {/* Hamburger (Mobile Only) */}
             {uiState !== "NAVIGATION_ACTIVE" && (
@@ -176,42 +225,20 @@ export default function HomePage() {
               </button>
             )}
 
-            {/* Search Bar Container - Double Layered for Desktop */}
-            <div className="flex-1 md:w-[440px] 2xl:w-[500px]">
-              <div className="group relative">
-                {/* Outer Layer (Desktop only glass effect) */}
-                <div className={`
-                  absolute -inset-1 backdrop-blur-md rounded-[22px] transition-all opacity-0 md:opacity-100
-                  ${theme === 'dark' ? 'bg-slate-800/20' : 'bg-white/40 shadow-2xl shadow-black/5'}
-                `} />
-
-                {/* Inner Layer */}
-                <div className={`
-                  relative h-12 md:h-14 2xl:h-16 px-5 md:px-6 flex items-center gap-3 md:gap-4 rounded-2xl border shadow-xl backdrop-blur-xl transition-all
-                  ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700/60' : 'bg-white/90 border-slate-200/60'}
-                `}>
-                  <Search className="text-slate-400" size={18} />
-                  <input
-                    type="text"
-                    placeholder="Search MCC..."
-                    className="flex-1 bg-transparent border-none outline-none font-bold text-[14px] 2xl:text-lg text-slate-600 placeholder:text-slate-400/60"
-                    onFocus={() => setUiState("SEARCHING")}
-                  />
-
-                  {/* Icons Layer / Toggle Layer */}
-                  <div className="flex items-center gap-2">
-                    {!isMobile && (
-                      <div className="w-8 h-8 2xl:w-10 2xl:h-10 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors">
-                        <Mic size={18} />
-                      </div>
-                    )}
-                    <div className="w-8 h-8 2xl:w-10 2xl:h-10 bg-orange-500 rounded-xl flex items-center justify-center text-white shadow-lg active:scale-90 transition-transform cursor-pointer">
-                      <Navigation size={14} fill="white" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <SearchPanel
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              filteredResults={filteredResults}
+              setFilteredResults={setFilteredResults}
+              isSearchFocused={isSearchFocused}
+              setIsSearchFocused={setIsSearchFocused}
+              selectedIndex={selectedIndex}
+              setSelectedIndex={setSelectedIndex}
+              onSelectLandmark={handleSelectLandmark}
+              setUiState={setUiState}
+              theme={theme}
+              isMobile={isMobile}
+            />
           </div>
         )}
         {/* The Map */}
@@ -223,6 +250,7 @@ export default function HomePage() {
             isSelectingStart={isSelectingStart}
             isGuidanceActive={isGuidanceActive}
             isDemoMode={isDemoMode}
+            isMobile={isMobile}
             mapStyle={settings.mapStyle}
             simulationSpeed={settings.simulationSpeed}
             onLocationSelected={handleLocationSelectedOnMap}

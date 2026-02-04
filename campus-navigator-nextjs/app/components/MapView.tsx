@@ -20,6 +20,7 @@ interface MapViewProps {
     onSelectLandmark?: (landmark: any) => void;
     isPaused?: boolean;
     recenterCount?: number;
+    isMobile?: boolean;
 }
 
 export default function MapView({
@@ -36,7 +37,8 @@ export default function MapView({
     onRouteCalculated,
     onSelectLandmark,
     isPaused = false,
-    recenterCount = 0
+    recenterCount = 0,
+    isMobile = false
 }: MapViewProps) {
     const mapRef = useRef<HTMLDivElement>(null);
     const mapInstance = useRef<maplibregl.Map | null>(null);
@@ -120,20 +122,18 @@ export default function MapView({
                     map.addSource("mcc-boundary", { type: "geojson", data });
                 });
 
-                // 2. Landmarks
-                const landmarkRes = await fetch("/data/mcc-landmarks.json");
+                // 2. Landmarks (Restoring to raw data)
+                const landmarkRes = await fetch("/data/raw/mcc-landmarks.json");
                 const rawLandmarks = await landmarkRes.json();
                 const features: any[] = [];
                 ["classrooms", "departments", "facilities"].forEach(cat => {
                     if (rawLandmarks[cat]) {
                         rawLandmarks[cat].forEach((item: any, idx: number) => {
-                            if (item.lng > 80.108 && item.lng < 80.132) {
-                                features.push({
-                                    type: "Feature",
-                                    properties: { id: `${cat}-${idx}`, ...item },
-                                    geometry: { type: "Point", coordinates: [item.lng, item.lat] }
-                                });
-                            }
+                            features.push({
+                                type: "Feature",
+                                properties: { id: `${cat}-${idx}`, ...item },
+                                geometry: { type: "Point", coordinates: [item.lng, item.lat] }
+                            });
                         });
                     }
                 });
@@ -179,8 +179,8 @@ export default function MapView({
                     }
                 });
 
-                // 3. Paths (Using unified walk network)
-                const pathsRes = await fetch("/data/final/mcc-walk-network.geojson");
+                // 3. Paths (Restoring to raw paths for stability)
+                const pathsRes = await fetch("/data/raw/mcc-paths.geojson");
                 const pathsData = await pathsRes.json();
                 graphRef.current = buildGraph(pathsData);
                 map.addSource("mcc-paths", { type: "geojson", data: pathsData });
@@ -265,6 +265,41 @@ export default function MapView({
         });
     }, [destination, isGuidanceActive]);
 
+    // Reset Map View when Navigation Ends
+    const prevGuidanceRef = useRef(isGuidanceActive);
+    useEffect(() => {
+        if (!isGuidanceActive && prevGuidanceRef.current === true && mapInstance.current) {
+            const campusCenter: [number, number] = [80.1235, 12.9180];
+            mapInstance.current.flyTo({
+                center: campusCenter,
+                zoom: 16.2,
+                pitch: 0,
+                bearing: 0,
+                duration: 2000,
+                essential: true
+            });
+
+            // Cleanup simulation state
+            cameraModeRef.current = "IDLE";
+            lastCameraPosRef.current = null;
+            smoothedSpeedRef.current = 0;
+
+            // Clear route data from sources
+            const rSrc = mapInstance.current.getSource("route") as maplibregl.GeoJSONSource;
+            if (rSrc) rSrc.setData({ type: "FeatureCollection", features: [] });
+            const cSrc = mapInstance.current.getSource("route-covered") as maplibregl.GeoJSONSource;
+            if (cSrc) cSrc.setData({ type: "FeatureCollection", features: [] });
+
+            // Reset start marker position
+            if (startMarkerRef.current) {
+                const defaultLocation: [number, number] = [80.120584, 12.923163];
+                startMarkerRef.current.setLngLat(startLocation || defaultLocation);
+                startMarkerRef.current.setRotation(0);
+            }
+        }
+        prevGuidanceRef.current = isGuidanceActive;
+    }, [isGuidanceActive, startLocation]);
+
     // Speed configuration (meters per second)
     const speedTable = {
         "slow": 3,
@@ -322,8 +357,9 @@ export default function MapView({
             }
 
             // Camera Throttling: Only easeTo when needed to prevent stutter
-            const distChanged = !lastCameraPosRef.current || distance(currentPos, lastCameraPosRef.current) > 0.4;
-            const bearingChanged = Math.abs(smoothedBearingRef.current - lastCameraBearingRef.current) > 1.0;
+            // Increased thresholds significantly to fix "vibration"
+            const distChanged = !lastCameraPosRef.current || distance(currentPos, lastCameraPosRef.current) > 1.2;
+            const bearingChanged = Math.abs(smoothedBearingRef.current - lastCameraBearingRef.current) > 2.5;
 
             if (distChanged || bearingChanged) {
                 if (segmentIndex < path.length - 2) {
@@ -334,13 +370,13 @@ export default function MapView({
                 }
 
                 // Calculate and Smooth Velocity
-                const targetSpeed = speed; // Use segment speed
-                const speedAlpha = 0.03; // Smooth velocity transitions
+                const targetSpeed = speed;
+                const speedAlpha = 0.03;
                 smoothedSpeedRef.current = smoothedSpeedRef.current + (targetSpeed - smoothedSpeedRef.current) * speedAlpha;
 
-                // Map speed to dynamic offset (110px at 3m/s -> 220px at 15m/s)
+                // Map speed to dynamic offset (Desktop ONLY, Mobile stays centered)
                 const speedFactor = Math.max(0, Math.min(1, (smoothedSpeedRef.current - 3) / (15 - 3)));
-                const dynamicOffset = 110 + speedFactor * (220 - 110);
+                const dynamicOffset = isMobile ? 0 : (110 + speedFactor * (220 - 110));
 
                 const rad = smoothedBearingRef.current * (Math.PI / 180);
                 const x = Math.sin(rad);
@@ -353,9 +389,10 @@ export default function MapView({
                     center: currentPos,
                     bearing: smoothedBearingRef.current,
                     pitch: cameraModeRef.current === "TURN" ? 45 : 60,
+                    zoom: 18.5, // Increased zoom level for better detail
                     offset: [offsetX, offsetY],
-                    duration: 150,
-                    easing: (t) => t
+                    duration: 350, // Longer duration for smoother transitions
+                    easing: (t) => t * (2 - t) // Quadratic ease-out for natural feel
                 });
 
                 lastCameraPosRef.current = currentPos;
