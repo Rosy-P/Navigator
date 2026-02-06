@@ -74,6 +74,7 @@
     ],
     "facilities": [
         {
+            "id": "main_gate",
             "name": "Main Gate",
             "lat": 12.923163,
             "lng": 80.120584,
@@ -90,6 +91,7 @@
             "category": "Entrance"
         },
         {
+            "id": "library",
             "name": "Library",
             "lat": 12.9182,
             "lng": 80.1390,
@@ -106,6 +108,7 @@
             "category": "Facility"
         },
         {
+            "id": "thomas_hall",
             "name": "Thomas Hall",
             "lat": 12.9221401,
             "lng": 80.1199855,
@@ -122,6 +125,7 @@
             "category": "Hostel"
         },
         {
+            "id": "iob_atm",
             "name": "IOB ATM",
             "lat": 12.92168,
             "lng": 80.12053,
@@ -282,6 +286,7 @@
             "category": "Landmark"
         },
         {
+            "id": "bishop_heber_chapel",
             "name": "Bishop Heber Chapel",
             "lat": 12.9187664,
             "lng": 80.1237943,
@@ -298,6 +303,7 @@
             "category": "Religious"
         },
         {
+            "id": "heber_hall",
             "name": "Heber Hall",
             "lat": 12.9195085,
             "lng": 80.1237728,

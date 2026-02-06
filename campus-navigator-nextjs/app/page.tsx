@@ -41,11 +41,13 @@ export default function HomePage() {
   const [recenterCount, setRecenterCount] = useState(0);
   const [currentInstruction, setCurrentInstruction] = useState("Continue straight");
   const [currentDistance, setCurrentDistance] = useState("60m");
+  const [markerLocation, setMarkerLocation] = useState<[number, number] | undefined>();
 
   // Search State
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredResults, setFilteredResults] = useState<any[]>([]);
   const [allLandmarks, setAllLandmarks] = useState<any[]>([]);
+  const [connectors, setConnectors] = useState<any[]>([]);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
 
@@ -84,6 +86,13 @@ export default function HomePage() {
           ...(data.facilities || [])
         ];
         setAllLandmarks(flattened);
+      });
+
+    // Fetch connectors
+    fetch("/data/final/mcc-connectors.final.geojson")
+      .then(r => r.json())
+      .then(data => {
+        setConnectors(data.features || []);
       });
   }, []);
 
@@ -147,14 +156,35 @@ export default function HomePage() {
   };
 
   const handleSelectLandmark = (landmark: any) => {
-    console.log("🔍 Search: Selected landmark:", landmark.name, "at", [landmark.lng, landmark.lat]);
+    // Some landmarks from MapView might have original ID in properties.landmarkId
+    const effectiveId = landmark.landmarkId || landmark.id;
+    console.log("🔍 Search: Selected landmark:", landmark.name, "ID:", effectiveId);
     setSelectedLandmark(landmark);
     setIsSidebarCollapsed(true);
-    // If we already have a start location, stay in planning mode to show the route
     setIsPlanning(!!startLocation);
     setRouteInfo(null);
-    setDestination([landmark.lng, landmark.lat]);
-    console.log("📍 Destination set to:", [landmark.lng, landmark.lat]);
+
+    // Connector logic: Find connector for this landmark
+    const normalizedName = landmark.name?.toLowerCase().trim();
+    const connector = connectors.find(c =>
+      c.properties.landmarkId === effectiveId ||
+      c.properties.landmarkName?.toLowerCase().trim() === normalizedName
+    );
+    const landmarkPos: [number, number] = [landmark.lng, landmark.lat];
+
+    if (connector) {
+      console.log("✅ Connector found for:", landmark.name, connector);
+      // Route to building-side point (index 1 or last)
+      const coords = connector.geometry.coordinates;
+      const buildingSidePoint = (coords.length > 2 ? coords[coords.length - 1] : coords[1]) as [number, number];
+      setDestination(buildingSidePoint);
+      setMarkerLocation(landmarkPos);
+    } else {
+      console.warn("❌ No connector found for:", landmark.name, "- routing directly. effectiveId:", effectiveId);
+      setDestination(landmarkPos);
+      setMarkerLocation(landmarkPos);
+    }
+
     setStartLocation(undefined);
     setStartLabel("");
     setOriginType(null);
@@ -246,6 +276,7 @@ export default function HomePage() {
           <MapView
             startLocation={startLocation}
             destination={destination}
+            markerLocation={markerLocation}
             pendingLocation={pendingPickerLocation}
             isSelectingStart={isSelectingStart}
             isGuidanceActive={isGuidanceActive}
@@ -276,6 +307,7 @@ export default function HomePage() {
               setIsGuidanceActive(false);
               setIsDemoMode(false);
               setDestination(undefined);
+              setMarkerLocation(undefined); // Clear marker when ending active navigation
               setRouteInfo(null);
               setIsPaused(false);
               setIsSidebarCollapsed(false);
@@ -308,6 +340,7 @@ export default function HomePage() {
               <button
                 onClick={() => {
                   setDestination(undefined);
+                  setMarkerLocation(undefined);
                   setRouteInfo(null);
                   setIsGuidanceActive(false);
                   setIsDemoMode(false);
@@ -337,6 +370,7 @@ export default function HomePage() {
               setSelectedLandmark(null);
               setIsSidebarCollapsed(false);
               setDestination(undefined);
+              setMarkerLocation(undefined); // Clear the physical marker location
               setStartLocation(undefined);
               setStartLabel("Current Location");
               setOriginType(null);

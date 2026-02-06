@@ -36,8 +36,9 @@ export function buildGraph(geojson: any): Map<string, Node> {
             const a = coords[i] as [number, number];
             const b = coords[i + 1] as [number, number];
 
-            const idA = a.join(",");
-            const idB = b.join(",");
+            // Normalize coordinates to 7 decimal places to handle precision issues
+            const idA = `${a[0].toFixed(7)},${a[1].toFixed(7)}`;
+            const idB = `${b[0].toFixed(7)},${b[1].toFixed(7)}`;
 
             if (!graph.has(idA)) {
                 graph.set(idA, { id: idA, coord: a, neighbors: [] });
@@ -53,6 +54,121 @@ export function buildGraph(geojson: any): Map<string, Node> {
         }
     });
 
+    // --- Component Analysis and Bridging ---
+    const getComponents = (currentGraph: Map<string, Node>) => {
+        const visited = new Set<string>();
+        const componentList: string[][] = [];
+        for (const startId of currentGraph.keys()) {
+            if (!visited.has(startId)) {
+                const component: string[] = [];
+                const stack = [startId];
+                visited.add(startId);
+                while (stack.length > 0) {
+                    const currentId = stack.pop()!;
+                    component.push(currentId);
+                    const currNode = currentGraph.get(currentId);
+                    if (currNode) {
+                        for (const n of currNode.neighbors) {
+                            if (!visited.has(n.id)) {
+                                visited.add(n.id);
+                                stack.push(n.id);
+                            }
+                        }
+                    }
+                }
+                componentList.push(component);
+            }
+        }
+        return componentList;
+    };
+
+    let iteration = 0;
+    let currentComponents = getComponents(graph);
+    console.log(`🌐 Initially: ${currentComponents.length} disjoint networks.`);
+
+    const BRIDGE_MAX_DIST = 100.0; // 100m max gap bridging to catch sparse campus data
+
+    while (currentComponents.length > 1 && iteration < 100) {
+        iteration++;
+        // Sort components by size (smallest first)
+        currentComponents.sort((a, b) => a.length - b.length);
+        const smallest = currentComponents[0];
+
+        let bestBridge: { a: string, b: string, dist: number } | null = null;
+        let minDist = BRIDGE_MAX_DIST;
+
+        // Try to bridge the smallest component to MUST find a node in ANY other component
+        for (const idA of smallest) {
+            const nodeA = graph.get(idA)!;
+
+            // Check against nodes in all other components
+            for (let i = 1; i < currentComponents.length; i++) {
+                for (const idB of currentComponents[i]) {
+                    const nodeB = graph.get(idB)!;
+                    const d = distance(nodeA.coord, nodeB.coord);
+                    if (d < minDist) {
+                        minDist = d;
+                        bestBridge = { a: idA, b: idB, dist: d };
+                    }
+                }
+            }
+        }
+
+        if (bestBridge) {
+            const nodeA = graph.get(bestBridge.a)!;
+            const nodeB = graph.get(bestBridge.b)!;
+            nodeA.neighbors.push({ id: nodeB.id, cost: bestBridge.dist });
+            nodeB.neighbors.push({ id: nodeA.id, cost: bestBridge.dist });
+            console.log(`🌉 Bridge [${iteration}]: ${nodeA.id} <-> ${nodeB.id} (${bestBridge.dist.toFixed(2)}m)`);
+            currentComponents = getComponents(graph);
+        } else {
+            console.warn(`⚠️ Could not bridge further. ${currentComponents.length} components remain.`);
+            break;
+        }
+    }
+
+    // --- FINAL AGGRESSIVE PASS: Connect ALL remaining components ---
+    if (currentComponents.length > 1) {
+        console.log(`🔧 Aggressive bridging: Connecting ${currentComponents.length} remaining components...`);
+
+        while (currentComponents.length > 1) {
+            currentComponents.sort((a, b) => a.length - b.length);
+            const smallest = currentComponents[0];
+
+            // Find the absolute nearest node in ANY other component (no distance limit)
+            let bestBridge: { a: string, b: string, dist: number } | null = null;
+            let minDist = Infinity;
+
+            for (const idA of smallest) {
+                const nodeA = graph.get(idA)!;
+
+                for (let i = 1; i < currentComponents.length; i++) {
+                    for (const idB of currentComponents[i]) {
+                        const nodeB = graph.get(idB)!;
+                        const d = distance(nodeA.coord, nodeB.coord);
+                        if (d < minDist) {
+                            minDist = d;
+                            bestBridge = { a: idA, b: idB, dist: d };
+                        }
+                    }
+                }
+            }
+
+            if (bestBridge) {
+                const nodeA = graph.get(bestBridge.a)!;
+                const nodeB = graph.get(bestBridge.b)!;
+                nodeA.neighbors.push({ id: nodeB.id, cost: bestBridge.dist });
+                nodeB.neighbors.push({ id: nodeA.id, cost: bestBridge.dist });
+                console.log(`🔗 Aggressive bridge: ${nodeA.id} <-> ${nodeB.id} (${bestBridge.dist.toFixed(2)}m)`);
+                currentComponents = getComponents(graph);
+            } else {
+                console.error(`❌ FATAL: Cannot find any nodes to bridge!`);
+                break;
+            }
+        }
+    }
+
+    console.log(`✅ Final Graph Analysis: ${currentComponents.length} component(s) remaining.`);
     return graph;
 }
 
@@ -105,6 +221,9 @@ export function aStar(
 
     g.set(startId, 0);
     f.set(startId, distance(startNode.coord, goalNode.coord));
+
+    console.log(`🗺️ A* Start: ${startId} at ${startNode.coord}`);
+    console.log(`🎯 A* Goal: ${goalId} at ${goalNode.coord}`);
 
     let iterations = 0;
     const MAX_ITERATIONS = 5000;
@@ -159,10 +278,9 @@ export function aStar(
 
             const neighborNode = graph.get(n.id);
             if (neighborNode) {
-                f.set(
-                    n.id,
-                    tempGScore + distance(neighborNode.coord, goalNode.coord)
-                );
+                // Weighted A*: Use 1.2x heuristic weight to prefer more direct paths
+                const heuristic = distance(neighborNode.coord, goalNode.coord);
+                f.set(n.id, tempGScore + (heuristic * 1.2));
             }
         }
     }
@@ -203,6 +321,43 @@ export function getManeuver(b1: number, b2: number): string {
     return "Continue straight";
 }
 /**
+ * Simplifies a path by removing redundant intermediate nodes.
+ * A node is redundant if it's nearly collinear with its neighbors.
+ */
+function simplifyPath(
+    nodePath: string[],
+    graph: Map<string, Node>,
+    angleThreshold: number = 170 // degrees - nodes within this angle are considered collinear
+): string[] {
+    if (nodePath.length <= 2) return nodePath;
+
+    const simplified: string[] = [nodePath[0]]; // Always keep start
+
+    for (let i = 1; i < nodePath.length - 1; i++) {
+        const prev = graph.get(nodePath[i - 1])!;
+        const curr = graph.get(nodePath[i])!;
+        const next = graph.get(nodePath[i + 1])!;
+
+        // Calculate bearing from prev to curr, and curr to next
+        const bearing1 = getBearing(prev.coord, curr.coord);
+        const bearing2 = getBearing(curr.coord, next.coord);
+
+        // Calculate angle difference
+        let angleDiff = Math.abs(bearing2 - bearing1);
+        if (angleDiff > 180) angleDiff = 360 - angleDiff;
+
+        // If the angle is sharp (not nearly straight), keep this node
+        if (angleDiff < angleThreshold) {
+            simplified.push(nodePath[i]);
+        }
+        // Otherwise skip it (it's redundant)
+    }
+
+    simplified.push(nodePath[nodePath.length - 1]); // Always keep end
+    return simplified;
+}
+
+/**
  * Helper to get a full GeoJSON LineString for a route between two points.
  * This encapsulates snapping, pathfinding, and formatting.
  */
@@ -215,9 +370,18 @@ export function getRouteGeoJSON(
     const eNode = findNearestNode(end, graph);
     const nodePath = aStar(graph, sNode.id, eNode.id);
 
-    if (nodePath.length === 0) return null;
+    if (nodePath.length === 0) {
+        console.warn("⚠️ A* search found no path between", sNode.id, "and", eNode.id);
+        return null;
+    }
 
-    const coordinates = nodePath.map(id => graph.get(id)!.coord);
+    console.log(`✅ Path found: ${nodePath.length} nodes.`);
+
+    // Simplify path to remove redundant intermediate nodes
+    const simplifiedPath = simplifyPath(nodePath, graph);
+    console.log(`🔧 Path simplified: ${nodePath.length} → ${simplifiedPath.length} nodes.`);
+
+    const coordinates = simplifiedPath.map(id => graph.get(id)!.coord);
 
     return {
         type: "Feature",

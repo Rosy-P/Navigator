@@ -21,6 +21,7 @@ interface MapViewProps {
     isPaused?: boolean;
     recenterCount?: number;
     isMobile?: boolean;
+    markerLocation?: [number, number];
 }
 
 export default function MapView({
@@ -38,7 +39,8 @@ export default function MapView({
     onSelectLandmark,
     isPaused = false,
     recenterCount = 0,
-    isMobile = false
+    isMobile = false,
+    markerLocation
 }: MapViewProps) {
     const mapRef = useRef<HTMLDivElement>(null);
     const mapInstance = useRef<maplibregl.Map | null>(null);
@@ -49,6 +51,7 @@ export default function MapView({
 
     const currentRouteRef = useRef<[number, number][]>([]);
     const animFrameRef = useRef<number | null>(null);
+    const [isGraphReady, setIsGraphReady] = useState(false);
 
     // Camera Management Refs
     const cameraModeRef = useRef<"IDLE" | "FOLLOW" | "TURN">("IDLE");
@@ -117,6 +120,25 @@ export default function MapView({
 
         const loadResources = async () => {
             try {
+                // GLYPHS OVERRIDE: Prevent CORS errors by using a public fonts server
+                const fixStyle = async (url: string) => {
+                    const res = await fetch(url);
+                    const style = await res.json();
+                    style.glyphs = "https://fonts.openmaptiles.org/{fontstack}/{range}.pbf";
+                    return style;
+                };
+
+                const voyagerStyle = await fixStyle(styleMap.voyager);
+                const darkStyle = await fixStyle(styleMap.dark);
+
+                const finalStyles: Record<string, any> = {
+                    voyager: voyagerStyle,
+                    dark: darkStyle,
+                    satellite: SATELLITE_STYLE
+                };
+
+                map.setStyle(finalStyles[mapStyle]);
+
                 // 1. Boundary
                 fetch("/data/raw/mcc-boundary.geojson").then(r => r.json()).then(data => {
                     map.addSource("mcc-boundary", { type: "geojson", data });
@@ -131,7 +153,11 @@ export default function MapView({
                         rawLandmarks[cat].forEach((item: any, idx: number) => {
                             features.push({
                                 type: "Feature",
-                                properties: { id: `${cat}-${idx}`, ...item },
+                                properties: {
+                                    landmarkId: item.id || `${cat}-${idx}`,
+                                    id: item.id || `${cat}-${idx}`, // Keep both for compatibility
+                                    ...item
+                                },
                                 geometry: { type: "Point", coordinates: [item.lng, item.lat] }
                             });
                         });
@@ -139,6 +165,7 @@ export default function MapView({
                 });
 
                 map.addSource("landmarks", { type: "geojson", data: { type: "FeatureCollection", features } as any });
+                setIsGraphReady(true);
 
                 map.addLayer({
                     id: "landmarks-points",
@@ -166,7 +193,6 @@ export default function MapView({
                     source: "landmarks",
                     layout: {
                         "text-field": ["get", "name"],
-                        "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
                         "text-size": ["interpolate", ["linear"], ["zoom"], 15, 0, 16, 11, 18, 14],
                         "text-offset": [0, 1.5],
                         "text-anchor": "top",
@@ -179,11 +205,11 @@ export default function MapView({
                     }
                 });
 
-                // 3. Paths (Restoring to raw paths for stability)
-                const pathsRes = await fetch("/data/raw/mcc-paths.geojson");
-                const pathsData = await pathsRes.json();
-                graphRef.current = buildGraph(pathsData);
-                map.addSource("mcc-paths", { type: "geojson", data: pathsData });
+                // 3. Unified Walk Network
+                const networkRes = await fetch("/data/final/mcc-walk-network.geojson");
+                const networkData = await networkRes.json();
+                graphRef.current = buildGraph(networkData);
+                map.addSource("mcc-paths", { type: "geojson", data: networkData });
 
                 map.addLayer({
                     id: "paths-main",
@@ -219,7 +245,7 @@ export default function MapView({
                 // Marker
                 const el = document.createElement('div');
                 el.className = 'user-marker-container';
-                el.innerHTML = '<div class="nav-shadow"></div><div class="nav-arrow"></div><div class="user-marker-pulse"></div>';
+                el.innerHTML = '<div class="user-dot"></div><div class="nav-shadow"></div><div class="nav-arrow"></div><div class="user-marker-pulse"></div>';
                 startMarkerRef.current = new maplibregl.Marker({ element: el, rotationAlignment: 'map' }).setLngLat(currentUserLocation).addTo(map);
 
                 // 5. Interaction
@@ -290,11 +316,18 @@ export default function MapView({
             const cSrc = mapInstance.current.getSource("route-covered") as maplibregl.GeoJSONSource;
             if (cSrc) cSrc.setData({ type: "FeatureCollection", features: [] });
 
-            // Reset start marker position
+            // Remove destination marker when navigation ends
+            if (destMarkerRef.current) {
+                destMarkerRef.current.remove();
+                destMarkerRef.current = null;
+            }
+
+            // Reset start marker position and style
             if (startMarkerRef.current) {
                 const defaultLocation: [number, number] = [80.120584, 12.923163];
                 startMarkerRef.current.setLngLat(startLocation || defaultLocation);
                 startMarkerRef.current.setRotation(0);
+                startMarkerRef.current.getElement().classList.remove('navigating');
             }
         }
         prevGuidanceRef.current = isGuidanceActive;
@@ -504,7 +537,15 @@ export default function MapView({
         }
 
         if (!graphRef.current) return;
-        if (startMarkerRef.current && !isDemoMode) startMarkerRef.current.setLngLat(currentUserLocation);
+        if (startMarkerRef.current) {
+            if (!isDemoMode) startMarkerRef.current.setLngLat(currentUserLocation);
+            // Toggle marker style
+            if (isGuidanceActive) {
+                startMarkerRef.current.getElement().classList.add('navigating');
+            } else {
+                startMarkerRef.current.getElement().classList.remove('navigating');
+            }
+        }
 
         if (!destination || !startLocation || isSelectingStart) {
             const rSrc = mapInstance.current.getSource("route") as maplibregl.GeoJSONSource;
@@ -512,10 +553,13 @@ export default function MapView({
             const cSrc = mapInstance.current.getSource("route-covered") as maplibregl.GeoJSONSource;
             if (cSrc) cSrc.setData({ type: "FeatureCollection", features: [] });
 
-            if (destMarkerRef.current && !destination) destMarkerRef.current.remove();
-            if (destination) {
+            if (destMarkerRef.current && !destination && !markerLocation) destMarkerRef.current.remove();
+            if (destination || markerLocation) {
                 if (destMarkerRef.current) destMarkerRef.current.remove();
-                destMarkerRef.current = new maplibregl.Marker({ color: "#ef4444" }).setLngLat(destination).addTo(mapInstance.current);
+                const markerPos = markerLocation || destination;
+                if (markerPos) {
+                    destMarkerRef.current = new maplibregl.Marker({ color: "#ef4444" }).setLngLat(markerPos).addTo(mapInstance.current);
+                }
             }
             return;
         }
@@ -534,13 +578,14 @@ export default function MapView({
             if (rSrc) rSrc.setData(routeFeature);
 
             if (destMarkerRef.current) destMarkerRef.current.remove();
-            destMarkerRef.current = new maplibregl.Marker({ color: "#ef4444" }).setLngLat(destination).addTo(mapInstance.current);
+            const markerPos = markerLocation || destination;
+            destMarkerRef.current = new maplibregl.Marker({ color: "#ef4444" }).setLngLat(markerPos).addTo(mapInstance.current);
 
             const b = new maplibregl.LngLatBounds();
             routeCoords.forEach((c: any) => b.extend(c as [number, number]));
             mapInstance.current.fitBounds(b, { padding: 100, duration: 1000 });
         }
-    }, [startLocation, destination, pendingLocation, isSelectingStart, isDemoMode, mapStyle]);
+    }, [startLocation, destination, markerLocation, pendingLocation, isSelectingStart, isDemoMode, mapStyle, isGraphReady]);
 
     return <div ref={mapRef} className="absolute inset-0" />;
 }

@@ -43,6 +43,26 @@ export default function InfoPanel({
         FULL: "max-md:h-[80vh]"
     };
 
+    // Helper to get image URL safely, handling potential GeoJSON stringification
+    const getImageUrl = (images: any): string | undefined => {
+        if (!images) return undefined;
+        if (Array.isArray(images)) return images[0];
+        if (typeof images === 'string') {
+            if (images.startsWith('[')) {
+                try {
+                    const parsed = JSON.parse(images);
+                    return Array.isArray(parsed) ? parsed[0] : undefined;
+                } catch (e) {
+                    return undefined;
+                }
+            }
+            return images; // Direct URL string
+        }
+        return undefined;
+    };
+
+    const displayImage = getImageUrl(landmark.images) || "https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=800&q=80";
+
     return (
         <div
             className={`
@@ -72,7 +92,7 @@ export default function InfoPanel({
                     {/* Header Image */}
                     <div className="relative h-[160px] md:h-[180px] 2xl:h-[220px] w-full overflow-hidden flex-shrink-0 bg-slate-200">
                         <img
-                            src={landmark.images?.[0] || "https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=800&q=80"}
+                            src={displayImage}
                             alt={landmark.name}
                             className="w-full h-full object-cover"
                         />
@@ -141,10 +161,10 @@ export default function InfoPanel({
                                 <h3 className="font-black text-slate-800 text-[11px] 2xl:text-xs uppercase tracking-widest mb-3 2xl:mb-4">Photos</h3>
                                 <div className="grid grid-cols-2 gap-2 2xl:gap-3">
                                     <div className="aspect-[4/3] rounded-md overflow-hidden bg-slate-100 border border-slate-50">
-                                        <img src={landmark.images?.[0] || "https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=400&q=80"} className="w-full h-full object-cover" alt="Building" />
+                                        <img src={getImageUrl(landmark.images) || "https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=400&q=80"} className="w-full h-full object-cover" alt="Building" />
                                     </div>
                                     <div className="aspect-[4/3] rounded-md overflow-hidden bg-slate-100 border border-slate-50">
-                                        <img src={landmark.images?.[1] || "https://images.unsplash.com/photo-1541339907198-e08756eaa539?auto=format&fit=crop&w=400&q=80"} className="w-full h-full object-cover" alt="Campus" />
+                                        <img src={getImageUrl(Array.isArray(landmark.images) ? landmark.images[1] : undefined) || "https://images.unsplash.com/photo-1541339907198-e08756eaa539?auto=format&fit=crop&w=400&q=80"} className="w-full h-full object-cover" alt="Campus" />
                                     </div>
                                 </div>
                             </div>
