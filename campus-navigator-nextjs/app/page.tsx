@@ -9,14 +9,27 @@ import InfoPanel from "./components/InfoPanel";
 import SettingsOverlay from "./components/SettingsOverlay";
 import NavigationOverlay from "./components/NavigationOverlay";
 import SearchPanel from "./components/SearchPanel";
+import AuthProvider, { useAuth, UserData } from "./components/AuthOverlay"; // Updated Import
 import { useMediaQuery } from "./hooks/use-media-query";
 
 type UIState = "IDLE" | "SEARCHING" | "PLACE_SELECTED" | "NAVIGATION_ACTIVE";
 type SheetState = "PEEK" | "HALF" | "FULL";
 
+// --- Wrapper Component ---
 export default function HomePage() {
-  // Version: 2.0.1 - Search UI fixes
+  return (
+    <AuthProvider theme="light"> {/* Or dynamic theme if lifted, defaulting light for now */}
+       <HomeContent />
+    </AuthProvider>
+  );
+}
+
+function HomeContent() {
+  // Version: 2.1.0 - Soft Auth Integrated
   const isMobile = useMediaQuery("(max-width: 768px)");
+
+  // Auth Hook
+  const { user, requireAuth, showAuthOverlay, logout } = useAuth();
 
   // UI States
   const [uiState, setUiState] = useState<UIState>("IDLE");
@@ -125,15 +138,19 @@ export default function HomePage() {
   }, []);
 
   const handleGetGPSLocation = () => {
-    const mainGate: [number, number] = [80.120584, 12.923163];
-    setStartLocation(mainGate);
-    setStartLabel("Main Gate (My Location)");
-    setOriginType("gps");
+    requireAuth(() => {
+        const mainGate: [number, number] = [80.120584, 12.923163];
+        setStartLocation(mainGate);
+        setStartLabel("Main Gate (My Location)");
+        setOriginType("gps");
+    });
   };
 
   const handlePickOnMapRequested = () => {
-    setIsSelectingStart(true);
-    setPendingPickerLocation(undefined);
+    requireAuth(() => {
+        setIsSelectingStart(true);
+        setPendingPickerLocation(undefined);
+    });
   };
 
   const handleLocationSelectedOnMap = (coord: [number, number]) => {
@@ -156,43 +173,45 @@ export default function HomePage() {
   };
 
   const handleSelectLandmark = (landmark: any) => {
-    // Some landmarks from MapView might have original ID in properties.landmarkId
-    const effectiveId = landmark.landmarkId || landmark.id;
-    console.log("🔍 Search: Selected landmark:", landmark.name, "ID:", effectiveId);
-    setSelectedLandmark(landmark);
-    setIsSidebarCollapsed(true);
-    setIsPlanning(!!startLocation);
-    setRouteInfo(null);
+    requireAuth(() => {
+        // Some landmarks from MapView might have original ID in properties.landmarkId
+        const effectiveId = landmark.landmarkId || landmark.id;
+        console.log("🔍 Search: Selected landmark:", landmark.name, "ID:", effectiveId);
+        setSelectedLandmark(landmark);
+        setIsSidebarCollapsed(true);
+        setIsPlanning(!!startLocation);
+        setRouteInfo(null);
 
-    // Connector logic: Find connector for this landmark
-    const normalizedName = landmark.name?.toLowerCase().trim();
-    const connector = connectors.find(c =>
-      c.properties.landmarkId === effectiveId ||
-      c.properties.landmarkName?.toLowerCase().trim() === normalizedName
-    );
-    const landmarkPos: [number, number] = [landmark.lng, landmark.lat];
+        // Connector logic: Find connector for this landmark
+        const normalizedName = landmark.name?.toLowerCase().trim();
+        const connector = connectors.find(c =>
+        c.properties.landmarkId === effectiveId ||
+        c.properties.landmarkName?.toLowerCase().trim() === normalizedName
+        );
+        const landmarkPos: [number, number] = [landmark.lng, landmark.lat];
 
-    if (connector) {
-      console.log("✅ Connector found for:", landmark.name, connector);
-      // Route to building-side point (index 1 or last)
-      const coords = connector.geometry.coordinates;
-      const buildingSidePoint = (coords.length > 2 ? coords[coords.length - 1] : coords[1]) as [number, number];
-      setDestination(buildingSidePoint);
-      setMarkerLocation(landmarkPos);
-    } else {
-      console.warn("❌ No connector found for:", landmark.name, "- routing directly. effectiveId:", effectiveId);
-      setDestination(landmarkPos);
-      setMarkerLocation(landmarkPos);
-    }
+        if (connector) {
+        console.log("✅ Connector found for:", landmark.name, connector);
+        // Route to building-side point (index 1 or last)
+        const coords = connector.geometry.coordinates;
+        const buildingSidePoint = (coords.length > 2 ? coords[coords.length - 1] : coords[1]) as [number, number];
+        setDestination(buildingSidePoint);
+        setMarkerLocation(landmarkPos);
+        } else {
+        console.warn("❌ No connector found for:", landmark.name, "- routing directly. effectiveId:", effectiveId);
+        setDestination(landmarkPos);
+        setMarkerLocation(landmarkPos);
+        }
 
-    setStartLocation(undefined);
-    setStartLabel("");
-    setOriginType(null);
-    setIsSelectingStart(false);
-    setIsGuidanceActive(false);
-    setIsDemoMode(false);
-    setUiState("PLACE_SELECTED");
-    setSheetState("HALF");
+        setStartLocation(undefined);
+        setStartLabel("");
+        setOriginType(null);
+        setIsSelectingStart(false);
+        setIsGuidanceActive(false);
+        setIsDemoMode(false);
+        setUiState("PLACE_SELECTED");
+        setSheetState("HALF");
+    });
   };
 
   const quickActions = {
@@ -224,8 +243,15 @@ export default function HomePage() {
         isMobileOpen={isMobileMenuOpen}
         isDisabled={uiState === "NAVIGATION_ACTIVE"}
         onCloseMobile={() => setIsMobileMenuOpen(false)}
-        onOpenSettings={() => setShowSettings(true)}
+        onOpenSettings={() => requireAuth(() => setShowSettings(true))}
         forceActiveLabel={showSettings ? "Settings" : (selectedLandmark ? "Locations" : undefined)}
+        user={user}
+        onOpenAuth={showAuthOverlay}
+        onLogout={() => {
+          if (confirm("Are you sure you want to log out?")) {
+            logout();
+          }
+        }}
       />
 
       {/* Main Content Area */}
@@ -255,20 +281,40 @@ export default function HomePage() {
               </button>
             )}
 
-            <SearchPanel
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              filteredResults={filteredResults}
-              setFilteredResults={setFilteredResults}
-              isSearchFocused={isSearchFocused}
-              setIsSearchFocused={setIsSearchFocused}
-              selectedIndex={selectedIndex}
-              setSelectedIndex={setSelectedIndex}
-              onSelectLandmark={handleSelectLandmark}
-              setUiState={setUiState}
-              theme={theme}
-              isMobile={isMobile}
-            />
+            {/* Wrapped Search Panel Interaction */}
+            <div onClickCapture={(e) => {
+                // Intercept clicks on search panel to require auth for interaction if needed
+                // But prompt said "search input". SearchPanel handles its own input. 
+                // We'll wrap the setUiState or the focus logic if we could, 
+                // but for now let's just assume the Panel is mostly read-only until typed.
+                // Actually SearchInput focus might be the trigger.
+                // Since SearchPanel is complex, we might want to wrap the whole container 
+                // or just rely on the 'onSelectLandmark' (which we wrapped).
+                // Let's wrap the focus event via a capture if possible? 
+                // Ideally SearchPanel would take an onFocus prop. 
+                // For now, selecting a landmark is protected. 
+            }}>
+                <SearchPanel
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                filteredResults={filteredResults}
+                setFilteredResults={setFilteredResults}
+                isSearchFocused={isSearchFocused}
+                setIsSearchFocused={(focused) => {
+                    if (focused) {
+                        requireAuth(() => setIsSearchFocused(true));
+                    } else {
+                        setIsSearchFocused(false);
+                    }
+                }}
+                selectedIndex={selectedIndex}
+                setSelectedIndex={setSelectedIndex}
+                onSelectLandmark={handleSelectLandmark}
+                setUiState={setUiState}
+                theme={theme}
+                isMobile={isMobile}
+                />
+            </div>
           </div>
         )}
         {/* The Map */}
@@ -455,15 +501,17 @@ export default function HomePage() {
           onClearHistory={handleClearHistory}
         />
 
+        {/* Auth Overlay removed; managed by AuthProvider now */}
+
         {/* Map Category Chips / Right Side Action Buttons */}
         {!isGuidanceActive && !selectedLandmark && (
           <div className={`
             fixed top-[88px] left-0 right-0 z-30 flex flex-row gap-2 px-4 overflow-x-auto no-scrollbar
             md:absolute md:top-10 md:right-8 md:left-auto md:w-auto md:flex-col md:gap-3 md:animate-in md:slide-in-from-right-10 md:duration-500
           `}>
-            <QuickActionBtn icon={<Home size={18} />} label="Hostel" onClick={() => setDestination(quickActions.hostel)} theme={theme} isMobile={isMobile} />
-            <QuickActionBtn icon={<Microscope size={18} />} label="Lab" onClick={() => setDestination(quickActions.lab)} theme={theme} isMobile={isMobile} />
-            <QuickActionBtn icon={<UtensilsCrossed size={18} />} label="Canteen" onClick={() => setDestination(quickActions.canteen)} theme={theme} isMobile={isMobile} />
+            <QuickActionBtn icon={<Home size={18} />} label="Hostel" onClick={() => requireAuth(() => setDestination(quickActions.hostel))} theme={theme} isMobile={isMobile} />
+            <QuickActionBtn icon={<Microscope size={18} />} label="Lab" onClick={() => requireAuth(() => setDestination(quickActions.lab))} theme={theme} isMobile={isMobile} />
+            <QuickActionBtn icon={<UtensilsCrossed size={18} />} label="Canteen" onClick={() => requireAuth(() => setDestination(quickActions.canteen))} theme={theme} isMobile={isMobile} />
           </div>
         )}
       </main>

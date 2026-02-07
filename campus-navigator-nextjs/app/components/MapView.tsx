@@ -124,7 +124,7 @@ export default function MapView({
                 const fixStyle = async (url: string) => {
                     const res = await fetch(url);
                     const style = await res.json();
-                    style.glyphs = "https://fonts.openmaptiles.org/{fontstack}/{range}.pbf";
+                    style.glyphs = "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf";
                     return style;
                 };
 

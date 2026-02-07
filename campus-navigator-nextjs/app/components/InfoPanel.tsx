@@ -1,14 +1,25 @@
 "use client";
 
-import { useState } from "react";
 import { X, Navigation, Play, Bookmark, Info, ChevronLeft, MapPin, Target, Send, Zap } from "lucide-react";
+import Image from "next/image";
+
+interface Landmark {
+    name: string;
+    category?: string;
+    address?: string;
+    images?: string | string[];
+    lng: number;
+    lat: number;
+    description?: string;
+}
 
 interface InfoPanelProps {
-    landmark: any;
+    landmark: Landmark;
     startLabel?: string;
     isPlanning: boolean;
     isNavigationActive?: boolean;
     originType?: "gps" | "manual" | null;
+
     sheetState?: "PEEK" | "HALF" | "FULL";
     onSetSheetState?: (state: "PEEK" | "HALF" | "FULL") => void;
     onSetPlanning: (planning: boolean) => void;
@@ -23,8 +34,9 @@ export default function InfoPanel({
     landmark,
     startLabel = "Current Location",
     isPlanning,
-    isNavigationActive = false,
+    isNavigationActive,
     originType,
+
     sheetState = "HALF",
     onSetSheetState,
     onSetPlanning,
@@ -44,7 +56,8 @@ export default function InfoPanel({
     };
 
     // Helper to get image URL safely, handling potential GeoJSON stringification
-    const getImageUrl = (images: any): string | undefined => {
+    const getImageUrl = (images: Landmark['images']): string | undefined => {
+
         if (!images) return undefined;
         if (Array.isArray(images)) return images[0];
         if (typeof images === 'string') {
@@ -91,11 +104,13 @@ export default function InfoPanel({
                 <>
                     {/* Header Image */}
                     <div className="relative h-[160px] md:h-[180px] 2xl:h-[220px] w-full overflow-hidden flex-shrink-0 bg-slate-200">
-                        <img
+                        <Image
                             src={displayImage}
                             alt={landmark.name}
-                            className="w-full h-full object-cover"
+                            fill
+                            className="object-cover"
                         />
+
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
@@ -160,14 +175,25 @@ export default function InfoPanel({
                             <div>
                                 <h3 className="font-black text-slate-800 text-[11px] 2xl:text-xs uppercase tracking-widest mb-3 2xl:mb-4">Photos</h3>
                                 <div className="grid grid-cols-2 gap-2 2xl:gap-3">
-                                    <div className="aspect-[4/3] rounded-md overflow-hidden bg-slate-100 border border-slate-50">
-                                        <img src={getImageUrl(landmark.images) || "https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=400&q=80"} className="w-full h-full object-cover" alt="Building" />
+                                    <div className="aspect-[4/3] relative rounded-md overflow-hidden bg-slate-100 border border-slate-50">
+                                        <Image
+                                            src={getImageUrl(landmark.images) || "https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=400&q=80"}
+                                            alt="Building"
+                                            fill
+                                            className="object-cover"
+                                        />
                                     </div>
-                                    <div className="aspect-[4/3] rounded-md overflow-hidden bg-slate-100 border border-slate-50">
-                                        <img src={getImageUrl(Array.isArray(landmark.images) ? landmark.images[1] : undefined) || "https://images.unsplash.com/photo-1541339907198-e08756eaa539?auto=format&fit=crop&w=400&q=80"} className="w-full h-full object-cover" alt="Campus" />
+                                    <div className="aspect-[4/3] relative rounded-md overflow-hidden bg-slate-100 border border-slate-50">
+                                        <Image
+                                            src={getImageUrl(Array.isArray(landmark.images) ? landmark.images[1] : undefined) || "https://images.unsplash.com/photo-1541339907198-e08756eaa539?auto=format&fit=crop&w=400&q=80"}
+                                            alt="Campus"
+                                            fill
+                                            className="object-cover"
+                                        />
                                     </div>
                                 </div>
                             </div>
+
                         </div>
                     </div>
                 </>

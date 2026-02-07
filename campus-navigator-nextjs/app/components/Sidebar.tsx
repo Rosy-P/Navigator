@@ -11,6 +11,9 @@ import {
     AlertCircle,
     GraduationCap,
     LayoutGrid,
+    LogIn,
+    LogOut,
+    User,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -20,7 +23,11 @@ interface SidebarProps {
     onCloseMobile?: () => void;
     onOpenSettings?: () => void;
     forceActiveLabel?: string;
+    user?: { name: string; email: string; avatar?: string } | null;
+    onOpenAuth?: () => void;
+    onLogout?: () => void;
 }
+
 
 export default function Sidebar({
     isCollapsed = false,
@@ -28,8 +35,12 @@ export default function Sidebar({
     onCloseMobile,
     onOpenSettings,
     forceActiveLabel,
-    isDisabled = false
+    isDisabled = false,
+    user,
+    onOpenAuth,
+    onLogout
 }: SidebarProps) {
+
     const pathname = usePathname();
 
     const menuItems = [
@@ -143,9 +154,22 @@ export default function Sidebar({
                         })}
                     </div>
 
-                    <div className="h-16" />
+                    {/* Auth Label (Light Column) */}
+                    <div
+                        onClick={user ? onLogout : onOpenAuth}
+                        className="h-16 flex items-center px-6 cursor-pointer text-slate-400/80 hover:text-slate-600 hover:bg-slate-50/50 transition-all font-bold text-[13px] 2xl:text-base border-t border-slate-100"
+                    >
+                        {user ? (
+                            <div className="flex items-center gap-3 w-full">
+                                <span className="flex-1 truncate text-slate-900">{user.name}</span>
+                                <LogOut size={16} className="text-slate-400" />
+                            </div>
+                        ) : (
+                            <span>Sign In</span>
+                        )}
+                    </div>
                 </div>
             </div>
-        </aside>
+        </aside >
     );
 }
