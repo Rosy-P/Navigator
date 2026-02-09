@@ -8,6 +8,7 @@ export type Node = {
  * Calculates the Haversine distance between two coordinates in meters.
  */
 export function distance(a: [number, number], b: [number, number]): number {
+    if (!a || !b) return Infinity;
     const R = 6371e3; // Earth's radius in meters
     const φ1 = (a[1] * Math.PI) / 180;
     const φ2 = (b[1] * Math.PI) / 180;
@@ -176,10 +177,11 @@ export function buildGraph(geojson: any): Map<string, Node> {
  * Finds the nearest node in the graph to a given coordinate.
  */
 export function findNearestNode(
-    coord: [number, number],
+    coord: [number, number] | null | undefined,
     graph: Map<string, Node>
-): Node {
-    let nearest!: Node;
+): Node | null {
+    if (!coord) return null;
+    let nearest: Node | null = null;
     let min = Infinity;
 
     graph.forEach((node) => {
@@ -363,11 +365,12 @@ function simplifyPath(
  */
 export function getRouteGeoJSON(
     graph: Map<string, Node>,
-    start: [number, number],
-    end: [number, number]
+    start: [number, number] | undefined,
+    end: [number, number] | undefined
 ): any {
     const sNode = findNearestNode(start, graph);
     const eNode = findNearestNode(end, graph);
+    if (!sNode || !eNode) return null;
     const nodePath = aStar(graph, sNode.id, eNode.id);
 
     if (nodePath.length === 0) {

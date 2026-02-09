@@ -9,6 +9,7 @@ import InfoPanel from "./components/InfoPanel";
 import SettingsOverlay from "./components/SettingsOverlay";
 import NavigationOverlay from "./components/NavigationOverlay";
 import SearchPanel from "./components/SearchPanel";
+import SubtitlePanel from "./components/SubtitlePanel";
 import AuthProvider, { useAuth, UserData } from "./components/AuthOverlay"; // Updated Import
 import { useMediaQuery } from "./hooks/use-media-query";
 
@@ -43,6 +44,8 @@ function HomeContent() {
   const [isPlanning, setIsPlanning] = useState(false);
   const [isGuidanceActive, setIsGuidanceActive] = useState(false);
   const [isDemoMode, setIsDemoMode] = useState(false);
+  const [isTourMode, setIsTourMode] = useState(false);
+  const [isTourSimulation, setIsTourSimulation] = useState(false);
   const [destination, setDestination] = useState<[number, number] | undefined>();
   const [routeInfo, setRouteInfo] = useState<{ distance: number; time: number } | null>(null);
   const [selectedLandmark, setSelectedLandmark] = useState<any>(null);
@@ -55,6 +58,7 @@ function HomeContent() {
   const [currentInstruction, setCurrentInstruction] = useState("Continue straight");
   const [currentDistance, setCurrentDistance] = useState("60m");
   const [markerLocation, setMarkerLocation] = useState<[number, number] | undefined>();
+  const [showSubtitles, setShowSubtitles] = useState(true);
 
   // Search State
   const [searchQuery, setSearchQuery] = useState("");
@@ -172,47 +176,59 @@ function HomeContent() {
     setPendingPickerLocation(undefined);
   };
 
-  const handleSelectLandmark = (landmark: any) => {
-    requireAuth(() => {
-        // Some landmarks from MapView might have original ID in properties.landmarkId
-        const effectiveId = landmark.landmarkId || landmark.id;
-        console.log("🔍 Search: Selected landmark:", landmark.name, "ID:", effectiveId);
-        setSelectedLandmark(landmark);
-        setIsSidebarCollapsed(true);
-        setIsPlanning(!!startLocation);
-        setRouteInfo(null);
+  const handleSelectLandmark = useCallback((landmark: any, isFromMap: boolean = false) => {
+    // 1. Check authentication first
+    if (!user) {
+      if (isFromMap) {
+        // Requirement: Just show main view after login if triggered by map
+        requireAuth(); 
+      } else {
+        // Search: Continue to selection after login
+        requireAuth(() => handleSelectLandmark(landmark, false));
+      }
+      return;
+    }
 
-        // Connector logic: Find connector for this landmark
-        const normalizedName = landmark.name?.toLowerCase().trim();
-        const connector = connectors.find(c =>
-        c.properties.landmarkId === effectiveId ||
-        c.properties.landmarkName?.toLowerCase().trim() === normalizedName
-        );
-        const landmarkPos: [number, number] = [landmark.lng, landmark.lat];
+    // 2. Logic for authenticated user
+    const effectiveId = landmark.landmarkId || landmark.id;
+    const landmarkPos: [number, number] = [landmark.lng, landmark.lat];
 
-        if (connector) {
-        console.log("✅ Connector found for:", landmark.name, connector);
-        // Route to building-side point (index 1 or last)
-        const coords = connector.geometry.coordinates;
-        const buildingSidePoint = (coords.length > 2 ? coords[coords.length - 1] : coords[1]) as [number, number];
-        setDestination(buildingSidePoint);
-        setMarkerLocation(landmarkPos);
-        } else {
-        console.warn("❌ No connector found for:", landmark.name, "- routing directly. effectiveId:", effectiveId);
-        setDestination(landmarkPos);
-        setMarkerLocation(landmarkPos);
-        }
+    // Requirement: Open panel immediately on click
+    console.log("🔍 Selection: Opening landmark:", landmark.name, "ID:", effectiveId);
+    setSelectedLandmark(landmark);
+    setIsSidebarCollapsed(true);
+    setIsPlanning(!!startLocation);
+    setRouteInfo(null);
 
-        setStartLocation(undefined);
-        setStartLabel("");
-        setOriginType(null);
-        setIsSelectingStart(false);
-        setIsGuidanceActive(false);
-        setIsDemoMode(false);
-        setUiState("PLACE_SELECTED");
-        setSheetState("HALF");
-    });
-  };
+    // Connector logic: Find connector for this landmark
+    const normalizedName = landmark.name?.toLowerCase().trim();
+    const connector = connectors.find(c =>
+      c.properties.landmarkId === effectiveId ||
+      c.properties.landmarkName?.toLowerCase().trim() === normalizedName
+    );
+
+    if (connector) {
+      console.log("✅ Connector found for:", landmark.name, connector);
+      const coords = connector.geometry.coordinates;
+      const buildingSidePoint = (coords.length > 2 ? coords[coords.length - 1] : coords[1]) as [number, number];
+      setDestination(buildingSidePoint);
+      setMarkerLocation(landmarkPos);
+    } else {
+      console.warn("❌ No connector found for:", landmark.name, "- routing directly.");
+      setDestination(landmarkPos);
+      setMarkerLocation(landmarkPos);
+    }
+
+    setStartLocation(undefined);
+    setStartLabel("");
+    setOriginType(null);
+    setIsSelectingStart(false);
+    setIsGuidanceActive(false);
+    setIsDemoMode(false);
+    setUiState("PLACE_SELECTED");
+    setSheetState("HALF");
+    setIsTourMode(false); // Exclusivity
+  }, [user, requireAuth, markerLocation, startLocation, connectors]);
 
   const quickActions = {
     hostel: [80.1199855, 12.9221401] as [number, number],
@@ -244,8 +260,37 @@ function HomeContent() {
         isDisabled={uiState === "NAVIGATION_ACTIVE"}
         onCloseMobile={() => setIsMobileMenuOpen(false)}
         onOpenSettings={() => requireAuth(() => setShowSettings(true))}
-        forceActiveLabel={showSettings ? "Settings" : (selectedLandmark ? "Locations" : undefined)}
+        forceActiveLabel={showSettings ? "Settings" : (isTourMode ? "Tour Mode" : (selectedLandmark ? "Locations" : undefined))}
         user={user}
+        isTourMode={isTourMode}
+        onToggleTourMode={() => {
+          setIsTourMode(prev => {
+            const next = !prev;
+            if (next) {
+              // Exclusivity: Clear other states when entering Tour Mode
+              setSelectedLandmark(null);
+              setIsGuidanceActive(false);
+              setIsPlanning(false);
+              setDestination(undefined);
+              setStartLocation(undefined);
+              setUiState("IDLE");
+            } else {
+              setIsTourSimulation(false); // Stop simulation if turning off tour
+            }
+            return next;
+          });
+        }}
+        onSelectLocations={() => {
+          setIsTourMode(false);
+          setIsTourSimulation(false);
+          setIsGuidanceActive(false);
+          setIsDemoMode(false);
+          setDestination(undefined);
+          setMarkerLocation(undefined);
+          setSelectedLandmark(null);
+          setIsSidebarCollapsed(false);
+          setUiState("IDLE");
+        }}
         onOpenAuth={showAuthOverlay}
         onLogout={() => {
           if (confirm("Are you sure you want to log out?")) {
@@ -261,7 +306,7 @@ function HomeContent() {
         ${!isSidebarCollapsed ? "md:ml-[320px] 2xl:ml-[340px]" : "md:ml-[64px]"}
       `}>
         {/* Hamburger Menu & Search Bar - Integrated for Mobile, Centered for Desktop */}
-        {!isGuidanceActive && (
+        {!isGuidanceActive && !isTourMode && !isTourSimulation && (
           <div className={`
             fixed top-6 left-0 right-0 z-[40] px-4 flex items-center gap-2 transition-all duration-500
             md:absolute md:top-8 md:left-1/2 md:-translate-x-1/2 md:px-0 md:w-auto
@@ -326,7 +371,9 @@ function HomeContent() {
             pendingLocation={pendingPickerLocation}
             isSelectingStart={isSelectingStart}
             isGuidanceActive={isGuidanceActive}
-            isDemoMode={isDemoMode}
+            isTourMode={isTourMode}
+            isTourSimulation={isTourSimulation}
+            onToggleTourSimulation={(active: boolean) => setIsTourSimulation(active)}
             isMobile={isMobile}
             mapStyle={settings.mapStyle}
             simulationSpeed={settings.simulationSpeed}
@@ -339,8 +386,13 @@ function HomeContent() {
               setCurrentInstruction(instruction);
               setCurrentDistance(distance);
             }}
+            showSubtitles={showSubtitles}
+            onToggleSubtitles={() => setShowSubtitles(prev => !prev)}
           />
         </div>
+
+        {/* Subtitle Panel */}
+        <SubtitlePanel theme={theme} isVisible={showSubtitles} />
 
         {/* Navigation Overlay */}
         {isGuidanceActive && (
@@ -504,7 +556,7 @@ function HomeContent() {
         {/* Auth Overlay removed; managed by AuthProvider now */}
 
         {/* Map Category Chips / Right Side Action Buttons */}
-        {!isGuidanceActive && !selectedLandmark && (
+        {!isGuidanceActive && !isTourMode && !isTourSimulation && !selectedLandmark && (
           <div className={`
             fixed top-[88px] left-0 right-0 z-30 flex flex-row gap-2 px-4 overflow-x-auto no-scrollbar
             md:absolute md:top-10 md:right-8 md:left-auto md:w-auto md:flex-col md:gap-3 md:animate-in md:slide-in-from-right-10 md:duration-500

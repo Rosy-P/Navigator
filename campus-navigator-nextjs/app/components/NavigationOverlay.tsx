@@ -36,9 +36,9 @@ export default function NavigationOverlay({
 
     return (
         <div className="absolute inset-0 pointer-events-none z-[100] flex flex-col justify-between p-4 font-sans">
-            {/* Top Direction Panel - Ultra Compact */}
-            <div className="w-full max-w-[340px] mx-auto pointer-events-auto animate-in slide-in-from-top-5 duration-500">
-                <div className="bg-[#1e293b]/90 backdrop-blur-md border border-white/5 rounded-[20px] shadow-[0_12px_30px_rgba(0,0,0,0.25)] overflow-hidden">
+            {/* Top Direction Panel - Normal Navigation Style */}
+            <div className="w-full max-w-[360px] mx-auto pointer-events-auto animate-in slide-in-from-top-5 duration-500">
+                <div className="bg-black border border-white/10 rounded-[24px] shadow-[0_15px_40px_rgba(0,0,0,0.5)] overflow-hidden">
                     <div className="flex items-center p-2 gap-3">
                         {/* Icon Container - Scaled Down */}
                         <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">

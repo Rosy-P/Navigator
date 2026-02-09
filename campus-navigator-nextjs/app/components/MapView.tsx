@@ -4,6 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { buildGraph, findNearestNode, aStar, Node, distance, getBearing, getManeuver, getRouteGeoJSON } from "../lib/routing";
+import { useVoiceNavigation } from "../hooks/useVoiceNavigation";
+import { Landmark } from "../lib/navigation/GuidanceSynthesizer";
+import { SpeechService } from "../lib/speech/SpeechService";
+
 
 interface MapViewProps {
     startLocation?: [number, number];
@@ -11,18 +15,35 @@ interface MapViewProps {
     pendingLocation?: [number, number];
     isSelectingStart?: boolean;
     isGuidanceActive?: boolean;
+    isTourMode?: boolean;
+    isTourSimulation?: boolean;
+    onToggleTourSimulation?: (active: boolean) => void;
     isDemoMode?: boolean;
     mapStyle?: string;
     simulationSpeed?: string;
     onLocationSelected?: (coord: [number, number]) => void;
     onSimulationUpdate?: (coord: [number, number], coveredPoints: [number, number][], instruction: string, distanceToNext: string) => void;
     onRouteCalculated?: (distance: number) => void;
-    onSelectLandmark?: (landmark: any) => void;
+    onSelectLandmark?: (landmark: any, isFromMap?: boolean) => void;
     isPaused?: boolean;
     recenterCount?: number;
     isMobile?: boolean;
     markerLocation?: [number, number];
+    showSubtitles?: boolean;
+    onToggleSubtitles?: () => void;
 }
+
+const GRAND_TOUR_PATH: [number, number][] = [
+    [80.120584, 12.923163], // Main Gate
+    [80.1199855, 12.9221401], // Thomas Hall
+    [80.121124, 12.920936], // Boxing Ring
+    [80.122281, 12.921221], // Anderson Hall
+    [80.122117, 12.921766], // Quadrangle
+    [80.12273, 12.92034], // Cafeteria
+    [80.1237728, 12.9195085], // Heber Hall
+    [80.1237943, 12.9187664], // Chapel
+    [80.12421, 12.92138] // Selaiyur Hall
+];
 
 export default function MapView({
     startLocation,
@@ -30,6 +51,9 @@ export default function MapView({
     pendingLocation,
     isSelectingStart,
     isGuidanceActive,
+    isTourMode = false,
+    isTourSimulation = false,
+    onToggleTourSimulation,
     isDemoMode,
     mapStyle = "voyager",
     simulationSpeed = "normal",
@@ -40,7 +64,9 @@ export default function MapView({
     isPaused = false,
     recenterCount = 0,
     isMobile = false,
-    markerLocation
+    markerLocation,
+    showSubtitles = true,
+    onToggleSubtitles
 }: MapViewProps) {
     const mapRef = useRef<HTMLDivElement>(null);
     const mapInstance = useRef<maplibregl.Map | null>(null);
@@ -51,7 +77,16 @@ export default function MapView({
 
     const currentRouteRef = useRef<[number, number][]>([]);
     const animFrameRef = useRef<number | null>(null);
+    const defaultLocation: [number, number] = [80.120584, 12.923163];
     const [isGraphReady, setIsGraphReady] = useState(false);
+    const [allLandmarks, setAllLandmarks] = useState<Landmark[]>([]);
+    const [simulationPosition, setSimulationPosition] = useState<[number, number] | null>(startLocation || defaultLocation);
+    const [currentNavManeuver, setCurrentNavManeuver] = useState<string>("");
+    const [currentManeuverCoord, setCurrentManeuverCoord] = useState<[number, number] | null>(null);
+    const [currentDistToManeuver, setCurrentDistToManeuver] = useState<number>(0);
+    const [isPathReady, setIsPathReady] = useState(false);
+
+
 
     // Camera Management Refs
     const cameraModeRef = useRef<"IDLE" | "FOLLOW" | "TURN">("IDLE");
@@ -63,6 +98,11 @@ export default function MapView({
     // Refs for state
     const isSelectingStartRef = useRef(isSelectingStart);
     const onLocationSelectedRef = useRef(onLocationSelected);
+    const onSelectLandmarkRef = useRef(onSelectLandmark);
+
+    useEffect(() => {
+        onSelectLandmarkRef.current = onSelectLandmark;
+    }, [onSelectLandmark]);
 
     useEffect(() => {
         isSelectingStartRef.current = isSelectingStart;
@@ -72,8 +112,21 @@ export default function MapView({
         onLocationSelectedRef.current = onLocationSelected;
     }, [onLocationSelected]);
 
-    const defaultLocation: [number, number] = [80.120584, 12.923163];
     const currentUserLocation = startLocation || defaultLocation;
+
+    // Voice Navigation Hook
+    const { isMuted, toggleMute, resetSession, repeatLastNarration } = useVoiceNavigation(
+        allLandmarks,
+        {
+            currentLocation: (isGuidanceActive || isTourMode || isTourSimulation) ? (isDemoMode || isTourSimulation ? simulationPosition : currentUserLocation) : null,
+            nextManeuver: currentNavManeuver,
+            maneuverCoord: currentManeuverCoord,
+            distanceToManeuver: currentDistToManeuver,
+            isTourMode: isTourSimulation
+        }
+    );
+
+
 
     const speedMap = { slow: 1500, normal: 800, fast: 300 };
 
@@ -165,7 +218,16 @@ export default function MapView({
                 });
 
                 map.addSource("landmarks", { type: "geojson", data: { type: "FeatureCollection", features } as any });
+                setAllLandmarks(features.map(f => ({
+                    id: f.properties.id,
+                    name: f.properties.name,
+                    lat: f.geometry.coordinates[1],
+                    lng: f.geometry.coordinates[0],
+                    navPrompt: f.properties.navPrompt,
+                    voice: f.properties.voice
+                })));
                 setIsGraphReady(true);
+
 
                 map.addLayer({
                     id: "landmarks-points",
@@ -242,6 +304,31 @@ export default function MapView({
                     paint: { "line-color": "#3b82f6", "line-width": 8, "line-opacity": 1 }
                 });
 
+                // Tour Mode Layers (Dotted/Solid Orange)
+                map.addLayer({
+                    id: "tour-route-covered",
+                    type: "line",
+                    source: "route-covered",
+                    layout: { "line-join": "round", "line-cap": "round", "visibility": "none" },
+                    paint: { "line-color": "#FFA500", "line-width": 6, "line-opacity": 0.8 }
+                });
+
+                map.addLayer({
+                    id: "tour-route-line",
+                    type: "line",
+                    source: "route",
+                    layout: { 
+                        "line-join": "round", 
+                        "line-cap": "round", 
+                        "visibility": "none"
+                    },
+                    paint: { 
+                        "line-color": "#FFA500", 
+                        "line-width": 4, 
+                        "line-dasharray": [1.5, 2] 
+                    }
+                });
+
                 // Marker
                 const el = document.createElement('div');
                 el.className = 'user-marker-container';
@@ -260,7 +347,12 @@ export default function MapView({
                     if (e.features && e.features[0]) {
                         const feature = e.features[0];
                         const coord = (feature.geometry as any).coordinates as [number, number];
-                        if (onSelectLandmark) onSelectLandmark({ ...feature.properties, lng: coord[0], lat: coord[1] });
+                        if (onSelectLandmarkRef.current) {
+                            onSelectLandmarkRef.current(
+                                { ...feature.properties, lng: coord[0], lat: coord[1] },
+                                true
+                            );
+                        }
                         map.easeTo({ center: coord, zoom: 18, duration: 1000 });
                     }
                 });
@@ -291,10 +383,17 @@ export default function MapView({
         });
     }, [destination, isGuidanceActive]);
 
-    // Reset Map View when Navigation Ends
+    // Reset Map View when Navigation or Tour Ends
     const prevGuidanceRef = useRef(isGuidanceActive);
+    const prevTourModeRef = useRef(isTourMode);
+    const prevTourSimRef = useRef(isTourSimulation);
+
     useEffect(() => {
-        if (!isGuidanceActive && prevGuidanceRef.current === true && mapInstance.current) {
+        const navEnded = !isGuidanceActive && prevGuidanceRef.current === true;
+        const tourEnded = !isTourMode && prevTourModeRef.current === true;
+        const simEnded = !isTourSimulation && prevTourSimRef.current === true;
+
+        if ((navEnded || tourEnded || simEnded) && mapInstance.current) {
             const campusCenter: [number, number] = [80.1235, 12.9180];
             mapInstance.current.flyTo({
                 center: campusCenter,
@@ -329,9 +428,21 @@ export default function MapView({
                 startMarkerRef.current.setRotation(0);
                 startMarkerRef.current.getElement().classList.remove('navigating');
             }
+
+            // Reset voice session for next time
+            resetSession();
+            setIsPathReady(false);
+        }
+        if ((isGuidanceActive && !prevGuidanceRef.current) || (isTourSimulation && !prevTourSimRef.current)) {
+            // New navigation or tour session started
+            resetSession();
+            setIsPathReady(false);
         }
         prevGuidanceRef.current = isGuidanceActive;
-    }, [isGuidanceActive, startLocation]);
+        prevTourModeRef.current = isTourMode;
+        prevTourSimRef.current = isTourSimulation;
+
+    }, [isGuidanceActive, isTourMode, isTourSimulation, startLocation]);
 
     // Speed configuration (meters per second)
     const speedTable = {
@@ -341,13 +452,18 @@ export default function MapView({
     };
 
     useEffect(() => {
-        if (!isDemoMode || !isGuidanceActive || currentRouteRef.current.length === 0 || !mapInstance.current || isPaused) {
+        if (!(isDemoMode || isTourSimulation) || (!isGuidanceActive && !isTourSimulation) || !isPathReady || !mapInstance.current || isPaused) {
             if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
             cameraModeRef.current = "IDLE";
             return;
         }
 
         const path = currentRouteRef.current;
+        if (!path || path.length < 2) {
+            cameraModeRef.current = "IDLE";
+            return;
+        }
+        
         let segmentIndex = 0;
         let segmentStartPos = path[0];
         let segmentEndPos = path[1];
@@ -361,23 +477,21 @@ export default function MapView({
         smoothedBearingRef.current = getBearing(segmentStartPos, segmentEndPos);
 
         const animate = (time: number) => {
+            const elapsed = time - segmentStartTime;
+            let t = Math.min(elapsed / segmentDuration, 1);
+
             if (isPaused) {
-                segmentStartTime = time - (time - segmentStartTime); // Pause logic
+                segmentStartTime = time - (t * segmentDuration);
                 animFrameRef.current = requestAnimationFrame(animate);
                 return;
             }
 
-            let elapsed = time - segmentStartTime;
-            let t = Math.min(elapsed / segmentDuration, 1);
-
-            // Interpolate position
             const currentLng = segmentStartPos[0] + (segmentEndPos[0] - segmentStartPos[0]) * t;
             const currentLat = segmentStartPos[1] + (segmentEndPos[1] - segmentStartPos[1]) * t;
             const currentPos: [number, number] = [currentLng, currentLat];
+            setSimulationPosition(currentPos);
 
             const targetBearing = getBearing(segmentStartPos, segmentEndPos);
-
-            // Smoothing for map bearing
             const alpha = 0.08;
             let diff = targetBearing - smoothedBearingRef.current;
             while (diff > 180) diff -= 360;
@@ -389,8 +503,6 @@ export default function MapView({
                 startMarkerRef.current.setRotation(targetBearing);
             }
 
-            // Camera Throttling: Only easeTo when needed to prevent stutter
-            // Increased thresholds significantly to fix "vibration"
             const distChanged = !lastCameraPosRef.current || distance(currentPos, lastCameraPosRef.current) > 1.2;
             const bearingChanged = Math.abs(smoothedBearingRef.current - lastCameraBearingRef.current) > 2.5;
 
@@ -402,19 +514,14 @@ export default function MapView({
                     cameraModeRef.current = maneuver !== "Continue straight" ? "TURN" : "FOLLOW";
                 }
 
-                // Calculate and Smooth Velocity
                 const targetSpeed = speed;
                 const speedAlpha = 0.03;
                 smoothedSpeedRef.current = smoothedSpeedRef.current + (targetSpeed - smoothedSpeedRef.current) * speedAlpha;
-
-                // Map speed to dynamic offset (Desktop ONLY, Mobile stays centered)
                 const speedFactor = Math.max(0, Math.min(1, (smoothedSpeedRef.current - 3) / (15 - 3)));
                 const dynamicOffset = isMobile ? 0 : (110 + speedFactor * (220 - 110));
-
                 const rad = smoothedBearingRef.current * (Math.PI / 180);
                 const x = Math.sin(rad);
                 const y = Math.cos(rad);
-
                 const offsetX = -x * dynamicOffset;
                 const offsetY = y * dynamicOffset;
 
@@ -422,17 +529,16 @@ export default function MapView({
                     center: currentPos,
                     bearing: smoothedBearingRef.current,
                     pitch: cameraModeRef.current === "TURN" ? 45 : 60,
-                    zoom: 18.5, // Increased zoom level for better detail
+                    zoom: 18.5,
                     offset: [offsetX, offsetY],
-                    duration: 350, // Longer duration for smoother transitions
-                    easing: (t) => t * (2 - t) // Quadratic ease-out for natural feel
+                    duration: 350,
+                    easing: (t) => t * (2 - t)
                 });
 
                 lastCameraPosRef.current = currentPos;
                 lastCameraBearingRef.current = smoothedBearingRef.current;
             }
 
-            // Update Route Layers
             const cSrc = mapInstance.current!.getSource("route-covered") as maplibregl.GeoJSONSource;
             if (cSrc) {
                 const covered = [...path.slice(0, segmentIndex + 1), currentPos];
@@ -445,11 +551,9 @@ export default function MapView({
                 rSrc.setData({ type: "Feature", geometry: { type: "LineString", coordinates: remaining } } as any);
             }
 
-            // Navigation Instructions calculation
             let instruction = "Continue straight";
             let distToManeuver = segmentDistance * (1 - t);
 
-            // Look ahead for turns
             if (segmentIndex < path.length - 2) {
                 const b1 = getBearing(segmentStartPos, segmentEndPos);
                 const bNext = getBearing(path[segmentIndex + 1], path[segmentIndex + 2]);
@@ -458,7 +562,6 @@ export default function MapView({
                 if (nextManeuver !== "Continue straight") {
                     instruction = nextManeuver;
                 } else {
-                    // Accumulate distance if straight
                     let lookaheadDist = distToManeuver;
                     for (let i = segmentIndex + 1; i < path.length - 1; i++) {
                         const bCurr = getBearing(path[i - 1], path[i]);
@@ -472,11 +575,9 @@ export default function MapView({
                     }
                     distToManeuver = lookaheadDist;
                 }
-            } else {
-                if (segmentIndex === path.length - 2 && t > 0.95) {
-                    instruction = "You have arrived";
-                    distToManeuver = 0;
-                }
+            } else if (segmentIndex === path.length - 2 && t > 0.95) {
+                instruction = "You have arrived";
+                distToManeuver = 0;
             }
 
             const distText = distToManeuver >= 1000
@@ -487,10 +588,17 @@ export default function MapView({
                 onSimulationUpdate(currentPos, path.slice(0, segmentIndex + 1), instruction, distText);
             }
 
+            setCurrentNavManeuver(instruction);
+            setCurrentDistToManeuver(distToManeuver);
+            if (segmentIndex < path.length - 1) {
+                setCurrentManeuverCoord(path[segmentIndex + 1]);
+            } else {
+                setCurrentManeuverCoord(null);
+            }
+
             if (t < 1) {
                 animFrameRef.current = requestAnimationFrame(animate);
             } else {
-                // Move to next segment
                 segmentIndex++;
                 if (segmentIndex < path.length - 1) {
                     segmentStartPos = path[segmentIndex];
@@ -499,8 +607,6 @@ export default function MapView({
                     segmentDistance = distance(segmentStartPos, segmentEndPos);
                     segmentDuration = (segmentDistance / speed) * 1000;
                     animFrameRef.current = requestAnimationFrame(animate);
-                } else {
-                    // Finished
                 }
             }
         };
@@ -510,7 +616,7 @@ export default function MapView({
         return () => {
             if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
         };
-    }, [isDemoMode, isGuidanceActive, isPaused, simulationSpeed]);
+    }, [isDemoMode, isGuidanceActive, isPaused, simulationSpeed, isTourSimulation, isPathReady]);
 
     // Manual Recenter
     useEffect(() => {
@@ -522,6 +628,78 @@ export default function MapView({
             });
         }
     }, [recenterCount]);
+
+    // Handle Tour Simulation Route Generation
+    useEffect(() => {
+        if (isTourSimulation && isGraphReady && graphRef.current && mapInstance.current) {
+            console.log("🚀 Starting Grand Tour Simulation...");
+            let fullPath: [number, number][] = [];
+            
+            // Connect all points in the tour path
+            for (let i = 0; i < GRAND_TOUR_PATH.length - 1; i++) {
+                const start = GRAND_TOUR_PATH[i];
+                const end = GRAND_TOUR_PATH[i+1];
+                const segment = getRouteGeoJSON(graphRef.current, start, end);
+                if (segment) {
+                    // Avoid duplicating coordinates at joint points
+                    const coords = segment.geometry.coordinates as [number, number][];
+                    fullPath = [...fullPath, ...coords.slice(0, -1)];
+                }
+            }
+            // Add the last point
+            fullPath.push(GRAND_TOUR_PATH[GRAND_TOUR_PATH.length - 1]);
+
+            if (fullPath.length > 0) {
+                currentRouteRef.current = fullPath;
+                setSimulationPosition(fullPath[0]);
+                setIsPathReady(true);
+                
+                // Show path on map source (layers handle styling)
+                const rSrc = mapInstance.current.getSource("route") as maplibregl.GeoJSONSource;
+                if (rSrc) {
+                    rSrc.setData({
+                        type: "Feature",
+                        properties: {},
+                        geometry: { type: "LineString", coordinates: fullPath }
+                    });
+                }
+            }
+        } else if (!isTourSimulation && !isGuidanceActive && mapInstance.current) {
+            // Clear sources when both are off
+            const rSrc = mapInstance.current.getSource("route") as maplibregl.GeoJSONSource;
+            if (rSrc) rSrc.setData({ type: "FeatureCollection", features: [] });
+            const cSrc = mapInstance.current.getSource("route-covered") as maplibregl.GeoJSONSource;
+            if (cSrc) cSrc.setData({ type: "FeatureCollection", features: [] });
+            setIsPathReady(false);
+        }
+    }, [isTourSimulation, isGraphReady]);
+
+    // Toggle Layer Visibility (Navigation vs Tour)
+    useEffect(() => {
+        if (!mapInstance.current) return;
+        const map = mapInstance.current;
+        const isTourActive = isTourMode || isTourSimulation;
+
+        try {
+            // Standard Navigation Layers
+            if (map.getLayer("route-line")) {
+                map.setLayoutProperty("route-line", "visibility", isTourActive ? "none" : "visible");
+            }
+            if (map.getLayer("route-covered")) {
+                map.setLayoutProperty("route-covered", "visibility", isTourActive ? "none" : "visible");
+            }
+
+            // Tour Mode Layers
+            if (map.getLayer("tour-route-line")) {
+                map.setLayoutProperty("tour-route-line", "visibility", isTourActive ? "visible" : "none");
+            }
+            if (map.getLayer("tour-route-covered")) {
+                map.setLayoutProperty("tour-route-covered", "visibility", isTourActive ? "visible" : "none");
+            }
+        } catch (e) {
+            console.warn("Could not toggle layers:", e);
+        }
+    }, [isTourMode, isTourSimulation]);
 
     useEffect(() => {
         if (!mapInstance.current) return;
@@ -540,18 +718,22 @@ export default function MapView({
         if (startMarkerRef.current) {
             if (!isDemoMode) startMarkerRef.current.setLngLat(currentUserLocation);
             // Toggle marker style
-            if (isGuidanceActive) {
+            if (isGuidanceActive || isTourSimulation) {
                 startMarkerRef.current.getElement().classList.add('navigating');
             } else {
                 startMarkerRef.current.getElement().classList.remove('navigating');
             }
         }
 
-        if (!destination || !startLocation || isSelectingStart) {
+        if ((!destination || !startLocation || isSelectingStart) || isTourSimulation) {
+            // If in tour simulation, don't clear sources because the other useEffect is managing them
+            if (isTourSimulation) return;
+
             const rSrc = mapInstance.current.getSource("route") as maplibregl.GeoJSONSource;
             if (rSrc) rSrc.setData({ type: "FeatureCollection", features: [] });
             const cSrc = mapInstance.current.getSource("route-covered") as maplibregl.GeoJSONSource;
             if (cSrc) cSrc.setData({ type: "FeatureCollection", features: [] });
+            setIsPathReady(false);
 
             if (destMarkerRef.current && !destination && !markerLocation) destMarkerRef.current.remove();
             if (destination || markerLocation) {
@@ -575,17 +757,126 @@ export default function MapView({
             }
 
             const rSrc = mapInstance.current.getSource("route") as maplibregl.GeoJSONSource;
-            if (rSrc) rSrc.setData(routeFeature);
+            if (rSrc) {
+                rSrc.setData(routeFeature);
+                if (isDemoMode) {
+                   setSimulationPosition(routeCoords[0]);
+                }
+                setIsPathReady(true);
+            }
 
             if (destMarkerRef.current) destMarkerRef.current.remove();
             const markerPos = markerLocation || destination;
-            destMarkerRef.current = new maplibregl.Marker({ color: "#ef4444" }).setLngLat(markerPos).addTo(mapInstance.current);
+            if (markerPos) {
+                destMarkerRef.current = new maplibregl.Marker({ color: "#ef4444" }).setLngLat(markerPos).addTo(mapInstance.current);
+            }
 
             const b = new maplibregl.LngLatBounds();
             routeCoords.forEach((c: any) => b.extend(c as [number, number]));
             mapInstance.current.fitBounds(b, { padding: 100, duration: 1000 });
         }
-    }, [startLocation, destination, markerLocation, pendingLocation, isSelectingStart, isDemoMode, mapStyle, isGraphReady]);
+    }, [startLocation, destination, markerLocation, pendingLocation, isSelectingStart, isDemoMode, mapStyle, isGraphReady, isGuidanceActive, isTourSimulation]);
 
-    return <div ref={mapRef} className="absolute inset-0" />;
+    return (
+        <div className="absolute inset-0">
+            <div ref={mapRef} className="absolute inset-0" />
+            
+            {/* Voice Control Overlay */}
+            {(isGuidanceActive || isTourMode || isTourSimulation) && (
+                <div className="absolute top-4 right-4 z-[10] flex flex-col gap-2">
+                    <button
+                        onClick={toggleMute}
+                        className={`p-3 rounded-full shadow-lg backdrop-blur-md transition-all ${
+                            isMuted ? 'bg-red-500 text-white' : 'bg-white/90 text-slate-800'
+                        }`}
+                        title={isMuted ? "Unmute Voice" : "Mute Voice"}
+                    >
+                        {isMuted ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                            </svg>
+                        ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                            </svg>
+                        )}
+                    </button>
+
+                    <button
+                        onClick={onToggleSubtitles}
+                        className={`p-3 rounded-full shadow-lg backdrop-blur-md transition-all ${
+                            showSubtitles ? 'bg-orange-500 text-white' : 'bg-white/90 text-slate-800'
+                        }`}
+                        title={showSubtitles ? "Hide Subtitles" : "Show Subtitles"}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                        </svg>
+                    </button>
+
+                    {(isTourMode || isTourSimulation) && (
+                        <button
+                            onClick={repeatLastNarration}
+                            className="p-3 bg-white/90 text-slate-800 rounded-full shadow-lg backdrop-blur-md transition-all active:scale-90"
+                            title="Repeat Description"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                        </button>
+                    )}
+                </div>
+            )}
+
+            {/* Tour Mode Start Button - Bottom Center */}
+            {isTourMode && !isTourSimulation && (
+                <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-[40]">
+                    <button
+                        onClick={() => onToggleTourSimulation?.(true)}
+                        className="px-8 py-4 bg-indigo-600 text-white font-bold rounded-2xl shadow-2xl hover:bg-indigo-700 active:scale-95 transition-all flex items-center gap-3 border border-indigo-500/20 whitespace-nowrap"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Start Virtual Tour
+                    </button>
+                </div>
+            )}
+
+            {/* Stop Tour Button - Bottom Center */}
+            {isTourSimulation && (
+                <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-[40] flex items-center gap-3">
+                    <button
+                        onClick={toggleMute}
+                        className={`p-4 rounded-2xl shadow-2xl backdrop-blur-md transition-all border border-slate-200 ${
+                            isMuted ? 'bg-red-500 text-white' : 'bg-white/90 text-slate-800'
+                        }`}
+                    >
+                        {isMuted ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                            </svg>
+                        ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                            </svg>
+                        )}
+                    </button>
+                    <button
+                        onClick={() => onToggleTourSimulation?.(false)}
+                        className="px-8 py-4 bg-red-500 text-white font-bold rounded-2xl shadow-2xl hover:bg-red-600 active:scale-95 transition-all flex items-center gap-3 border border-red-400/20 whitespace-nowrap"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Stop Tour
+                    </button>
+                </div>
+            )}
+        </div>
+    );
 }
+

@@ -26,6 +26,9 @@ interface SidebarProps {
     user?: { name: string; email: string; avatar?: string } | null;
     onOpenAuth?: () => void;
     onLogout?: () => void;
+    isTourMode?: boolean;
+    onToggleTourMode?: () => void;
+    onSelectLocations?: () => void;
 }
 
 
@@ -38,17 +41,20 @@ export default function Sidebar({
     isDisabled = false,
     user,
     onOpenAuth,
-    onLogout
+    onLogout,
+    isTourMode = false,
+    onToggleTourMode,
+    onSelectLocations
 }: SidebarProps) {
 
     const pathname = usePathname();
 
     const menuItems = [
         { icon: <LayoutGrid size={18} />, label: "Dashboard", href: "/dashboard" },
-        { icon: <MapPin size={18} />, label: "Locations", href: "/" },
+        { icon: <MapPin size={18} />, label: "Locations", onClick: onSelectLocations, href: "/" },
         { icon: <Building2 size={18} />, label: "Facilities", href: "/facilities" },
         { icon: <Calendar size={18} />, label: "Events", href: "/events" },
-        { icon: <Compass size={18} />, label: "Tour Mode", href: "/tour" },
+        { icon: <Compass size={18} />, label: "Tour Mode", onClick: onToggleTourMode, isActiveOverride: isTourMode },
         { icon: <Settings size={18} />, label: "Settings", onClick: onOpenSettings },
         { icon: <AlertCircle size={18} />, label: "Emergency", href: "/emergency" },
     ];
@@ -73,9 +79,11 @@ export default function Sidebar({
 
                     <div className="flex-1 w-full flex flex-col gap-2 2xl:gap-3 items-end mt-4 2xl:mt-6">
                         {menuItems.map((item) => {
-                            const isActive = forceActiveLabel
-                                ? forceActiveLabel === item.label
-                                : (item.href ? pathname === item.href : false);
+                            const isActive = item.isActiveOverride !== undefined
+                                ? item.isActiveOverride
+                                : (forceActiveLabel
+                                    ? forceActiveLabel === item.label
+                                    : (item.href ? pathname === item.href : false));
 
                             const content = (
                                 <div className={`
@@ -93,7 +101,12 @@ export default function Sidebar({
                             // ... rest of map ...
                             if (item.href) {
                                 return (
-                                    <Link key={item.label} href={item.href} className={className}>
+                                    <Link 
+                                        key={item.label} 
+                                        href={item.href} 
+                                        className={className}
+                                        onClick={item.onClick}
+                                    >
                                         {content}
                                     </Link>
                                 );
@@ -129,9 +142,11 @@ export default function Sidebar({
 
                     <div className="flex-1 flex flex-col gap-2 2xl:gap-3 py-0 px-0 mt-4 2xl:mt-6">
                         {menuItems.map((item) => {
-                            const isActive = forceActiveLabel
-                                ? forceActiveLabel === item.label
-                                : (item.href ? pathname === item.href : false);
+                            const isActive = item.isActiveOverride !== undefined
+                                ? item.isActiveOverride
+                                : (forceActiveLabel
+                                    ? forceActiveLabel === item.label
+                                    : (item.href ? pathname === item.href : false));
 
                             const className = `
                                 h-[48px] 2xl:h-[56px] flex items-center px-6 transition-all duration-300 font-bold text-[13px] 2xl:text-base cursor-pointer
@@ -140,7 +155,12 @@ export default function Sidebar({
 
                             if (item.href) {
                                 return (
-                                    <Link key={item.label} href={item.href} className={className}>
+                                    <Link 
+                                        key={item.label} 
+                                        href={item.href} 
+                                        className={className}
+                                        onClick={item.onClick}
+                                    >
                                         {item.label}
                                     </Link>
                                 );

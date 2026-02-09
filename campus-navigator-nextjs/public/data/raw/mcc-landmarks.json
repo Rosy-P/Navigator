@@ -3,7 +3,7 @@
         12.9175,
         80.1378
     ],
-    "totalLandmarks": 43,
+    "totalLandmarks": 46,
     "classrooms": [
         {
             "name": "A-Block Room 101",
@@ -19,7 +19,11 @@
             "images": [
                 "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Academic"
+            "category": "Academic",
+            "voice": {
+                "navigation": "Walk towards A-Block Room 101.",
+                "tour": "A-Block Room 101 is a key academic space in the Main Campus."
+            }
         },
         {
             "name": "CS Lab 201",
@@ -35,7 +39,11 @@
             "images": [
                 "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Lab"
+            "category": "Lab",
+            "voice": {
+                "navigation": "Continue straight to reach CS Lab 201.",
+                "tour": "CS Lab 201 is equipped for modern computing and student projects."
+            }
         }
     ],
     "departments": [
@@ -53,7 +61,11 @@
             "images": [
                 "https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Department"
+            "category": "Department",
+            "voice": {
+                "navigation": "The Computer Science Department is ahead on your right.",
+                "tour": "This is the Computer Science Department, a hub for innovation and technology studies at MCC."
+            }
         },
         {
             "name": "Commerce Block",
@@ -69,7 +81,11 @@
             "images": [
                 "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Department"
+            "category": "Department",
+            "voice": {
+                "navigation": "Head towards the Commerce Block.",
+                "tour": "The Commerce Block represents the modern academic spirit of the college. It's one of the busiest hubs on campus, fostering future leaders in business and economics."
+            }
         }
     ],
     "facilities": [
@@ -88,7 +104,11 @@
             "images": [
                 "https://images.unsplash.com/photo-1590059523275-58a36c568f6a?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Entrance"
+            "category": "Entrance",
+            "voice": {
+                "navigation": "Start your journey at the Main Gate.",
+                "tour": "The Main Gate of MCC is more than just an entrance. It symbolizes the transition from the bustling Tambaram town into the serene, 365-acre scrub jungle campus that has been our home since 1937."
+            }
         },
         {
             "id": "library",
@@ -105,7 +125,11 @@
             "images": [
                 "https://images.unsplash.com/photo-1507842217121-9e9f28dec969?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Facility"
+            "category": "Facility",
+            "voice": {
+                "navigation": "Walk past the Library building.",
+                "tour": "The Central Library houses a vast collection of academic resources and has been a cornerstone of student research for decades."
+            }
         },
         {
             "id": "thomas_hall",
@@ -122,7 +146,11 @@
             "images": [
                 "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Hostel"
+            "category": "Hostel",
+            "voice": {
+                "navigation": "Turn left near St. Thomas’s Hall.",
+                "tour": "St. Thomas’s Hall, established in 1937, is named after St. Thomas who brought Christianity to India. Known for its strong student-led governance and rich cultural life, the hall’s motto is “For God and Country.”"
+            }
         },
         {
             "id": "iob_atm",
@@ -139,7 +167,11 @@
             "images": [
                 "https://images.unsplash.com/photo-1601597111158-2fceff292cdc?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Service"
+            "category": "Service",
+            "voice": {
+                "navigation": "The IOB ATM is near the Student Center.",
+                "tour": "The Indian Overseas Bank ATM provides essential banking services for the campus community."
+            }
         },
         {
             "name": "Boxing Ring",
@@ -155,7 +187,11 @@
             "images": [
                 "https://images.unsplash.com/photo-1599058945522-28d584b6f0ff?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Sports"
+            "category": "Sports",
+            "voice": {
+                "navigation": "Continue towards the Boxing Ring.",
+                "tour": "The Boxing Ring, in front of the Principal's Quarters, doubles as an outdoor stage with green space in the front for a sizable audience, primarily used for student gatherings."
+            }
         },
         {
             "name": "Center for Media Studies",
@@ -171,7 +207,11 @@
             "images": [
                 "https://images.unsplash.com/photo-1599058945522-28d584b6f0ff?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Department"
+            "category": "Department",
+            "voice": {
+                "navigation": "The Center for Media Studies is on your left.",
+                "tour": "The Center for Media Studies is where creativity meets communication, training the next generation of journalists and filmmakers."
+            }
         },
         {
             "name": "Miller Memorial Library",
@@ -187,7 +227,11 @@
             "images": [
                 "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Library"
+            "category": "Library",
+            "voice": {
+                "navigation": "The Miller Memorial Library is located in the old campus area.",
+                "tour": "Miller Memorial Library preserves the history of Madras Christian College through its extensive archives and rare manuscripts."
+            }
         },
         {
             "name": "Macphails Arts Center",
@@ -203,7 +247,10 @@
             "images": [
                 "https://images.unsplash.com/photo-1518998053901-5348d3969105?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Arts"
+            "category": "Arts",
+            "voice": {
+                "tour": "The Fine Arts Centre is named after J.R. Macphail."
+            }
         },
         {
             "name": "MCC Stone Bench",
@@ -219,7 +266,11 @@
             "images": [
                 "https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Landmark"
+            "category": "Landmark",
+            "voice": {
+                "navigation": "Look for the iconic Stone Bench nearby.",
+                "tour": "The MCC Stone Bench is a legendary meeting spot for generations of students, nestled in the heart of our campus woods."
+            }
         },
         {
             "name": "Anderson Hall",
@@ -235,7 +286,10 @@
             "images": [
                 "https://images.unsplash.com/photo-1497294815431-9365093b7331?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Auditorium"
+            "category": "Auditorium",
+            "voice": {
+                "tour": "Anderson Hall is one of the oldest academic buildings in MCC. It is often used for major student gatherings and cultural events."
+            }
         },
         {
             "name": "Institute for Advanced Christian Studies",
@@ -251,7 +305,10 @@
             "images": [
                 "https://images.unsplash.com/photo-1541339907198-e08756eaa539?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Department"
+            "category": "Department",
+            "voice": {
+                "tour": "This is the Institute for Advanced Christian Studies."
+            }
         },
         {
             "name": "MCC School of Continuing Education",
@@ -267,7 +324,11 @@
             "images": [
                 "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Academic"
+            "category": "Academic",
+            "voice": {
+                "navigation": "Walk towards the School of Continuing Education.",
+                "tour": "The MCC School of Continuing Education offers professional certificates and diploma courses for both students and the public."
+            }
         },
         {
             "name": "Quadrangle MCC",
@@ -283,7 +344,11 @@
             "images": [
                 "https://images.unsplash.com/photo-1523580494863-6f3031224c94?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Landmark"
+            "category": "Landmark",
+            "voice": {
+                "navigation": "You are approaching the Quadrangle.",
+                "tour": "The quadrangle or diamond directly in front of the main building is the largest outdoor public space, used primarily for large student gatherings, such as the shows hosted during the annual Deepwoods intercollegiate cultural festival."
+            }
         },
         {
             "id": "bishop_heber_chapel",
@@ -300,24 +365,26 @@
             "images": [
                 "https://images.unsplash.com/photo-1548625361-195fe0182a7f?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Religious"
+            "category": "Religious",
+            "voice": {
+                "navigation": "Enter the grounds of Bishop Heber Chapel.",
+                "tour": "The Bishop Heber Chapel is a defining landmark of the hall, featuring Scottish-imported tiles and a hand-carved altar. It hosts regular services and symbolizes the deep spiritual roots of the hall."
+            }
         },
         {
-            "id": "heber_hall",
-            "name": "Heber Hall",
-            "lat": 12.9195085,
-            "lng": 80.1237728,
-            "floor": "ground",
-            "rating": 4.4,
-            "reviews": 40,
-            "address": "MCC Campus, Tambaram",
-            "hours": "N/A",
-            "phone": "N/A",
             "website": "https://mcc.edu.in",
             "images": [
                 "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Hostel"
+            "category": "Hostel",
+            "id": "heber_hall",
+            "name": "Heber Hall",
+            "lat": 12.9195085,
+            "lng": 80.1237728,
+            "voice": {
+                "navigation": "Head towards Heber Hall.",
+                "tour": "Bishop Heber Hall traces its roots to 1762 and was established on the MCC campus in 1937. Famous for its chapel, literary legacy, and rock culture through the Octavia fest, it is one of the most iconic halls on campus."
+            }
         },
         {
             "name": "MCC Campus Clinic",
@@ -333,7 +400,10 @@
             "images": [
                 "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Medical"
+            "category": "Medical",
+            "voice": {
+                "tour": "This is the MCC Campus Clinic."
+            }
         },
         {
             "name": "Zoology tank",
@@ -349,7 +419,10 @@
             "images": [
                 "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Landmark"
+            "category": "Landmark",
+            "voice": {
+                "tour": "This is the Zoology tank."
+            }
         },
         {
             "name": "College Union society",
@@ -365,7 +438,10 @@
             "images": [
                 "https://images.unsplash.com/photo-1523580494863-6f3031224c94?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Student Center"
+            "category": "Student Center",
+            "voice": {
+                "tour": "This is the College Union society."
+            }
         },
         {
             "name": "MCC Cafeteria",
@@ -381,7 +457,11 @@
             "images": [
                 "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Canteen"
+            "category": "Canteen",
+            "voice": {
+                "navigation": "Take a break at the MCC Cafeteria.",
+                "tour": "The cafeteria and gutters are the spots students congregate during breaks or free hours. The gutters are popular hangouts for intellectual conversation and often the birthplace of artistic or culturally significant initiatives by students."
+            }
         },
         {
             "name": "Botany Tank",
@@ -397,7 +477,10 @@
             "images": [
                 "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Landmark"
+            "category": "Landmark",
+            "voice": {
+                "tour": "This is the Botany Tank."
+            }
         },
         {
             "name": "MCC Pavilion",
@@ -413,7 +496,10 @@
             "images": [
                 "https://images.unsplash.com/photo-1599586120429-48281b6f0ece?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Sports"
+            "category": "Sports",
+            "voice": {
+                "tour": "The Madras Christian College campus has several sports fields and facilities, including cricket, association football, tennis, basketball, boxing, and others. The cricket pavilion is named after the former physical director of the college, C.A. Abraham. These sports fields are used by the student community, especially during the inter-hall sports."
+            }
         },
         {
             "name": "Selaiyur Hall",
@@ -429,7 +515,11 @@
             "images": [
                 "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Hostel"
+            "category": "Hostel",
+            "voice": {
+                "navigation": "Reach Selaiyur Hall.",
+                "tour": "Founded in 1937, Selaiyur Hall is the oldest hall on campus and is named after the Selaiyur forest reserve. It is known for its strong traditions, vibrant cultural festivals like Moonshadow, and the motto “Esse Quam Videri”—to be rather than to seem."
+            }
         },
         {
             "name": "MCC Gate 2",
@@ -445,7 +535,10 @@
             "images": [
                 "https://images.unsplash.com/photo-1590059523275-58a36c568f6a?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Entrance"
+            "category": "Entrance",
+            "voice": {
+                "tour": "This is the MCC Gate 2."
+            }
         },
         {
             "name": "MCC Main Hospital",
@@ -461,7 +554,10 @@
             "images": [
                 "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Medical"
+            "category": "Medical",
+            "voice": {
+                "tour": "This is the MCC Main Hospital."
+            }
         },
         {
             "name": "MCC Farm",
@@ -477,7 +573,10 @@
             "images": [
                 "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Landmark"
+            "category": "Landmark",
+            "voice": {
+                "tour": "This is the MCC Farm."
+            }
         },
         {
             "name": "MCC Lake",
@@ -493,7 +592,10 @@
             "images": [
                 "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Landmark"
+            "category": "Landmark",
+            "voice": {
+                "tour": "This is the MCC Lake."
+            }
         },
         {
             "name": "MCC International Guest House",
@@ -509,7 +611,10 @@
             "images": [
                 "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Service"
+            "category": "Service",
+            "voice": {
+                "tour": "This modern building, designed by a Swedish architect to western standards, is situated in the midst of a densely wooded area near the athletic fields. Wild deer grazing outside the dining room is not an uncommon sight."
+            }
         },
         {
             "name": "MCC Indoor Stadium",
@@ -525,7 +630,43 @@
             "images": [
                 "https://images.unsplash.com/photo-1541252260730-0412e8e2108e?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Sports"
+            "category": "Sports",
+            "voice": {
+                "tour": "This is the MCC Indoor Stadium."
+            }
+        },
+        {
+            "id": "martin_hall",
+            "name": "Martin Hall",
+            "lat": 12.918,
+            "lng": 80.128,
+            "floor": "ground",
+            "category": "Hostel",
+            "voice": {
+                "tour": "Established in 1968, Martin Hall was the first women’s hall on campus. Known for Vatika, Galarompics, and a strong sense of community, its residents are proudly called Martinians."
+            }
+        },
+        {
+            "id": "margaret_hall",
+            "name": "Margaret Hall",
+            "lat": 12.92429,
+            "lng": 80.12643,
+            "floor": "ground",
+            "category": "Hostel",
+            "voice": {
+                "tour": "Margaret Hall, founded in 2009, is a women’s hall named after Margaret Locher Anderson. With blocks named after flowers, it promotes creativity, leadership, and cultural expression among its residents, called Margaritas."
+            }
+        },
+        {
+            "id": "barnes_hall",
+            "name": "Barnes Hall",
+            "lat": 12.92316,
+            "lng": 80.12812,
+            "floor": "ground",
+            "category": "Hostel",
+            "voice": {
+                "tour": "Barnes Hall, established in 2016, is the newest women’s hall on campus. With the motto “Shine Your Light”, it emphasizes empowerment, sustainability, and modern living facilities."
+            }
         }
     ]
 }
