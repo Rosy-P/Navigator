@@ -2,14 +2,20 @@
 
 import { useState, useEffect, createContext, useContext, ReactNode } from "react";
 import { X, User, Mail, Lock, ArrowRight, Loader2, LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
+
 
 // --- Types ---
 
 export type UserData = {
+    id: number;
     name: string;
     email: string;
+    role: string;
     avatar?: string;
 };
+
+
 
 type AuthMode = 'signin' | 'signup';
 
@@ -45,6 +51,7 @@ interface AuthProviderProps {
 }
 
 export default function AuthProvider({ children, theme = 'light' }: AuthProviderProps) {
+    const router = useRouter();
     const [user, setUser] = useState<UserData | null>(null);
     const [isOverlayOpen, setIsOverlayOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
@@ -54,8 +61,8 @@ export default function AuthProvider({ children, theme = 'light' }: AuthProvider
     useEffect(() => {
         const checkAuth = async () => {
             try {
-                const res = await fetch("http://localhost:8080/campus-navigator-backend/check-auth.php", {
-                   credentials: "include" 
+                const res = await fetch("http://localhost:80/campus-navigator-backend/check-auth.php", {
+                    credentials: "include"
                 });
                 if (res.ok) {
                     const data = await res.json();
@@ -73,7 +80,7 @@ export default function AuthProvider({ children, theme = 'light' }: AuthProvider
     }, []);
 
     const showAuthOverlay = () => setIsOverlayOpen(true);
-    
+
     const hideAuthOverlay = () => {
         setIsOverlayOpen(false);
         setPendingAction(null);
@@ -83,29 +90,43 @@ export default function AuthProvider({ children, theme = 'light' }: AuthProvider
         try {
             const formDataObj = new FormData();
             Object.keys(formData).forEach(key => formDataObj.append(key, formData[key]));
-            
-            const res = await fetch("http://localhost:8080/campus-navigator-backend/login.php", {
+
+            const res = await fetch("http://localhost:80/campus-navigator-backend/login.php", {
                 method: "POST",
                 body: formDataObj,
                 credentials: "include"
             });
 
             const data = await res.json();
-            
+
             console.log("Login response:", data);
-            
+
             if (data.status === "success") {
-                // Backend says success - accept it
+
                 if (data.user) {
                     setUser(data.user);
+
+                    // ✅ Store role locally (UI control only)
+                    localStorage.setItem("role", data.user.role);
+                    localStorage.setItem("user_id", data.user.id);
+                    localStorage.setItem("user_name", data.user.name);
+
+                    // ✅ Redirect based on role
+                    if (data.user.role === "admin") {
+                        router.push("/admin");
+                    } else {
+                        router.push("/");
+                    }
                 }
-                // Don't close overlay here - let handleSubmit do it
-                
+
                 if (pendingAction) {
                     pendingAction();
                     setPendingAction(null);
                 }
-            } else {
+
+            }
+
+            else {
                 throw new Error(data.message || "Login failed");
             }
         } catch (error) {
@@ -117,8 +138,8 @@ export default function AuthProvider({ children, theme = 'light' }: AuthProvider
     const logout = async () => {
         setUser(null);
         try {
-             // Optional: call logout endpoint if needed
-        } catch(e) {}
+            // Optional: call logout endpoint if needed
+        } catch (e) { }
     };
 
     const requireAuth = (action?: () => void) => {
@@ -184,17 +205,17 @@ function AuthOverlayUI({ theme, onClose, modeProp }: { theme: 'light' | 'dark', 
                 formDataObj.append('name', formData.name);
                 formDataObj.append('email', formData.email);
                 formDataObj.append('password', formData.password);
-                
-                const res = await fetch("http://localhost:8080/campus-navigator-backend/register.php", {
+
+                const res = await fetch("http://localhost:80/campus-navigator-backend/register.php", {
                     method: "POST",
                     body: formDataObj,
                     credentials: "include"
                 });
 
                 const data = await res.json();
-                
+
                 console.log("Signup response:", data);
-                
+
                 if (data.status === "success") {
                     console.log("Signup successful, showing success message and scheduling redirect");
                     // Registration successful, switch to sign-in mode
@@ -237,21 +258,21 @@ function AuthOverlayUI({ theme, onClose, modeProp }: { theme: 'light' | 'dark', 
             }
         } catch (err: any) {
             let message = err.message || "Authentication failed";
-            
+
             // Check for network errors or account not found
             if (err.name === 'TypeError' && message.toLowerCase().includes('fetch')) {
                 message = "Account not found. Please create an account first.";
             }
             // Check for common backend error messages indicating user doesn't exist
             else if (
-                message.toLowerCase().includes("user not found") || 
-                message.toLowerCase().includes("no account found") || 
+                message.toLowerCase().includes("user not found") ||
+                message.toLowerCase().includes("no account found") ||
                 message.toLowerCase().includes("email not found") ||
                 message.toLowerCase().includes("account does not exist")
             ) {
                 message = "Account not found. Please register first to continue.";
             }
-            
+
             setError(message);
             setIsSubmitting(false);
         }
@@ -303,15 +324,15 @@ function AuthOverlayUI({ theme, onClose, modeProp }: { theme: 'light' | 'dark', 
                     </p>
 
                     {error && (
-                         <div className="mb-4 p-3 w-full bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-sm font-semibold text-center animate-in fade-in slide-in-from-top-2">
-                             {error}
-                         </div>
+                        <div className="mb-4 p-3 w-full bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-sm font-semibold text-center animate-in fade-in slide-in-from-top-2">
+                            {error}
+                        </div>
                     )}
 
                     {success && (
-                         <div className="mb-4 p-3 w-full bg-green-500/10 border border-green-500/20 rounded-xl text-green-500 text-sm font-semibold text-center animate-in fade-in slide-in-from-top-2">
-                             {success}
-                         </div>
+                        <div className="mb-4 p-3 w-full bg-green-500/10 border border-green-500/20 rounded-xl text-green-500 text-sm font-semibold text-center animate-in fade-in slide-in-from-top-2">
+                            {success}
+                        </div>
                     )}
 
 

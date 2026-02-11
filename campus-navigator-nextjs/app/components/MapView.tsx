@@ -46,6 +46,7 @@ interface MapViewProps {
   markerLocation?: [number, number];
   showSubtitles?: boolean;
   onToggleSubtitles?: () => void;
+  activeCategory?: string | null;
 }
 
 const GRAND_TOUR_PATH: [number, number][] = [
@@ -84,9 +85,10 @@ export default function MapView({
   markerLocation,
   showSubtitles = true,
   onToggleSubtitles,
+  activeCategory = null,
 }: MapViewProps) {
-    console.log("🗺️ MapView Rendering:", { isDemoMode, isGuidanceActive, isTourSimulation, startLocation });
-    const mapRef = useRef<HTMLDivElement>(null);
+  console.log("🗺️ MapView Rendering:", { isDemoMode, isGuidanceActive, isTourSimulation, startLocation });
+  const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<maplibregl.Map | null>(null);
   const graphRef = useRef<Map<string, Node> | null>(null);
   const startMarkerRef = useRef<maplibregl.Marker | null>(null);
@@ -272,6 +274,7 @@ export default function MapView({
             lng: f.geometry.coordinates[0],
             navPrompt: f.properties.navPrompt,
             voice: f.properties.voice,
+            category: f.properties.category,
           })),
         );
         setIsGraphReady(true);
@@ -471,6 +474,41 @@ export default function MapView({
       }
     };
   }, [mapStyle]);
+
+  // Handle Category Filtering and Map Bounds
+  useEffect(() => {
+    if (!mapInstance.current || !allLandmarks.length) return;
+
+    const filtered = activeCategory
+      ? allLandmarks.filter((l) => l.category === activeCategory)
+      : allLandmarks;
+
+    if (activeCategory && filtered.length === 0) {
+      console.warn(`No landmarks found for category: ${activeCategory}`);
+      return;
+    }
+
+    const source = mapInstance.current.getSource("landmarks") as maplibregl.GeoJSONSource;
+    if (source) {
+      const features = filtered.map((item) => ({
+        type: "Feature",
+        properties: { ...item },
+        geometry: { type: "Point", coordinates: [item.lng, item.lat] },
+      }));
+      source.setData({ type: "FeatureCollection", features } as any);
+    }
+
+    // Auto-fit bounds if a category is active
+    if (activeCategory && filtered.length > 0) {
+      const bounds = new maplibregl.LngLatBounds();
+      filtered.forEach((l) => bounds.extend([l.lng, l.lat]));
+      mapInstance.current.fitBounds(bounds, {
+        padding: 80,
+        duration: 1200,
+        essential: true,
+      });
+    }
+  }, [activeCategory, allLandmarks]);
 
   // Zoom to Destination
   useEffect(() => {
@@ -874,57 +912,57 @@ export default function MapView({
   // Navigation Demo Route Generator
   // ===============================
   useEffect(() => {
-      console.log("🔍 Checking Demo Route Condition:", { 
-          isDemoMode, 
-          destination, 
-          hasGraph: !!graphRef.current, 
-          hasMap: !!mapInstance.current 
-      });
+    console.log("🔍 Checking Demo Route Condition:", {
+      isDemoMode,
+      destination,
+      hasGraph: !!graphRef.current,
+      hasMap: !!mapInstance.current
+    });
 
-      if (!isDemoMode || !destination || !graphRef.current || !mapInstance.current) {
-          return;
-      }
+    if (!isDemoMode || !destination || !graphRef.current || !mapInstance.current) {
+      return;
+    }
 
-      console.log("🎬 Starting Navigation Demo...");
+    console.log("🎬 Starting Navigation Demo...");
 
-      const effectiveStart: [number, number] = startLocation || defaultLocation;
+    const effectiveStart: [number, number] = startLocation || defaultLocation;
 
-      const routeFeature = getRouteGeoJSON(
-          graphRef.current,
-          effectiveStart,
-          destination
-      );
+    const routeFeature = getRouteGeoJSON(
+      graphRef.current,
+      effectiveStart,
+      destination
+    );
 
-      if (!routeFeature) {
-          console.error("❌ Demo Route Generation Failed: No route found");
-          return;
-      }
+    if (!routeFeature) {
+      console.error("❌ Demo Route Generation Failed: No route found");
+      return;
+    }
 
-      const routeCoords = routeFeature.geometry.coordinates;
+    const routeCoords = routeFeature.geometry.coordinates;
 
-      currentRouteRef.current = routeCoords;
+    currentRouteRef.current = routeCoords;
 
-      const rSrc = mapInstance.current.getSource("route") as maplibregl.GeoJSONSource;
-      if (rSrc) {
-          rSrc.setData(routeFeature);
-      }
+    const rSrc = mapInstance.current.getSource("route") as maplibregl.GeoJSONSource;
+    if (rSrc) {
+      rSrc.setData(routeFeature);
+    }
 
-      setSimulationPosition(routeCoords[0]);
+    setSimulationPosition(routeCoords[0]);
 
-      simIndexRef.current = 0;
-      simStartTimeRef.current = null;
+    simIndexRef.current = 0;
+    simStartTimeRef.current = null;
 
-      setIsPathReady(true);
+    setIsPathReady(true);
 
-      // Destination marker
-      if (destMarkerRef.current) destMarkerRef.current.remove();
-      destMarkerRef.current = new maplibregl.Marker({ color: "#ef4444" })
-          .setLngLat(destination)
-          .addTo(mapInstance.current);
+    // Destination marker
+    if (destMarkerRef.current) destMarkerRef.current.remove();
+    destMarkerRef.current = new maplibregl.Marker({ color: "#ef4444" })
+      .setLngLat(destination)
+      .addTo(mapInstance.current);
 
-      const bounds = new maplibregl.LngLatBounds();
-      routeCoords.forEach((c: any) => bounds.extend(c as [number, number]));
-      mapInstance.current.fitBounds(bounds, { padding: 100, duration: 1000 });
+    const bounds = new maplibregl.LngLatBounds();
+    routeCoords.forEach((c: any) => bounds.extend(c as [number, number]));
+    mapInstance.current.fitBounds(bounds, { padding: 100, duration: 1000 });
 
   }, [isDemoMode, destination, isGraphReady]);
 
@@ -1000,18 +1038,18 @@ export default function MapView({
     if (isTourSimulation) return;
 
     if (!destination || !startLocation || isSelectingStart) {
-        // clear route only if NOT demo mode
-        if (!isDemoMode) {
-            const rSrc = mapInstance.current?.getSource("route") as maplibregl.GeoJSONSource;
-            if (rSrc) rSrc.setData({ type: "FeatureCollection", features: [] });
+      // clear route only if NOT demo mode
+      if (!isDemoMode) {
+        const rSrc = mapInstance.current?.getSource("route") as maplibregl.GeoJSONSource;
+        if (rSrc) rSrc.setData({ type: "FeatureCollection", features: [] });
 
-            const cSrc = mapInstance.current?.getSource("route-covered") as maplibregl.GeoJSONSource;
-            if (cSrc) cSrc.setData({ type: "FeatureCollection", features: [] });
+        const cSrc = mapInstance.current?.getSource("route-covered") as maplibregl.GeoJSONSource;
+        if (cSrc) cSrc.setData({ type: "FeatureCollection", features: [] });
 
-            setIsPathReady(false);
-        }
+        setIsPathReady(false);
+      }
 
-        return;
+      return;
     }
 
     if (isDemoMode || isTourSimulation) return;
@@ -1079,9 +1117,8 @@ export default function MapView({
         <div className="absolute top-4 right-4 z-[10] flex flex-col gap-2">
           <button
             onClick={toggleMute}
-            className={`p-3 rounded-full shadow-lg backdrop-blur-md transition-all ${
-              isMuted ? "bg-red-500 text-white" : "bg-white/90 text-slate-800"
-            }`}
+            className={`p-3 rounded-full shadow-lg backdrop-blur-md transition-all ${isMuted ? "bg-red-500 text-white" : "bg-white/90 text-slate-800"
+              }`}
             title={isMuted ? "Unmute Voice" : "Mute Voice"}
           >
             {isMuted ? (
@@ -1125,11 +1162,10 @@ export default function MapView({
 
           <button
             onClick={onToggleSubtitles}
-            className={`p-3 rounded-full shadow-lg backdrop-blur-md transition-all ${
-              showSubtitles
+            className={`p-3 rounded-full shadow-lg backdrop-blur-md transition-all ${showSubtitles
                 ? "bg-orange-500 text-white"
                 : "bg-white/90 text-slate-800"
-            }`}
+              }`}
             title={showSubtitles ? "Hide Subtitles" : "Show Subtitles"}
           >
             <svg
@@ -1214,9 +1250,8 @@ export default function MapView({
         <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-[40] flex items-center gap-3">
           <button
             onClick={toggleMute}
-            className={`p-4 rounded-2xl shadow-2xl backdrop-blur-md transition-all border border-slate-200 ${
-              isMuted ? "bg-red-500 text-white" : "bg-white/90 text-slate-800"
-            }`}
+            className={`p-4 rounded-2xl shadow-2xl backdrop-blur-md transition-all border border-slate-200 ${isMuted ? "bg-red-500 text-white" : "bg-white/90 text-slate-800"
+              }`}
           >
             {isMuted ? (
               <svg

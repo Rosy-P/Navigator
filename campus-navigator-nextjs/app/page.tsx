@@ -9,6 +9,7 @@ import InfoPanel from "./components/InfoPanel";
 import SettingsOverlay from "./components/SettingsOverlay";
 import NavigationOverlay from "./components/NavigationOverlay";
 import SearchPanel from "./components/SearchPanel";
+import QuickActions from "./components/QuickActions";
 import SubtitlePanel from "./components/SubtitlePanel";
 import AuthProvider, { useAuth, UserData } from "./components/AuthOverlay"; // Updated Import
 import { useMediaQuery } from "./hooks/use-media-query";
@@ -21,7 +22,7 @@ type SheetState = "PEEK" | "HALF" | "FULL";
 export default function HomePage() {
   return (
     <AuthProvider theme="light"> {/* Or dynamic theme if lifted, defaulting light for now */}
-       <HomeContent />
+      <HomeContent />
     </AuthProvider>
   );
 }
@@ -61,6 +62,7 @@ function HomeContent() {
   const [currentDistance, setCurrentDistance] = useState("60m");
   const [markerLocation, setMarkerLocation] = useState<[number, number] | undefined>();
   const [showSubtitles, setShowSubtitles] = useState(true);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
   // Search State
   const [searchQuery, setSearchQuery] = useState("");
@@ -145,17 +147,17 @@ function HomeContent() {
 
   const handleGetGPSLocation = () => {
     requireAuth(() => {
-        const mainGate: [number, number] = [80.120584, 12.923163];
-        setStartLocation(mainGate);
-        setStartLabel("Main Gate (My Location)");
-        setOriginType("gps");
+      const mainGate: [number, number] = [80.120584, 12.923163];
+      setStartLocation(mainGate);
+      setStartLabel("Main Gate (My Location)");
+      setOriginType("gps");
     });
   };
 
   const handlePickOnMapRequested = () => {
     requireAuth(() => {
-        setIsSelectingStart(true);
-        setPendingPickerLocation(undefined);
+      setIsSelectingStart(true);
+      setPendingPickerLocation(undefined);
     });
   };
 
@@ -183,7 +185,7 @@ function HomeContent() {
     if (!user) {
       if (isFromMap) {
         // Requirement: Just show main view after login if triggered by map
-        requireAuth(); 
+        requireAuth();
       } else {
         // Search: Continue to selection after login
         requireAuth(() => handleSelectLandmark(landmark, false));
@@ -247,7 +249,7 @@ function HomeContent() {
   // isTourSimulation (movement) ≠ isVirtualTourRunning (narration intent)
   const handleToggleTourSimulation = (active: boolean) => {
     setIsTourSimulation(active);
-    
+
     // ONLY stop narration when tour stops, do NOT auto-start
     if (!active) {
       setIsVirtualTourRunning(false);
@@ -347,29 +349,29 @@ function HomeContent() {
 
             {/* Wrapped Search Panel Interaction */}
             <div onClickCapture={(e) => {
-                // Intercept clicks on search panel to require auth for interaction if needed
-                // But prompt said "search input". SearchPanel handles its own input. 
-                // We'll wrap the setUiState or the focus logic if we could, 
-                // but for now let's just assume the Panel is mostly read-only until typed.
-                // Actually SearchInput focus might be the trigger.
-                // Since SearchPanel is complex, we might want to wrap the whole container 
-                // or just rely on the 'onSelectLandmark' (which we wrapped).
-                // Let's wrap the focus event via a capture if possible? 
-                // Ideally SearchPanel would take an onFocus prop. 
-                // For now, selecting a landmark is protected. 
+              // Intercept clicks on search panel to require auth for interaction if needed
+              // But prompt said "search input". SearchPanel handles its own input. 
+              // We'll wrap the setUiState or the focus logic if we could, 
+              // but for now let's just assume the Panel is mostly read-only until typed.
+              // Actually SearchInput focus might be the trigger.
+              // Since SearchPanel is complex, we might want to wrap the whole container 
+              // or just rely on the 'onSelectLandmark' (which we wrapped).
+              // Let's wrap the focus event via a capture if possible? 
+              // Ideally SearchPanel would take an onFocus prop. 
+              // For now, selecting a landmark is protected. 
             }}>
-                <SearchPanel
+              <SearchPanel
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}
                 filteredResults={filteredResults}
                 setFilteredResults={setFilteredResults}
                 isSearchFocused={isSearchFocused}
                 setIsSearchFocused={(focused) => {
-                    if (focused) {
-                        requireAuth(() => setIsSearchFocused(true));
-                    } else {
-                        setIsSearchFocused(false);
-                    }
+                  if (focused) {
+                    requireAuth(() => setIsSearchFocused(true));
+                  } else {
+                    setIsSearchFocused(false);
+                  }
                 }}
                 selectedIndex={selectedIndex}
                 setSelectedIndex={setSelectedIndex}
@@ -377,7 +379,7 @@ function HomeContent() {
                 setUiState={setUiState}
                 theme={theme}
                 isMobile={isMobile}
-                />
+              />
             </div>
           </div>
         )}
@@ -404,6 +406,7 @@ function HomeContent() {
             onRouteCalculated={handleRouteCalculated}
             isPaused={isPaused}
             recenterCount={recenterCount}
+            activeCategory={activeCategory}
             onSimulationUpdate={(coord, path, instruction, distance) => {
               setCurrentInstruction(instruction);
               setCurrentDistance(distance);
@@ -580,34 +583,16 @@ function HomeContent() {
 
         {/* Map Category Chips / Right Side Action Buttons */}
         {!isGuidanceActive && !isTourMode && !isTourSimulation && !selectedLandmark && (
-          <div className={`
-            fixed top-[88px] left-0 right-0 z-30 flex flex-row gap-2 px-4 overflow-x-auto no-scrollbar
-            md:absolute md:top-10 md:right-8 md:left-auto md:w-auto md:flex-col md:gap-3 md:animate-in md:slide-in-from-right-10 md:duration-500
-          `}>
-            <QuickActionBtn icon={<Home size={18} />} label="Hostel" onClick={() => requireAuth(() => setDestination(quickActions.hostel))} theme={theme} isMobile={isMobile} />
-            <QuickActionBtn icon={<Microscope size={18} />} label="Lab" onClick={() => requireAuth(() => setDestination(quickActions.lab))} theme={theme} isMobile={isMobile} />
-            <QuickActionBtn icon={<UtensilsCrossed size={18} />} label="Canteen" onClick={() => requireAuth(() => setDestination(quickActions.canteen))} theme={theme} isMobile={isMobile} />
-          </div>
+          <QuickActions
+            activeCategory={activeCategory}
+            onCategoryClick={(cat) => {
+              setActiveCategory(prev => prev === cat ? null : cat);
+            }}
+            theme={theme}
+            isMobile={isMobile}
+          />
         )}
       </main>
     </div>
-  );
-}
-
-function QuickActionBtn({ icon, label, onClick, theme, isMobile }: { icon: React.ReactNode; label: string; onClick?: () => void; theme: 'light' | 'dark'; isMobile: boolean }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`
-        flex items-center gap-2 md:gap-3 px-3 md:px-4 h-9 md:h-11 backdrop-blur-md border shadow-[0_10px_35px_rgba(0,0,0,0.05)] font-bold transition-all group active:scale-95 whitespace-nowrap
-        ${isMobile ? "rounded-full" : "rounded-xl"}
-        ${theme === 'dark' ? 'bg-slate-900/90 border-slate-700/50 text-white hover:bg-slate-800' : 'bg-white/90 border-white/50 text-slate-800 hover:bg-white'}
-      `}
-    >
-      <div className={`w-6 h-6 md:w-8 md:h-8 flex items-center justify-center rounded-lg text-orange-500 transition-colors ${theme === 'dark' ? 'bg-slate-800 group-hover:bg-slate-700' : 'bg-slate-50 group-hover:bg-orange-50'}`}>
-        {icon}
-      </div>
-      <span className="text-[12px] md:text-[13px] tracking-tight">{label}</span>
-    </button>
   );
 }

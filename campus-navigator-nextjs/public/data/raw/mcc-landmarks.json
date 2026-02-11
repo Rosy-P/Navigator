@@ -61,7 +61,7 @@
             "images": [
                 "https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Department",
+            "category": "Academic",
             "voice": {
                 "navigation": "The Computer Science Department is ahead on your right.",
                 "tour": "This is the Computer Science Department, a hub for innovation and technology studies at MCC."
@@ -81,7 +81,7 @@
             "images": [
                 "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Department",
+            "category": "Academic",
             "voice": {
                 "navigation": "Head towards the Commerce Block.",
                 "tour": "The Commerce Block represents the modern academic spirit of the college. It's one of the busiest hubs on campus, fostering future leaders in business and economics."
@@ -125,7 +125,7 @@
             "images": [
                 "https://images.unsplash.com/photo-1507842217121-9e9f28dec969?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Facility",
+            "category": "Academic",
             "voice": {
                 "navigation": "Walk past the Library building.",
                 "tour": "The Central Library houses a vast collection of academic resources and has been a cornerstone of student research for decades."
@@ -207,7 +207,7 @@
             "images": [
                 "https://images.unsplash.com/photo-1599058945522-28d584b6f0ff?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Department",
+            "category": "Academic",
             "voice": {
                 "navigation": "The Center for Media Studies is on your left.",
                 "tour": "The Center for Media Studies is where creativity meets communication, training the next generation of journalists and filmmakers."
@@ -227,7 +227,7 @@
             "images": [
                 "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Library",
+            "category": "Academic",
             "voice": {
                 "navigation": "The Miller Memorial Library is located in the old campus area.",
                 "tour": "Miller Memorial Library preserves the history of Madras Christian College through its extensive archives and rare manuscripts."
@@ -286,7 +286,7 @@
             "images": [
                 "https://images.unsplash.com/photo-1497294815431-9365093b7331?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Auditorium",
+            "category": "Academic",
             "voice": {
                 "tour": "Anderson Hall is one of the oldest academic buildings in MCC. It is often used for major student gatherings and cultural events."
             }
@@ -305,7 +305,7 @@
             "images": [
                 "https://images.unsplash.com/photo-1541339907198-e08756eaa539?auto=format&fit=crop&w=600&q=80"
             ],
-            "category": "Department",
+            "category": "Academic",
             "voice": {
                 "tour": "This is the Institute for Advanced Christian Studies."
             }
