@@ -76,6 +76,8 @@ export default function InfoPanel({
 
     const displayImage = getImageUrl(landmark.images) || "https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=800&q=80";
 
+    const secondaryImage = getImageUrl(Array.isArray(landmark.images) ? landmark.images[1] : undefined) || "https://images.unsplash.com/photo-1541339907198-e08756eaa539?auto=format&fit=crop&w=800&q=80";
+
     return (
         <div
             className={`
@@ -109,6 +111,7 @@ export default function InfoPanel({
                             alt={landmark.name}
                             fill
                             className="object-cover"
+                            unoptimized={displayImage.includes("unsplash.com")}
                         />
 
                         <button
@@ -177,18 +180,20 @@ export default function InfoPanel({
                                 <div className="grid grid-cols-2 gap-2 2xl:gap-3">
                                     <div className="aspect-[4/3] relative rounded-md overflow-hidden bg-slate-100 border border-slate-50">
                                         <Image
-                                            src={getImageUrl(landmark.images) || "https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=400&q=80"}
+                                            src={displayImage}
                                             alt="Building"
                                             fill
                                             className="object-cover"
+                                            unoptimized={displayImage.includes("unsplash.com")}
                                         />
                                     </div>
                                     <div className="aspect-[4/3] relative rounded-md overflow-hidden bg-slate-100 border border-slate-50">
                                         <Image
-                                            src={getImageUrl(Array.isArray(landmark.images) ? landmark.images[1] : undefined) || "https://images.unsplash.com/photo-1541339907198-e08756eaa539?auto=format&fit=crop&w=400&q=80"}
+                                            src={secondaryImage}
                                             alt="Campus"
                                             fill
                                             className="object-cover"
+                                            unoptimized={secondaryImage.includes("unsplash.com")}
                                         />
                                     </div>
                                 </div>
@@ -281,12 +286,11 @@ export default function InfoPanel({
                     {/* Footer Action - Optimized for mobile to prevent collapsing */}
                     <div className="p-4 2xl:p-6 bg-white border-t border-slate-100 mt-auto flex flex-col gap-3 flex-shrink-0">
                         <button
-                            disabled={!startLabel}
-                            onClick={onStartDemo}
-                            className={`w-full h-12 2xl:h-14 rounded-xl 2xl:rounded-2xl font-black text-[14px] 2xl:text-base flex items-center justify-center gap-2 transition-all active:scale-95 shadow-md border-2 ${!startLabel
-                                ? "bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed"
-                                : "bg-white text-[#3b82f6] border-[#3b82f6] hover:bg-blue-50"
-                                }`}
+                            onClick={() => {
+                                console.log("🔘 Demo Button Clicked in InfoPanel");
+                                onStartDemo();
+                            }}
+                            className={`w-full h-12 2xl:h-14 rounded-xl 2xl:rounded-2xl font-black text-[14px] 2xl:text-base flex items-center justify-center gap-2 transition-all active:scale-95 shadow-md border-2 bg-white text-[#3b82f6] border-[#3b82f6] hover:bg-blue-50`}
                         >
                             Demo Simulation
                             <Zap size={15} />

@@ -12,6 +12,7 @@ import SearchPanel from "./components/SearchPanel";
 import SubtitlePanel from "./components/SubtitlePanel";
 import AuthProvider, { useAuth, UserData } from "./components/AuthOverlay"; // Updated Import
 import { useMediaQuery } from "./hooks/use-media-query";
+import { SpeechService } from "./lib/speech/SpeechService";
 
 type UIState = "IDLE" | "SEARCHING" | "PLACE_SELECTED" | "NAVIGATION_ACTIVE";
 type SheetState = "PEEK" | "HALF" | "FULL";
@@ -46,6 +47,7 @@ function HomeContent() {
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [isTourMode, setIsTourMode] = useState(false);
   const [isTourSimulation, setIsTourSimulation] = useState(false);
+  const [isVirtualTourRunning, setIsVirtualTourRunning] = useState(false);
   const [destination, setDestination] = useState<[number, number] | undefined>();
   const [routeInfo, setRouteInfo] = useState<{ distance: number; time: number } | null>(null);
   const [selectedLandmark, setSelectedLandmark] = useState<any>(null);
@@ -241,6 +243,23 @@ function HomeContent() {
     setRouteInfo({ distance, time: timeInMinutes });
   };
 
+  // CRITICAL: Tour Simulation Handler with Correct Decoupling
+  // isTourSimulation (movement) ≠ isVirtualTourRunning (narration intent)
+  const handleToggleTourSimulation = (active: boolean) => {
+    setIsTourSimulation(active);
+    
+    // ONLY stop narration when tour stops, do NOT auto-start
+    if (!active) {
+      setIsVirtualTourRunning(false);
+      SpeechService.getInstance().stop();
+    }
+  };
+
+  // Callback to enable narration flag (called by Start Virtual Tour button)
+  const handleStartVirtualTour = () => {
+    setIsVirtualTourRunning(true);
+  };
+
   const theme = settings.appearance as 'light' | 'dark';
 
   return (
@@ -371,9 +390,12 @@ function HomeContent() {
             pendingLocation={pendingPickerLocation}
             isSelectingStart={isSelectingStart}
             isGuidanceActive={isGuidanceActive}
+            isDemoMode={isDemoMode}
             isTourMode={isTourMode}
             isTourSimulation={isTourSimulation}
-            onToggleTourSimulation={(active: boolean) => setIsTourSimulation(active)}
+            onToggleTourSimulation={handleToggleTourSimulation}
+            onStartVirtualTour={handleStartVirtualTour}
+            isVirtualTourRunning={isVirtualTourRunning}
             isMobile={isMobile}
             mapStyle={settings.mapStyle}
             simulationSpeed={settings.simulationSpeed}
@@ -489,6 +511,7 @@ function HomeContent() {
               setUiState("NAVIGATION_ACTIVE");
             }}
             onStartDemo={() => {
+              console.log("🚀 onStartDemo triggered in Page.tsx");
               setIsGuidanceActive(true);
               setIsDemoMode(true);
               setSelectedLandmark(null);

@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { SpeechService } from "../lib/speech/SpeechService";
-import { Navigation, Compass, MessageSquare } from "lucide-react";
+import { SpeechService } from "@/app/lib/speech/SpeechService";
+import { Navigation, Compass } from "lucide-react";
 
 export default function SubtitlePanel({ theme = "light", isVisible = true }: { theme?: "light" | "dark", isVisible?: boolean }) {
     const [subtitle, setSubtitle] = useState<string | null>(null);
@@ -14,8 +14,7 @@ export default function SubtitlePanel({ theme = "light", isVisible = true }: { t
         speechService.setSubtitleCallback((text) => {
             const currentType = speechService.getCurrentType();
             
-            // Only show subtitles for TOUR stories, not NAV commands
-            if (text && currentType === "TOUR") {
+            if (text && currentType) {
                 setSubtitle(text);
                 setType(currentType);
                 setIsFading(false);

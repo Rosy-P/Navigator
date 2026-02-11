@@ -1,17 +1,20 @@
 /**
  * app/lib/speech/SpeechService.ts
- * Singleton wrapper around the Web Speech API.
- * Ensures SSR safety and manages speech queue.
+ * A singleton service for managing speech synthesis and subtitles.
+ * Enforces Priority: Navigation prompts interrupt Tour narration, but not vice-versa.
  */
+
+export type SpeechType = 'NAV' | 'TOUR';
+
 export class SpeechService {
   private static instance: SpeechService;
   private synth: SpeechSynthesis | null = null;
   private isMuted: boolean = false;
-  private currentSpeechType: 'NAV' | 'TOUR' | null = null;
-  private currentUtterance: SpeechSynthesisUtterance | null = null;
+  private subtitleCallback: ((text: string | null) => void) | null = null;
   private lastText: string = "";
   private speaking: boolean = false;
-  private subtitleCallback: ((text: string | null) => void) | null = null;
+  private currentUtterance: SpeechSynthesisUtterance | null = null;
+  private currentType: SpeechType | null = null;
   private subtitleTimeout: NodeJS.Timeout | null = null;
 
   private constructor() {
@@ -31,7 +34,6 @@ export class SpeechService {
     this.isMuted = muted;
     if (muted) {
       this.stop();
-      this.updateSubtitle(null);
     }
   }
 
@@ -44,97 +46,115 @@ export class SpeechService {
       clearTimeout(this.subtitleTimeout);
       this.subtitleTimeout = null;
     }
-
     if (this.subtitleCallback) {
       this.subtitleCallback(text);
     }
   }
 
-  speak(text: string, type: 'NAV' | 'TOUR' = 'NAV') {
-    if (!this.synth || this.isMuted) return;
+  speak(text: string, type: SpeechType): boolean {
+    if (!this.synth || this.isMuted || !text) return false;
 
-    // Prevent stuttering: don't restart same text if already speaking
+    // 1. Priority Guard
+    const currentlySpeaking = this.synth.speaking;
+    const currentTyping = this.currentType;
+
+    if (type === 'TOUR' && currentlySpeaking && currentTyping === 'NAV') {
+      // Never interrupt Navigation with a Tour story
+      return false;
+    }
+
+    // 2. Cancellation
+    if (type === 'NAV' || (type === 'TOUR' && currentTyping === 'TOUR')) {
+      if (currentlySpeaking) {
+        this.synth.cancel();
+      }
+    }
+
+    // 3. Prevent stuttering
     if (this.speaking && this.lastText === text) {
-      return;
+      return true; // Already speaking it
     }
 
-    // Navigation voice can interrupt tour narration at any time.
-    // Tour narration never interrupts navigation.
-    if (this.speaking && this.currentSpeechType === 'NAV' && type === 'TOUR') {
-      return; 
-    }
-
-    // Clean up previous utterance to avoid race conditions from its events
+    // Clean up listeners
     if (this.currentUtterance) {
       this.currentUtterance.onstart = null;
       this.currentUtterance.onend = null;
       this.currentUtterance.onerror = null;
     }
-    
-    // Always call speechSynthesis.cancel() before speaking
-    this.synth.cancel();
-    
-    // If we interrupt a tour with nav, subtitle switches immediately
-    if (type === 'NAV') {
-      this.updateSubtitle(text);
-    }
 
     const utterance = new SpeechSynthesisUtterance(text);
-    this.currentUtterance = utterance; // Keep reference to prevent GC
+    this.currentUtterance = utterance;
     this.lastText = text;
-    this.currentSpeechType = type;
-    
+    this.currentType = type;
+
+    // Parameters
+    if (type === 'NAV') {
+      utterance.rate = 1.1; 
+      utterance.pitch = 1.0;
+    } else {
+      utterance.rate = 0.95; 
+      utterance.pitch = 0.9;
+    }
+
     utterance.onstart = () => {
       this.speaking = true;
-      this.updateSubtitle(text);
+      // STRICT RULE: Subtitles ONLY for TOUR
+      if (type === 'TOUR') {
+        this.updateSubtitle(text);
+      } else {
+        this.updateSubtitle(null);
+      }
     };
-    
+
     utterance.onend = () => {
       if (this.currentUtterance === utterance) {
         this.speaking = false;
-        this.currentSpeechType = null;
-        this.lastText = "";
-        
-        // Fades out after narration ends (after short delay)
-        this.subtitleTimeout = setTimeout(() => {
-          this.updateSubtitle(null);
-        }, 2000);
+        this.currentType = null;
+        this.updateSubtitle(null); // Clear strictly on end
       }
     };
 
-    utterance.onerror = (e) => {
+    utterance.onerror = (e: SpeechSynthesisErrorEvent) => {
+      if (e.error === 'interrupted' || e.error === 'canceled') return;
+      
       if (this.currentUtterance === utterance) {
-        console.error("Speech error:", e);
+        console.warn("SpeechService Error:", e.error);
         this.speaking = false;
-        this.currentSpeechType = null;
-        this.lastText = "";
+        this.currentType = null;
+        this.updateSubtitle(null);
       }
     };
 
-    this.synth.speak(utterance);
-    this.speaking = true; // Set immediately to prevent same-frame race conditions
-  }
+    // Settle delay
+    setTimeout(() => {
+      if (this.currentUtterance === utterance && this.synth) {
+        this.synth.speak(utterance);
+      }
+    }, 120);
 
-  getLastSpokenText(): string {
-    return this.lastText;
-  }
-
-  getCurrentType(): 'NAV' | 'TOUR' | null {
-    return this.currentSpeechType;
-  }
-
-  isSpeaking(type?: 'NAV' | 'TOUR'): boolean {
-    const isActuallySpeaking = this.speaking || (this.synth?.speaking ?? false);
-    if (!type) return isActuallySpeaking;
-    return isActuallySpeaking && this.currentSpeechType === type;
+    return true;
   }
 
   stop() {
     if (this.synth) {
       this.synth.cancel();
-      this.speaking = false;
-      this.currentSpeechType = null;
-      this.updateSubtitle(null);
     }
+    this.speaking = false;
+    this.currentType = null;
+    this.updateSubtitle(null); // STRICT: Clear immediately
+  }
+
+  isSpeaking(type?: SpeechType): boolean {
+    if (!this.synth) return false;
+    if (!type) return this.synth.speaking;
+    return this.synth.speaking && this.currentType === type;
+  }
+
+  getCurrentType(): SpeechType | null {
+    return this.currentType;
+  }
+
+  getLastSpokenText(): string {
+    return this.lastText;
   }
 }

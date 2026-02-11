@@ -1,33 +1,31 @@
 /**
  * app/lib/navigation/GuidanceSynthesizer.ts
- * Synthesizes human-style instructions by correlating maneuvers with landmarks.
+ * LANDMARK NARRATOR ONLY
+ * Handles campus descriptions with strict mode-based verbosity.
+ * - Navigation Mode: Brief (1 sentence)
+ * - Tour Mode: Rich (Full description)
+ * 
+ * Includes EXIT DETECTION: Stops narration if user walks away.
  */
 import { SpeechService } from '../speech/SpeechService';
+
 export interface Landmark {
   id?: string;
   lat: number;
   lng: number;
-  navPrompt?: string;
   voice?: {
-    navigation?: string;
-    tour?: string;
+    navigation?: string; // Used for "Brief" narration
+    tour?: string;       // Used for "Rich" narration
   };
   [key: string]: any;
 }
 
 export class GuidanceSynthesizer {
   private visitedLandmarks = new Set<string>();
-  private lastSpokenManeuver: string = '';
-  private lastManeuverNodeId: string = '';
-  private lastNavTime: number = 0;
-  private hasAnnouncedWelcome: boolean = false;
-  private lastTourLandmarkId: string | null = null;
+  private activeLandmarkId: string | null = null; // Tracks currently narrating landmark
 
   constructor(private landmarks: Landmark[]) {}
 
-  /**
-   * Calculates distance between two points in meters.
-   */
   private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
     const R = 6371e3;
     const φ1 = lat1 * Math.PI / 180;
@@ -40,13 +38,9 @@ export class GuidanceSynthesizer {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
-  /**
-   * Finds the best landmark near a specific coordinate within a threshold.
-   */
   private findLandmarkNear(lat: number, lng: number, threshold: number = 25): Landmark | null {
     let nearest: Landmark | null = null;
     let minDiff = threshold;
-
     for (const lm of this.landmarks) {
       const dist = this.calculateDistance(lat, lng, lm.lat, lm.lng);
       if (dist < minDiff) {
@@ -57,145 +51,78 @@ export class GuidanceSynthesizer {
     return nearest;
   }
 
-  /**
-   * Finds the best landmark with a tour story near a specific coordinate.
-   */
-  private findTourLandmarkNear(lat: number, lng: number, threshold: number = 50): Landmark | null {
-    let nearest: Landmark | null = null;
-    let minDiff = threshold;
-
-    for (const lm of this.landmarks) {
-      if (!lm.voice?.tour) continue;
-      
-      const dist = this.calculateDistance(lat, lng, lm.lat, lm.lng);
-      if (dist < minDiff) {
-        minDiff = dist;
-        nearest = lm;
-      }
-    }
-    return nearest;
+  private findLandmarkById(id: string): Landmark | undefined {
+      return this.landmarks.find(l => (l.id || l.name) === id);
   }
 
   /**
-   * Synthesizes and speaks a natural instruction.
-   * @param userLat Current Latitude
-   * @param userLng Current Longitude
-   * @param nextManeuver The upcoming maneuver (e.g., "Turn left")
-   * @param maneuverCoord The coordinate where the maneuver happens
-   * @param distanceToManeuver Distance in meters to the maneuver point
-   * @param isTourMode Whether Tour Mode is active
+   * Synthesizes LANDMARK descriptions only.
+   * Returns null if no landmark is relevant or already visited.
    */
   synthesize(
     userLat: number, 
     userLng: number, 
-    nextManeuver: string, 
-    maneuverCoord: [number, number] | null,
-    distanceToManeuver: number,
     isTourMode: boolean = false
-  ) {
-    if (isTourMode && !this.hasAnnouncedWelcome) {
-      SpeechService.getInstance().speak("Welcome to Tour Mode. I will share historical stories as you explore the campus.", 'TOUR');
-      this.hasAnnouncedWelcome = true;
-    }
-
-    // 1. Tour Mode Narration (Location-based storytelling)
-    if (isTourMode) {
-      // ≤ 10m range for tour narration
-      const tourLandmark = this.findTourLandmarkNear(userLat, userLng, 10); 
-      
-      if (tourLandmark && tourLandmark.voice?.tour) {
-        const tourId = tourLandmark.id || tourLandmark.name;
-        if (!this.visitedLandmarks.has(tourId)) {
-          SpeechService.getInstance().speak(tourLandmark.voice.tour, 'TOUR');
-          this.visitedLandmarks.add(tourId);
-          this.lastTourLandmarkId = tourId;
-        }
-      } else {
-        // Exiting zone: Stop tour narration if we moved away from the current one
-        const currentTarget = this.findTourLandmarkNear(userLat, userLng, 50);
-        if (this.lastTourLandmarkId && (!currentTarget || (currentTarget.id || currentTarget.name) !== this.lastTourLandmarkId)) {
-          if (SpeechService.getInstance().isSpeaking('TOUR')) {
-            SpeechService.getInstance().stop();
-          }
-          this.lastTourLandmarkId = null;
-        }
-
-        // Tour Mode Entry Logic: If just enabled and idle, find nearest unvisited landmark
-        if (!this.lastTourLandmarkId && !SpeechService.getInstance().isSpeaking()) {
-            const nearestUnvisited = this.landmarks
-                .filter(lm => lm.voice?.tour && !this.visitedLandmarks.has(lm.id || lm.name))
-                .map(lm => ({ lm, dist: this.calculateDistance(userLat, userLng, lm.lat, lm.lng) }))
-                .sort((a, b) => a.dist - b.dist)[0];
+  ): { text: string, type: 'TOUR' } | null {
+    
+    // 1. EXIT CHECK (If we are currently narrating something)
+    if (this.activeLandmarkId) {
+        const activeLandmark = this.findLandmarkById(this.activeLandmarkId);
+        if (activeLandmark) {
+            const dist = this.calculateDistance(userLat, userLng, activeLandmark.lat, activeLandmark.lng);
+            // Hysteresis: Exit radius is Enter radius + 7m (~22m or 27m)
+            const exitThreshold = isTourMode ? 28 : 22; 
             
-            if (nearestUnvisited && nearestUnvisited.dist <= 30) {
-                // We're within a reasonable distance to start narrating the next one
-                // But we wait for the 10m trigger or explicit start if needed.
-                // The requirement says "begin narration from the nearest unvisited landmark"
-                // Let's trigger if within 15-30m but only once.
+            if (dist > exitThreshold) {
+                // User walked away -> Stop Narration
+                SpeechService.getInstance().stop(); 
+                this.activeLandmarkId = null; 
             }
         }
-      }
     }
 
-    // 2. Navigation Mode Integration
-    const maneuverKey = `${nextManeuver}-${maneuverCoord?.join(',')}`;
-    
-    // 2.1 Arrival Logic
-    if (nextManeuver === "You have arrived" && distanceToManeuver < 10) {
-      if (this.lastSpokenManeuver !== "arrival") {
-        SpeechService.getInstance().speak("You have arrived at your destination.", 'NAV');
-        this.lastSpokenManeuver = "arrival";
-      }
-      return;
-    }
+    // 2. ENTRY CHECK (Look for new landmarks)
+    // Detection range: 15m for Nav Mode (Focus on path), 20m for Tour Mode (Exploration)
+    const enterRange = isTourMode ? 20 : 15;
+    const landmark = this.findLandmarkNear(userLat, userLng, enterRange);
 
-    // 2.2 Turn Logic (Human-style: "Turn left at the Library")
-    if (maneuverCoord && nextManeuver && nextManeuver !== "Continue straight") {
-      const landmarkAtTurn = this.findLandmarkNear(maneuverCoord[1], maneuverCoord[0]);
+    if (landmark && landmark.voice) {
+      const id = landmark.id || landmark.name;
       
-      // Trigger 15–30m range for navigation voice
-      if (distanceToManeuver <= 30 && distanceToManeuver > 15) {
-        const turnId = `turn-${maneuverKey}`;
-        if (!this.visitedLandmarks.has(turnId)) {
-          let phrase = landmarkAtTurn?.voice?.navigation 
-            ? landmarkAtTurn.voice.navigation
-            : (landmarkAtTurn ? `${nextManeuver} at ${landmarkAtTurn.name}` : `${nextManeuver} in 25 meters`);
-          
-          SpeechService.getInstance().speak(phrase, 'NAV');
-          this.visitedLandmarks.add(turnId);
-          this.lastManeuverNodeId = maneuverKey;
-        }
-      }
-    }
-
-    // 2.3 Straight Path Context (Walk straight past the Canteen)
-    // Range 15-30m for nav context
-    const nearbyLandmark = this.findLandmarkNear(userLat, userLng, 30);
-    if (nearbyLandmark && !SpeechService.getInstance().isSpeaking()) {
-      const id = `nav-${nearbyLandmark.id || nearbyLandmark.name}`;
+      // If we haven't visited this landmark yet
       if (!this.visitedLandmarks.has(id)) {
-        // Only mention if we aren't about to turn
-        if (distanceToManeuver > 45) {
-          const phrase = nearbyLandmark.voice?.navigation || `Continue straight past ${nearbyLandmark.name}`;
-          SpeechService.getInstance().speak(phrase, 'NAV');
-          this.visitedLandmarks.add(id);
+        
+        // STRICT PRIORITY CHECK:
+        // If Navigation is speaking, we return null immediately.
+        if (SpeechService.getInstance().isSpeaking('NAV')) {
+          return null;
+        }
+
+        // CONTENT SELECTION:
+        let text = "";
+        if (isTourMode && landmark.voice.tour) {
+            text = landmark.voice.tour;
+        } else {
+            // Brief mode
+            text = landmark.voice.navigation 
+                || landmark.voice.tour?.split(/[.!?]/)[0] + "." 
+                || `This is ${landmark.name}.`;
+        }
+
+        if (text) {
+            this.visitedLandmarks.add(id);
+            this.activeLandmarkId = id; // Set active on start
+            return { text, type: 'TOUR' };
         }
       }
-    }
+    } 
+
+    return null;
   }
 
   reset() {
     this.visitedLandmarks.clear();
-    this.lastSpokenManeuver = '';
-    this.lastManeuverNodeId = '';
-    this.hasAnnouncedWelcome = false;
-    this.lastTourLandmarkId = null;
-  }
-
-  getLastNarration(): { text: string; type: 'NAV' | 'TOUR' } | null {
-    const text = SpeechService.getInstance().getLastSpokenText();
-    const type = SpeechService.getInstance().getCurrentType();
-    if (!text || !type) return null;
-    return { text, type: type as 'NAV' | 'TOUR' };
+    this.activeLandmarkId = null;
+    SpeechService.getInstance().stop();
   }
 }
