@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Search, Building2, MapPin, Menu, X, Mic, Navigation, Home, Map as MapIcon, Microscope, UtensilsCrossed } from "lucide-react";
+import { Search, Building2, MapPin, Menu, X, Mic, Navigation, Home, Map as MapIcon, Microscope, UtensilsCrossed, Zap } from "lucide-react";
 import Sidebar from "./components/Sidebar";
 import MapView from "./components/MapView";
 import MapControls from "./components/MapControls";
@@ -11,9 +11,12 @@ import NavigationOverlay from "./components/NavigationOverlay";
 import SearchPanel from "./components/SearchPanel";
 import QuickActions from "./components/QuickActions";
 import SubtitlePanel from "./components/SubtitlePanel";
+import EventsPanel from "./components/events/EventsPanel";
 import AuthProvider, { useAuth, UserData } from "./components/AuthOverlay"; // Updated Import
 import { useMediaQuery } from "./hooks/use-media-query";
 import { SpeechService } from "./lib/speech/SpeechService";
+import { useSimulation } from "./context/SimulationContext";
+
 
 type UIState = "IDLE" | "SEARCHING" | "PLACE_SELECTED" | "NAVIGATION_ACTIVE";
 type SheetState = "PEEK" | "HALF" | "FULL";
@@ -63,8 +66,14 @@ function HomeContent() {
   const [markerLocation, setMarkerLocation] = useState<[number, number] | undefined>();
   const [showSubtitles, setShowSubtitles] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [isEventsOpen, setIsEventsOpen] = useState(false);
+  const [selectedDestination, setSelectedDestination] = useState<string | null>(null);
+
+  // Simulation Mode Feature Flag
+  const { simulationMode } = useSimulation();
 
   // Search State
+
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredResults, setFilteredResults] = useState<any[]>([]);
   const [allLandmarks, setAllLandmarks] = useState<any[]>([]);
@@ -134,7 +143,6 @@ function HomeContent() {
     setSelectedIndex(-1);
   }, [searchQuery, allLandmarks]);
 
-  // Log dropdown visibility
   useEffect(() => {
     if (isSearchFocused && filteredResults.length > 0) {
       console.log(`📋 Dropdown should be visible with ${filteredResults.length} results`);
@@ -234,6 +242,27 @@ function HomeContent() {
     setIsTourMode(false); // Exclusivity
   }, [user, requireAuth, markerLocation, startLocation, connectors]);
 
+  const handleSearch = useCallback((query: string) => {
+    const normalizedQuery = query.toLowerCase().trim();
+    // Try to find landmark by name or ID
+    const landmark = allLandmarks.find(l => 
+      l.name.toLowerCase().includes(normalizedQuery) || 
+      l.id?.toString() === normalizedQuery ||
+      l.landmarkId?.toString() === normalizedQuery
+    );
+    
+    if (landmark) {
+      handleSelectLandmark(landmark);
+    }
+  }, [allLandmarks, handleSelectLandmark]);
+
+  useEffect(() => {
+    if (selectedDestination) {
+      handleSearch(selectedDestination);
+      setSelectedDestination(null); // Reset after search
+    }
+  }, [selectedDestination, handleSearch]);
+
   const quickActions = {
     hostel: [80.1199855, 12.9221401] as [number, number],
     lab: [80.1396, 12.9186] as [number, number],
@@ -262,6 +291,13 @@ function HomeContent() {
     setIsVirtualTourRunning(true);
   };
 
+  const handleStartRealTour = () => {
+    console.log("🗺️ Real Tour Started");
+    setIsTourMode(true);
+    setIsTourSimulation(false);
+    setIsVirtualTourRunning(true);
+  };
+
   const theme = settings.appearance as 'light' | 'dark';
 
   return (
@@ -278,27 +314,41 @@ function HomeContent() {
       <Sidebar
         isCollapsed={isSidebarCollapsed}
         isMobileOpen={isMobileMenuOpen}
-        isDisabled={uiState === "NAVIGATION_ACTIVE"}
+        isDisabled={uiState === "NAVIGATION_ACTIVE" || isEventsOpen}
         onCloseMobile={() => setIsMobileMenuOpen(false)}
         onOpenSettings={() => requireAuth(() => setShowSettings(true))}
-        forceActiveLabel={showSettings ? "Settings" : (isTourMode ? "Tour Mode" : (selectedLandmark ? "Locations" : undefined))}
+        onOpenEvents={() => requireAuth(() => {
+          setIsEventsOpen(true);
+          // If in Tour Mode, disable it and reset UI
+          if (isTourMode) {
+            setIsTourMode(false);
+            setIsTourSimulation(false);
+            setIsVirtualTourRunning(false);
+            setUiState("IDLE");
+            // Reset map view logic if needed, but sidebar's tour flush handles most
+          }
+        })}
+        forceActiveLabel={showSettings ? "Settings" : (isEventsOpen ? "Events" : (isTourMode ? "Tour Mode" : (selectedLandmark ? "Locations" : undefined)))}
         user={user}
         isTourMode={isTourMode}
         onToggleTourMode={() => {
-          setIsTourMode(prev => {
-            const next = !prev;
-            if (next) {
-              // Exclusivity: Clear other states when entering Tour Mode
-              setSelectedLandmark(null);
-              setIsGuidanceActive(false);
-              setIsPlanning(false);
-              setDestination(undefined);
-              setStartLocation(undefined);
-              setUiState("IDLE");
-            } else {
-              setIsTourSimulation(false); // Stop simulation if turning off tour
-            }
-            return next;
+          requireAuth(() => {
+            setIsTourMode(prev => {
+              const next = !prev;
+              if (next) {
+                // Exclusivity: Clear other states when entering Tour Mode
+                setSelectedLandmark(null);
+                setIsGuidanceActive(false);
+                setIsPlanning(false);
+                setDestination(undefined);
+                setStartLocation(undefined);
+                setUiState("IDLE");
+              } else {
+                setIsTourSimulation(false); // Stop simulation if turning off tour
+                setIsVirtualTourRunning(false);
+              }
+              return next;
+            });
           });
         }}
         onSelectLocations={() => {
@@ -318,6 +368,7 @@ function HomeContent() {
             logout();
           }
         }}
+        theme={theme}
       />
 
       {/* Main Content Area */}
@@ -397,6 +448,7 @@ function HomeContent() {
             isTourSimulation={isTourSimulation}
             onToggleTourSimulation={handleToggleTourSimulation}
             onStartVirtualTour={handleStartVirtualTour}
+            onStartRealTour={handleStartRealTour}
             isVirtualTourRunning={isVirtualTourRunning}
             isMobile={isMobile}
             mapStyle={settings.mapStyle}
@@ -413,7 +465,10 @@ function HomeContent() {
             }}
             showSubtitles={showSubtitles}
             onToggleSubtitles={() => setShowSubtitles(prev => !prev)}
+            simulationMode={simulationMode}
           />
+
+
         </div>
 
         {/* Subtitle Panel */}
@@ -520,7 +575,9 @@ function HomeContent() {
               setSelectedLandmark(null);
               setUiState("NAVIGATION_ACTIVE");
             }}
+            simulationMode={simulationMode}
           />
+
         )}
 
         {/* Confirmation Footer for Map Picking */}
@@ -579,7 +636,18 @@ function HomeContent() {
           onClearHistory={handleClearHistory}
         />
 
+        <EventsPanel
+          isOpen={isEventsOpen}
+          theme={theme}
+          onClose={() => setIsEventsOpen(false)}
+          onNavigate={(location) => {
+            setSelectedDestination(location);
+          }}
+        />
+
         {/* Auth Overlay removed; managed by AuthProvider now */}
+
+
 
         {/* Map Category Chips / Right Side Action Buttons */}
         {!isGuidanceActive && !isTourMode && !isTourSimulation && !selectedLandmark && (

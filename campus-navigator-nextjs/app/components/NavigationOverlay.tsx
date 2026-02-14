@@ -41,7 +41,7 @@ export default function NavigationOverlay({
                 <div className="bg-black border border-white/10 rounded-[24px] shadow-[0_15px_40px_rgba(0,0,0,0.5)] overflow-hidden">
                     <div className="flex items-center p-2 gap-3">
                         {/* Icon Container - Scaled Down */}
-                        <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+                        <div className="w-10 h-10 bg-orange-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
                             {isLeft ? (
                                 <CornerUpLeft className="text-white" size={24} strokeWidth={3} />
                             ) : isRight ? (
@@ -115,10 +115,10 @@ function BottomControlBtn({ icon, label, onClick, active }: { icon: React.ReactN
             onClick={onClick}
             className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all group ${active ? 'bg-white/10' : 'hover:bg-white/5'}`}
         >
-            <div className={`mb-0.5 transition-transform group-hover:scale-105 ${active ? 'text-blue-400' : 'text-slate-300'}`}>
+            <div className={`mb-0.5 transition-transform group-hover:scale-105 ${active ? 'text-orange-400' : 'text-slate-300'}`}>
                 {icon}
             </div>
-            <span className={`text-[7px] font-black tracking-widest ${active ? 'text-blue-400' : 'text-slate-500'}`}>{label}</span>
+            <span className={`text-[7px] font-black tracking-widest ${active ? 'text-orange-400' : 'text-slate-500'}`}>{label}</span>
         </button>
     );
 }

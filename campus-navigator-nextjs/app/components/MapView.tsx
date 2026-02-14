@@ -27,6 +27,7 @@ interface MapViewProps {
   isTourSimulation?: boolean;
   onToggleTourSimulation?: (active: boolean) => void;
   onStartVirtualTour?: () => void;
+  onStartRealTour?: () => void;
   isVirtualTourRunning?: boolean;
   isDemoMode?: boolean;
   mapStyle?: string;
@@ -47,6 +48,7 @@ interface MapViewProps {
   showSubtitles?: boolean;
   onToggleSubtitles?: () => void;
   activeCategory?: string | null;
+  simulationMode?: boolean;
 }
 
 const GRAND_TOUR_PATH: [number, number][] = [
@@ -71,6 +73,7 @@ export default function MapView({
   isTourSimulation = false,
   onToggleTourSimulation,
   onStartVirtualTour,
+  onStartRealTour,
   isVirtualTourRunning = false,
   isDemoMode,
   mapStyle = "voyager",
@@ -86,6 +89,7 @@ export default function MapView({
   showSubtitles = true,
   onToggleSubtitles,
   activeCategory = null,
+  simulationMode = false,
 }: MapViewProps) {
   console.log("🗺️ MapView Rendering:", { isDemoMode, isGuidanceActive, isTourSimulation, startLocation });
   const mapRef = useRef<HTMLDivElement>(null);
@@ -852,7 +856,7 @@ export default function MapView({
   // Handle Tour Simulation Route Generation
   useEffect(() => {
     if (
-      isTourSimulation &&
+      (isTourSimulation || isTourMode) &&
       isGraphReady &&
       graphRef.current &&
       mapInstance.current
@@ -862,11 +866,24 @@ export default function MapView({
       resetSession();
 
       let fullPath: [number, number][] = [];
+      
+      // Determine points to visit
+      // For real tour (not simulation), start from current location
+      const pointsToVisit = [...GRAND_TOUR_PATH];
+      if (isTourMode && !isTourSimulation && startLocation) {
+         // Prepend current location to the tour
+         pointsToVisit.unshift(startLocation);
+      } else if (isTourMode && !isTourSimulation && !startLocation) {
+         // Fallback if startLocation is not yet available, maybe just use default or wait?
+         // For now, let's just use GRAND_TOUR_PATH if startLocation is missing, 
+         // OR we could use the defaultLocation but that might be far. 
+         // Let's assume startLocation is available or we use GRAND_TOUR_PATH basic loop.
+      }
 
       // Connect all points in the tour path
-      for (let i = 0; i < GRAND_TOUR_PATH.length - 1; i++) {
-        const start = GRAND_TOUR_PATH[i];
-        const end = GRAND_TOUR_PATH[i + 1];
+      for (let i = 0; i < pointsToVisit.length - 1; i++) {
+        const start = pointsToVisit[i];
+        const end = pointsToVisit[i + 1];
         const segment = getRouteGeoJSON(graphRef.current, start, end);
         if (segment) {
           // Avoid duplicating coordinates at joint points
@@ -875,7 +892,7 @@ export default function MapView({
         }
       }
       // Add the last point
-      fullPath.push(GRAND_TOUR_PATH[GRAND_TOUR_PATH.length - 1]);
+      fullPath.push(pointsToVisit[pointsToVisit.length - 1]);
 
       if (fullPath.length > 0) {
         currentRouteRef.current = fullPath;
@@ -906,7 +923,7 @@ export default function MapView({
       if (cSrc) cSrc.setData({ type: "FeatureCollection", features: [] });
       setIsPathReady(false);
     }
-  }, [isTourSimulation, isGraphReady]);
+  }, [isTourSimulation, isTourMode, isGraphReady, startLocation]);
 
   // ===============================
   // Navigation Demo Route Generator
@@ -1210,7 +1227,7 @@ export default function MapView({
       )}
 
       {/* Tour Mode Start Button - Bottom Center */}
-      {isTourMode && !isTourSimulation && (
+      {simulationMode && isTourMode && !isTourSimulation && (
         <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-[40]">
           <button
             onClick={() => {
@@ -1241,6 +1258,41 @@ export default function MapView({
               />
             </svg>
             Start Virtual Tour
+          </button>
+        </div>
+      )}
+
+      {/* Real Application Start Tour Button (GPS Mode) */}
+       {!simulationMode && isTourMode && !isTourSimulation && !isVirtualTourRunning && (
+        <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-[40]">
+          <button
+            onClick={() => {
+              resetSession();
+              onStartRealTour?.();
+            }}
+            className="px-8 py-4 bg-orange-500 text-white font-bold rounded-2xl shadow-2xl hover:bg-orange-600 active:scale-95 transition-all flex items-center gap-3 border border-orange-500/20 whitespace-nowrap"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+               <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            Start Tour
           </button>
         </div>
       )}

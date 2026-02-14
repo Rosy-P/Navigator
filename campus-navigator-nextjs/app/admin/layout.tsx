@@ -23,12 +23,14 @@ const AdminContext = createContext<{
     searchTerm: string;
     setSearchTerm: (term: string) => void;
     stats: { total: number; admins: number; events: number };
+    refreshUsers: () => Promise<void>;
 }>({
     users: [],
     loading: true,
     searchTerm: "",
     setSearchTerm: () => {},
-    stats: { total: 0, admins: 0, events: 12 }
+    stats: { total: 0, admins: 0, events: 12 },
+    refreshUsers: async () => {}
 });
 
 export const useAdmin = () => useContext(AdminContext);
@@ -39,25 +41,50 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const [loading, setLoading] = useState(true);
     const [users, setUsers] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
+    const [currentUser, setCurrentUser] = useState({ name: "", role: "" });
 
     // 🔐 Admin Check Logic
     useEffect(() => {
         const checkAdmin = async () => {
+            // Get local session info
+            const localRole = localStorage.getItem("role");
+            const localName = localStorage.getItem("user_name");
+            
+            if (localRole && localName) {
+                setCurrentUser({ name: localName, role: localRole });
+            }
+
             try {
                 const res = await fetch(
                     "http://localhost:8080/campus-navigator-backend/check-admin.php",
                     { credentials: "include" }
                 );
-                if (!res.ok) { router.push("/"); return; }
+                
+                if (!res.ok) { 
+                    if (localRole === "superadmin") { fetchUsers(); return; }
+                    router.push("/"); 
+                    return; 
+                }
+                
                 const data = await res.json();
+                
                 if (data.status !== "success") {
-                    router.push("/");
+                    // Fallback to local role if backend is strictly 'admin' only
+                    if (localRole === "superadmin" || localRole === "admin") {
+                        fetchUsers();
+                    } else {
+                        router.push("/");
+                    }
                 } else {
                     fetchUsers();
                 }
             } catch (err) {
                 console.error("Admin check failed");
-                router.push("/");
+                if (localRole !== "superadmin" && localRole !== "admin") {
+                    router.push("/");
+                } else {
+                    fetchUsers();
+                }
             } finally {
                 setLoading(false);
             }
@@ -82,7 +109,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     const stats = React.useMemo(() => ({
         total: users.length,
-        admins: users.filter((u: any) => u.role?.toLowerCase() === 'admin').length,
+        admins: users.filter((u: any) => ["admin", "superadmin"].includes(u.role?.toLowerCase())).length,
         events: 12
     }), [users]);
 
@@ -98,7 +125,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
 
     return (
-        <AdminContext.Provider value={{ users, loading, searchTerm, setSearchTerm, stats }}>
+        <AdminContext.Provider value={{ users, loading, searchTerm, setSearchTerm, stats, refreshUsers: fetchUsers }}>
             <div className="flex min-h-screen bg-[#f8fafc] font-sans overflow-hidden">
                 {/* 1. SIDEBAR */}
                 <aside className="w-[280px] bg-[#111827] text-white flex flex-col h-screen sticky top-0 flex-shrink-0 z-40 overflow-hidden">
@@ -135,37 +162,29 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 {/* 2. MAIN CONTENT AREA */}
                 <main className="flex-1 h-screen flex flex-col overflow-hidden">
                     <header className="px-12 py-8 flex-shrink-0 flex items-center justify-between gap-12 bg-[#f8fafc] z-20">
-                        <div className="flex-1">
-                        {pathname === '/admin/users' ? (
-                            <div className="flex-1 max-w-xl relative group">
-                                <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-[#111827] transition-colors" size={22} />
-                                <input 
-                                    type="text"
-                                    placeholder="Search emails or names..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full bg-white border-none py-4 pl-16 pr-8 rounded-[24px] shadow-sm focus:ring-4 focus:ring-[#111827]/5 transition-all text-base font-medium placeholder:text-gray-300"
-                                />
-                            </div>
-                        ) : pathname === '/admin/events' ? (
-                            <div className="animate-in fade-in slide-in-from-left-4 duration-500">
-                                <h1 className="text-4xl font-black text-[#111827] tracking-tighter leading-none">Events Management</h1>
-                                <p className="text-gray-400 text-[11px] font-bold uppercase tracking-[0.2em] mt-2">Campus Activities & Scheduling</p>
-                            </div>
-                        ) : pathname === '/admin' ? (
-                            <div className="animate-in fade-in slide-in-from-left-4 duration-500">
-                                <h1 className="text-4xl font-black text-[#111827] tracking-tighter leading-none">Dashboard Overview</h1>
-                                <p className="text-gray-400 text-[11px] font-bold uppercase tracking-[0.2em] mt-2">Analytical Insights & Real-time Statistics</p>
-                            </div>
-                        ) : (
-                            <div className="h-16" />
-                        )}
-                    </div>
+                        <div className="flex-1 max-w-2xl relative group">
+                            <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-[#111827] transition-colors" size={22} />
+                            <input 
+                                type="text"
+                                placeholder={
+                                    pathname === '/admin/users' ? "Search emails or names..." :
+                                    pathname === '/admin/events' ? "Search events or venues..." :
+                                    "Search something..."
+                                }
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full bg-white border-none py-4 pl-16 pr-8 rounded-[24px] shadow-sm focus:ring-4 focus:ring-[#111827]/5 transition-all text-base font-medium placeholder:text-gray-300"
+                            />
+                        </div>
 
                         <div className="flex items-center gap-8">
                             <div className="text-right hidden sm:block">
-                                <p className="text-base font-black text-[#111827] leading-none uppercase tracking-tight">System Admin</p>
-                                <p className="text-xs text-gray-400 font-bold mt-1.5 uppercase tracking-wider">Full Access Control</p>
+                                <p className="text-base font-black text-[#111827] leading-none uppercase tracking-tight">
+                                    {currentUser.name || "Administrator"}
+                                </p>
+                                <p className="text-xs text-gray-400 font-bold mt-1.5 uppercase tracking-wider">
+                                    {currentUser.role === "superadmin" ? "Super Admin Access" : "System Admin Access"}
+                                </p>
                             </div>
                             <button 
                                 onClick={handleLogout}

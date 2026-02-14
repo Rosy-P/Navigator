@@ -28,6 +28,7 @@ interface InfoPanelProps {
     onPickOnMap: () => void;
     onStartNavigation: (coord: [number, number]) => void;
     onStartDemo: () => void;
+    simulationMode?: boolean;
 }
 
 export default function InfoPanel({
@@ -44,7 +45,8 @@ export default function InfoPanel({
     onGetGPSLocation,
     onPickOnMap,
     onStartNavigation,
-    onStartDemo
+    onStartDemo,
+    simulationMode = false
 }: InfoPanelProps) {
     if (!landmark) return null;
 
@@ -227,7 +229,7 @@ export default function InfoPanel({
                                     : "bg-slate-50 border-slate-100 hover:border-[#fb923c]/20 hover:bg-white"
                                     }`}
                             >
-                                <div className={`w-8 h-8 2xl:w-10 2xl:h-10 rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform ${originType === "gps" ? "bg-orange-500 text-white" : "bg-blue-50 text-blue-500"
+                                <div className={`w-8 h-8 2xl:w-10 2xl:h-10 rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform ${originType === "gps" ? "bg-orange-500 text-white" : "bg-orange-50 text-orange-500"
                                     }`}>
                                     <Target size={16} />
                                 </div>
@@ -285,16 +287,18 @@ export default function InfoPanel({
 
                     {/* Footer Action - Optimized for mobile to prevent collapsing */}
                     <div className="p-4 2xl:p-6 bg-white border-t border-slate-100 mt-auto flex flex-col gap-3 flex-shrink-0">
-                        <button
-                            onClick={() => {
-                                console.log("🔘 Demo Button Clicked in InfoPanel");
-                                onStartDemo();
-                            }}
-                            className={`w-full h-12 2xl:h-14 rounded-xl 2xl:rounded-2xl font-black text-[14px] 2xl:text-base flex items-center justify-center gap-2 transition-all active:scale-95 shadow-md border-2 bg-white text-[#3b82f6] border-[#3b82f6] hover:bg-blue-50`}
-                        >
-                            Demo Simulation
-                            <Zap size={15} />
-                        </button>
+                        {simulationMode && (
+                            <button
+                                onClick={() => {
+                                    console.log("🔘 Demo Button Clicked in InfoPanel");
+                                    onStartDemo();
+                                }}
+                                className={`w-full h-12 2xl:h-14 rounded-xl 2xl:rounded-2xl font-black text-[14px] 2xl:text-base flex items-center justify-center gap-2 transition-all active:scale-95 shadow-md border-2 bg-white text-[#fb923c] border-[#fb923c] hover:bg-orange-50`}
+                            >
+                                Demo Simulation
+                                <Zap size={15} />
+                            </button>
+                        )}
                         <button
                             disabled={!startLabel}
                             onClick={() => onStartNavigation([landmark.lng, landmark.lat])}

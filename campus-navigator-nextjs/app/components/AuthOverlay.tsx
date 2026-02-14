@@ -112,7 +112,7 @@ export default function AuthProvider({ children, theme = 'light' }: AuthProvider
                     localStorage.setItem("user_name", data.user.name);
 
                     // ✅ Redirect based on role
-                    if (data.user.role === "admin") {
+                    if (["admin", "superadmin"].includes(data.user.role)) {
                         router.push("/admin");
                     } else {
                         router.push("/");

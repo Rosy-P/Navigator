@@ -2,6 +2,8 @@
 
 import { X, Map, Zap, Moon, Sun, Bell, Navigation, Shield, Trash2, RotateCcw } from "lucide-react";
 import Image from "next/image";
+import { useSimulation } from "../context/SimulationContext";
+
 
 interface SettingsOverlayProps {
     isOpen: boolean;
@@ -28,6 +30,8 @@ export default function SettingsOverlay({
     onReset,
     onClearHistory
 }: SettingsOverlayProps) {
+    const { simulationMode, setSimulationMode } = useSimulation();
+    
     if (!isOpen) return null;
 
     const isDark = theme === 'dark';
@@ -144,7 +148,19 @@ export default function SettingsOverlay({
                             onToggle={() => onUpdateSetting("notifications", !settings.notifications)}
                             isDark={isDark}
                         />
+
+                        {/* Simulation Mode Feature Flag */}
+                        <div className="mt-4 pt-4 border-t border-slate-700/20">
+                            <ToggleOption
+                                label="Simulation Mode"
+                                description="Enable presentation controls for review and simulation."
+                                active={simulationMode}
+                                onToggle={() => setSimulationMode(!simulationMode)}
+                                isDark={isDark}
+                            />
+                        </div>
                     </section>
+
 
                     {/* 5. Location & Privacy */}
                     <section className="space-y-3">
