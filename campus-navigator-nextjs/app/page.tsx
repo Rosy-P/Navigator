@@ -78,6 +78,15 @@ function HomeContent() {
   const [filteredResults, setFilteredResults] = useState<any[]>([]);
   const [allLandmarks, setAllLandmarks] = useState<any[]>([]);
   const [connectors, setConnectors] = useState<any[]>([]);
+
+  // DEBUG: Track markerLocation and destination changes
+  useEffect(() => {
+    console.log("🎯 markerLocation changed:", markerLocation);
+  }, [markerLocation]);
+
+  useEffect(() => {
+    console.log("📍 destination changed:", destination);
+  }, [destination]);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
 
@@ -221,10 +230,11 @@ function HomeContent() {
 
     if (connector) {
       console.log("✅ Connector found for:", landmark.name, connector);
-      const coords = connector.geometry.coordinates;
-      const buildingSidePoint = (coords.length > 2 ? coords[coords.length - 1] : coords[1]) as [number, number];
-      setDestination(buildingSidePoint);
+      // SIMPLIFIED: Route directly to landmark position for both destination and marker
+      // This ensures marker always appears at the correct location
+      setDestination(landmarkPos);
       setMarkerLocation(landmarkPos);
+      console.log("🎯 Routing to landmark position:", landmarkPos);
     } else {
       console.warn("❌ No connector found for:", landmark.name, "- routing directly.");
       setDestination(landmarkPos);
@@ -485,7 +495,7 @@ function HomeContent() {
               setIsGuidanceActive(false);
               setIsDemoMode(false);
               setDestination(undefined);
-              setMarkerLocation(undefined); // Clear marker when ending active navigation
+              // Keep markerLocation so marker stays at landmark position
               setRouteInfo(null);
               setIsPaused(false);
               setIsSidebarCollapsed(false);
@@ -548,7 +558,7 @@ function HomeContent() {
               setSelectedLandmark(null);
               setIsSidebarCollapsed(false);
               setDestination(undefined);
-              setMarkerLocation(undefined); // Clear the physical marker location
+              setMarkerLocation(undefined);
               setStartLocation(undefined);
               setStartLabel("Current Location");
               setOriginType(null);
@@ -557,12 +567,14 @@ function HomeContent() {
               setIsGuidanceActive(false);
               setIsPlanning(false);
               setIsDemoMode(false);
+              setUiState("IDLE");
             }}
             onGetGPSLocation={handleGetGPSLocation}
             onPickOnMap={handlePickOnMapRequested}
             originType={originType}
             onStartNavigation={(coord) => {
-              setDestination(coord);
+              // Don't override destination - keep the road junction for optimal routing
+              // destination and markerLocation are already set from preview mode
               setIsGuidanceActive(true);
               setIsDemoMode(false);
               setSelectedLandmark(null);

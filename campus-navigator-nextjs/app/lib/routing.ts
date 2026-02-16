@@ -53,10 +53,63 @@ export function buildGraph(geojson: any): Map<string, Node> {
             graph.get(idA)!.neighbors.push({ id: idB, cost });
             graph.get(idB)!.neighbors.push({ id: idA, cost });
         }
+    }); // Close forEach
+
+    console.log(`🏗️ Graph Built: ${graph.size} nodes from ${geojson.features.length} features.`);
+
+    // --- GAP REPAIR PHASE ---
+    // connect nodes that are very close (e.g. broken paths) but not connected
+    const GAP_REPAIR_DIST = 8.0; // meters
+    let gapsRepaired = 0;
+    const nodes = Array.from(graph.values());
+
+    // Spatial Indexing (Simple Grid) to avoid O(N^2)
+    // 0.001 degrees is roughly 111 meters. Perfect for 8m buckets.
+    const grid = new Map<string, Node[]>();
+    const getGridKey = (c: [number, number]) => `${Math.floor(c[0] * 1000)},${Math.floor(c[1] * 1000)}`;
+
+    nodes.forEach(node => {
+        const key = getGridKey(node.coord);
+        if (!grid.has(key)) grid.set(key, []);
+        grid.get(key)!.push(node);
     });
+
+    nodes.forEach(nodeA => {
+        const key = getGridKey(nodeA.coord);
+        // Check current cell and neighbors
+        const [x, y] = [Math.floor(nodeA.coord[0] * 1000), Math.floor(nodeA.coord[1] * 1000)];
+        
+        for (let dx = -1; dx <= 1; dx++) {
+            for (let dy = -1; dy <= 1; dy++) {
+                const neighborKey = `${x + dx},${y + dy}`;
+                const cellNodes = grid.get(neighborKey);
+                if (!cellNodes) continue;
+
+                for (const nodeB of cellNodes) {
+                    if (nodeA.id === nodeB.id) continue;
+                    
+                    // Already connected?
+                    if (nodeA.neighbors.some(n => n.id === nodeB.id)) continue;
+
+                    const d = distance(nodeA.coord, nodeB.coord);
+                    if (d < GAP_REPAIR_DIST) {
+                        // Connect them!
+                        nodeA.neighbors.push({ id: nodeB.id, cost: d });
+                        nodeB.neighbors.push({ id: nodeA.id, cost: d });
+                        gapsRepaired++;
+                    }
+                }
+            }
+        }
+    });
+    
+    if (gapsRepaired > 0) {
+        console.log(`🧵 Repaired ${gapsRepaired} gaps / split paths (dist < ${GAP_REPAIR_DIST}m).`);
+    }
 
     // --- Component Analysis and Bridging ---
     const getComponents = (currentGraph: Map<string, Node>) => {
+
         const visited = new Set<string>();
         const componentList: string[][] = [];
         for (const startId of currentGraph.keys()) {
@@ -386,6 +439,26 @@ export function getRouteGeoJSON(
 
     const coordinates = simplifiedPath.map(id => graph.get(id)!.coord);
 
+    // VISUAL FIX: Connect the exact start/end points to the graph path
+    // This ensures the blue line visually touches the "Pick on Map" pins
+    if (start) {
+        const firstNodeCoord = coordinates[0];
+        const distToStart = distance(start, firstNodeCoord);
+        if (distToStart > 0.5 && distToStart < 100) {
+            coordinates.unshift(start);
+            console.log(`🔌 Visually connected start point (${distToStart.toFixed(1)}m gap)`);
+        }
+    }
+
+    if (end) {
+        const lastNodeCoord = coordinates[coordinates.length - 1];
+        const distToEnd = distance(end, lastNodeCoord);
+        if (distToEnd > 0.5 && distToEnd < 100) {
+            coordinates.push(end);
+            console.log(`🔌 Visually connected end point (${distToEnd.toFixed(1)}m gap)`);
+        }
+    }
+
     return {
         type: "Feature",
         properties: {
@@ -399,4 +472,5 @@ export function getRouteGeoJSON(
             coordinates: coordinates
         }
     };
+
 }

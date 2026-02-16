@@ -13,13 +13,34 @@ interface Props {
 
 export default function EventModal({ isOpen, onClose, selectedEvent, onSuccess }: Props) {
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isLoadingLandmarks, setIsLoadingLandmarks] = useState(true);
+    const [landmarks, setLandmarks] = useState<any[]>([]);
+    
     const [formData, setFormData] = useState({
         title: "",
         description: "",
-        location: "",
+        location: "", // Stores the name
+        latitude: 0,
+        longitude: 0,
         event_date: "",
         event_time: ""
     });
+
+    useEffect(() => {
+        // Fetch landmarks for dropdown
+        fetch("/data/raw/mcc-landmarks.json")
+            .then(res => res.json())
+            .then(data => {
+                const flattened = [
+                    ...(data.classrooms || []),
+                    ...(data.departments || []),
+                    ...(data.facilities || [])
+                ].sort((a, b) => a.name.localeCompare(b.name));
+                setLandmarks(flattened);
+            })
+            .catch(err => console.error("Failed to load landmarks:", err))
+            .finally(() => setIsLoadingLandmarks(false));
+    }, []);
 
     useEffect(() => {
         if (selectedEvent) {
@@ -27,6 +48,8 @@ export default function EventModal({ isOpen, onClose, selectedEvent, onSuccess }
                 title: selectedEvent.title,
                 description: selectedEvent.description || "",
                 location: selectedEvent.location,
+                latitude: selectedEvent.latitude || 0, // Ensure these exist in Event type if needed, or fallback
+                longitude: selectedEvent.longitude || 0,
                 event_date: selectedEvent.event_date,
                 event_time: selectedEvent.event_time
             });
@@ -35,6 +58,8 @@ export default function EventModal({ isOpen, onClose, selectedEvent, onSuccess }
                 title: "",
                 description: "",
                 location: "",
+                latitude: 0,
+                longitude: 0,
                 event_date: "",
                 event_time: ""
             });
@@ -42,6 +67,22 @@ export default function EventModal({ isOpen, onClose, selectedEvent, onSuccess }
     }, [selectedEvent, isOpen]);
 
     if (!isOpen) return null;
+
+    const handleLocationChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const selectedName = e.target.value;
+        const landmark = landmarks.find(l => l.name === selectedName);
+        
+        if (landmark) {
+            setFormData(prev => ({
+                ...prev,
+                location: landmark.name,
+                latitude: landmark.lat,
+                longitude: landmark.lng
+            }));
+        } else {
+             setFormData(prev => ({ ...prev, location: selectedName }));
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -51,6 +92,8 @@ export default function EventModal({ isOpen, onClose, selectedEvent, onSuccess }
         const body = selectedEvent 
             ? { ...formData, id: selectedEvent.id }
             : formData;
+            
+        console.log("Submitting Event:", body); // Debug log
 
         try {
             const res = await fetch(`http://localhost:8080/campus-navigator-backend/${endpoint}`, {
@@ -118,19 +161,35 @@ export default function EventModal({ isOpen, onClose, selectedEvent, onSuccess }
                                 />
                             </div>
 
-                            {/* Location */}
+                            {/* Location Dropdown */}
                             <div>
                                 <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 px-1">
                                     <MapPin size={12} className="text-emerald-500" /> Venue Location
                                 </label>
-                                <input 
-                                    required
-                                    type="text"
-                                    value={formData.location}
-                                    onChange={(e) => setFormData({...formData, location: e.target.value})}
-                                    placeholder="e.g. Main Auditorium"
-                                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-900 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
-                                />
+                                <div className="relative">
+                                    <select
+                                        required
+                                        value={formData.location}
+                                        onChange={handleLocationChange}
+                                        disabled={isLoadingLandmarks}
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none"
+                                    >
+                                        <option value="">Select a location...</option>
+                                        {landmarks.map((l, i) => (
+                                            <option key={`${l.name}-${i}`} value={l.name}>
+                                                {l.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                        {isLoadingLandmarks ? <Loader2 size={16} className="animate-spin" /> : <MapPin size={16} />}
+                                    </div>
+                                </div>
+                                {formData.latitude !== 0 && (
+                                    <p className="text-[10px] text-emerald-600 font-bold mt-2 ml-1">
+                                        ✓ Coordinates: {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
+                                    </p>
+                                )}
                             </div>
 
                             {/* Date & Time Grid */}

@@ -716,6 +716,7 @@ export default function MapView({
           offset: [offsetX, offsetY],
           duration: 350,
           easing: (t) => t * (2 - t),
+          essential: false, // Allow user to interrupt and interact with map
         });
 
         lastCameraPosRef.current = currentPos;
@@ -1071,15 +1072,38 @@ export default function MapView({
 
     if (isDemoMode || isTourSimulation) return;
 
+    console.log("🛣️ Calculating Route:", {
+        originType: isSelectingStart ? "Picking" : "Standard",
+        start: currentUserLocation,
+        dest: destination,
+        isDemo: isDemoMode,
+        graphStat: graphRef.current ? `${graphRef.current.size} nodes` : "Not Ready"
+    });
+
     const routeFeature = getRouteGeoJSON(
       graphRef.current,
       currentUserLocation,
       destination,
     );
 
+
     if (routeFeature) {
       const routeCoords = routeFeature.geometry.coordinates;
-      currentRouteRef.current = routeCoords;
+      
+      // Visual Fix: Ensure route connects to marker
+      // If markerLocation is different from destination, append it to create visual connection
+      let finalRouteCoords = [...routeCoords];
+      if (markerLocation && destination) {
+        const lastCoord = routeCoords[routeCoords.length - 1];
+        const distToMarker = distance(lastCoord, markerLocation);
+        // Only append if marker is at a different location (>1m away)
+        if (distToMarker > 1) {
+          finalRouteCoords.push(markerLocation);
+          console.log(`🔌 Appended markerLocation to route (${distToMarker.toFixed(1)}m gap)`);
+        }
+      }
+
+      currentRouteRef.current = finalRouteCoords;
 
       if (onRouteCalculated) {
         onRouteCalculated(routeFeature.properties.distance);
@@ -1089,25 +1113,49 @@ export default function MapView({
         "route",
       ) as maplibregl.GeoJSONSource;
       if (rSrc) {
-        rSrc.setData(routeFeature);
+        // Update route with extended coordinates
+        const extendedRouteFeature = {
+          ...routeFeature,
+          geometry: {
+            ...routeFeature.geometry,
+            coordinates: finalRouteCoords
+          }
+        };
+        rSrc.setData(extendedRouteFeature);
         if (isDemoMode) {
-          setSimulationPosition(routeCoords[0]);
+          setSimulationPosition(finalRouteCoords[0]);
         }
         simIndexRef.current = 0;
         simStartTimeRef.current = null;
         setIsPathReady(true);
       }
 
-      if (destMarkerRef.current) destMarkerRef.current.remove();
-      const markerPos = markerLocation || destination;
+      // Remove old marker
+      if (destMarkerRef.current) {
+        destMarkerRef.current.remove();
+        destMarkerRef.current = null;
+      }
+      
+      // CRITICAL: Always use markerLocation if available (for landmarks with connectors)
+      // Only fall back to destination if markerLocation is explicitly undefined
+      let markerPos: [number, number] | undefined;
+      if (markerLocation) {
+        markerPos = markerLocation;
+        console.log("🔴 Using markerLocation for marker:", markerLocation);
+      } else if (destination) {
+        markerPos = destination;
+        console.log("🔴 Using destination for marker (no markerLocation):", destination);
+      }
+      
       if (markerPos) {
         destMarkerRef.current = new maplibregl.Marker({ color: "#ef4444" })
           .setLngLat(markerPos)
           .addTo(mapInstance.current);
+        console.log("🔴 Marker created at:", markerPos);
       }
 
       const b = new maplibregl.LngLatBounds();
-      routeCoords.forEach((c: any) => b.extend(c as [number, number]));
+      finalRouteCoords.forEach((c: any) => b.extend(c as [number, number]));
       mapInstance.current.fitBounds(b, { padding: 100, duration: 1000 });
     }
   }, [
