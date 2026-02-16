@@ -61,7 +61,7 @@ export default function AuthProvider({ children, theme = 'light' }: AuthProvider
     useEffect(() => {
         const checkAuth = async () => {
             try {
-                const res = await fetch("http://localhost:8080/campus-navigator-backend/check-auth.php", {
+                const res = await fetch("http://localhost:80/campus-navigator-backend/check-auth.php", {
                     credentials: "include"
                 });
                 if (res.ok) {
@@ -91,7 +91,7 @@ export default function AuthProvider({ children, theme = 'light' }: AuthProvider
             const formDataObj = new FormData();
             Object.keys(formData).forEach(key => formDataObj.append(key, formData[key]));
 
-            const res = await fetch("http://localhost:8080/campus-navigator-backend/login.php", {
+            const res = await fetch("http://localhost:80/campus-navigator-backend/login.php", {
                 method: "POST",
                 body: formDataObj,
                 credentials: "include"
@@ -206,7 +206,7 @@ function AuthOverlayUI({ theme, onClose, modeProp }: { theme: 'light' | 'dark', 
                 formDataObj.append('email', formData.email);
                 formDataObj.append('password', formData.password);
 
-                const res = await fetch("http://localhost:8080/campus-navigator-backend/register.php", {
+                const res = await fetch("http://localhost:80/campus-navigator-backend/register.php", {
                     method: "POST",
                     body: formDataObj,
                     credentials: "include"
