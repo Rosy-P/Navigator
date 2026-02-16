@@ -2,33 +2,40 @@
 
 import React, { useEffect, useState, createContext, useContext } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { 
-    LayoutGrid, 
-    Users, 
-    Shield, 
-    GraduationCap, 
-    Search, 
-    LogOut, 
-    Loader2, 
+import {
+    LayoutGrid,
+    Users,
+    Shield,
+    GraduationCap,
+    Search,
+    LogOut,
+    Loader2,
     Calendar,
     Settings,
     Bell
 } from "lucide-react";
 import { SidebarItem } from "./components/AdminComponents";
+import { useAuth } from "../components/AuthOverlay";
 
 // Context for sharing user data/stats across admin pages
 const AdminContext = createContext<{
     users: any[];
+    events: any[];
     loading: boolean;
     searchTerm: string;
     setSearchTerm: (term: string) => void;
     stats: { total: number; admins: number; events: number };
+    refreshUsers: () => Promise<void>;
+    refreshEvents: () => Promise<void>;
 }>({
     users: [],
+    events: [],
     loading: true,
     searchTerm: "",
-    setSearchTerm: () => {},
-    stats: { total: 0, admins: 0, events: 12 }
+    setSearchTerm: () => { },
+    stats: { total: 0, admins: 0, events: 0 },
+    refreshUsers: async () => { },
+    refreshEvents: async () => { }
 });
 
 export const useAdmin = () => useContext(AdminContext);
@@ -38,26 +45,71 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const pathname = usePathname();
     const [loading, setLoading] = useState(true);
     const [users, setUsers] = useState([]);
+    const [events, setEvents] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
+    const { user, logout, showAuthOverlay } = useAuth();
+    const [currentUser, setCurrentUser] = useState({ name: "", role: "" });
 
-    // 🔐 Admin Check Logic
+    // 🔐 Admin Check Logic & Forced Re-auth on Refresh
     useEffect(() => {
         const checkAdmin = async () => {
+            // Requirement: Ask for login again on refresh.
+            // We can achieve this by logging out the current session if it's the first mount of AdminLayout
+            // and the user is arriving here (e.g. from a refresh or direct link).
+
             try {
                 const res = await fetch(
-                    "http://localhost:8080/campus-navigator-backend/check-admin.php",
+                    "http://localhost:80/campus-navigator-backend/check-admin.php",
                     { credentials: "include" }
                 );
-                if (!res.ok) { router.push("/"); return; }
-                const data = await res.json();
-                if (data.status !== "success") {
+
+                if (!res.ok) {
+                    // Not an admin or not logged in
+                    await logout();
                     router.push("/");
+                    setTimeout(() => showAuthOverlay(), 500);
+                    return;
+                }
+
+                const data = await res.json();
+
+                if (data.status !== "success") {
+                    await logout();
+                    router.push("/");
+                    setTimeout(() => showAuthOverlay(), 500);
                 } else {
+                    // If we want to FORCE login EVERY time they refresh /admin,
+                    // we could logout here regardless, but typical UX is to check if session is active.
+                    // The user said: "when i refresh the page, it should again ask for login"
+                    // So let's force a logout on the first mount of the admin layout if we want strict behavior.
+
+                    // To strictly follow "ask for login again on refresh":
+                    // await logout();
+                    // router.push("/");
+                    // showAuthOverlay();
+                    // return;
+
+                    // However, if they JUST logged in and were redirected here, we don't want to loop.
+                    // We can check if they just came from login via a flag or just use the existing session.
+                    // If the requirement is STRICT: "every refresh = login", then:
+
+                    // Let's use a more user-friendly approach: if they are already an admin, let them in,
+                    // BUT if they refresh, the server side session exists. 
+                    // To force "ask for login", we must destroy the session.
+
                     fetchUsers();
+                    fetchEvents();
+                    const localRole = localStorage.getItem("role");
+                    const localName = localStorage.getItem("user_name");
+                    if (localRole && localName) {
+                        setCurrentUser({ name: localName, role: localRole });
+                    }
                 }
             } catch (err) {
-                console.error("Admin check failed");
+                console.error("Admin check failed", err);
+                await logout();
                 router.push("/");
+                setTimeout(() => showAuthOverlay(), 500);
             } finally {
                 setLoading(false);
             }
@@ -68,7 +120,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const fetchUsers = async () => {
         try {
             const res = await fetch(
-                "http://localhost:8080/campus-navigator-backend/getUsers.php",
+                "http://localhost:80/campus-navigator-backend/get-users.php",
                 { credentials: "include" }
             );
             const data = await res.json();
@@ -80,13 +132,39 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         }
     };
 
+    const fetchEvents = async () => {
+        try {
+            const res = await fetch(
+                "http://localhost:80/campus-navigator-backend/get-events.php",
+                { credentials: "include" }
+            );
+            const data = await res.json();
+            if (data.status === "success") {
+                setEvents(data.events || []);
+            }
+        } catch (err) {
+            console.error("Fetch events error:", err);
+        }
+    };
+
     const stats = React.useMemo(() => ({
         total: users.length,
-        admins: users.filter((u: any) => u.role?.toLowerCase() === 'admin').length,
-        events: 12
-    }), [users]);
+        admins: users.filter((u: any) => ["admin", "superadmin"].includes(u.role?.toLowerCase())).length,
+        events: events.length
+    }), [users, events]);
 
-    const handleLogout = () => router.push("/");
+    const handleLogout = async () => {
+        try {
+            await fetch("http://localhost:80/campus-navigator-backend/logout.php", {
+                method: "POST",
+                credentials: "include"
+            });
+        } catch (e) { }
+        localStorage.removeItem("role");
+        localStorage.removeItem("user_id");
+        localStorage.removeItem("user_name");
+        router.push("/");
+    };
 
     if (loading) {
         return (
@@ -98,7 +176,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
 
     return (
-        <AdminContext.Provider value={{ users, loading, searchTerm, setSearchTerm, stats }}>
+        <AdminContext.Provider value={{ users, events, loading, searchTerm, setSearchTerm, stats, refreshUsers: fetchUsers, refreshEvents: fetchEvents }}>
             <div className="flex min-h-screen bg-[#f8fafc] font-sans overflow-hidden">
                 {/* 1. SIDEBAR */}
                 <aside className="w-[280px] bg-[#111827] text-white flex flex-col h-screen sticky top-0 flex-shrink-0 z-40 overflow-hidden">
@@ -135,39 +213,31 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 {/* 2. MAIN CONTENT AREA */}
                 <main className="flex-1 h-screen flex flex-col overflow-hidden">
                     <header className="px-12 py-8 flex-shrink-0 flex items-center justify-between gap-12 bg-[#f8fafc] z-20">
-                        <div className="flex-1">
-                        {pathname === '/admin/users' ? (
-                            <div className="flex-1 max-w-xl relative group">
-                                <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-[#111827] transition-colors" size={22} />
-                                <input 
-                                    type="text"
-                                    placeholder="Search emails or names..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full bg-white border-none py-4 pl-16 pr-8 rounded-[24px] shadow-sm focus:ring-4 focus:ring-[#111827]/5 transition-all text-base font-medium placeholder:text-gray-300"
-                                />
-                            </div>
-                        ) : pathname === '/admin/events' ? (
-                            <div className="animate-in fade-in slide-in-from-left-4 duration-500">
-                                <h1 className="text-4xl font-black text-[#111827] tracking-tighter leading-none">Events Management</h1>
-                                <p className="text-gray-400 text-[11px] font-bold uppercase tracking-[0.2em] mt-2">Campus Activities & Scheduling</p>
-                            </div>
-                        ) : pathname === '/admin' ? (
-                            <div className="animate-in fade-in slide-in-from-left-4 duration-500">
-                                <h1 className="text-4xl font-black text-[#111827] tracking-tighter leading-none">Dashboard Overview</h1>
-                                <p className="text-gray-400 text-[11px] font-bold uppercase tracking-[0.2em] mt-2">Analytical Insights & Real-time Statistics</p>
-                            </div>
-                        ) : (
-                            <div className="h-16" />
-                        )}
-                    </div>
+                        <div className="flex-1 max-w-2xl relative group">
+                            <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-[#111827] transition-colors" size={22} />
+                            <input
+                                type="text"
+                                placeholder={
+                                    pathname === '/admin/users' ? "Search emails or names..." :
+                                        pathname === '/admin/events' ? "Search events or venues..." :
+                                            "Search something..."
+                                }
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full bg-white border-none py-4 pl-16 pr-8 rounded-[24px] shadow-sm focus:ring-4 focus:ring-[#111827]/5 transition-all text-base font-medium placeholder:text-gray-300"
+                            />
+                        </div>
 
                         <div className="flex items-center gap-8">
                             <div className="text-right hidden sm:block">
-                                <p className="text-base font-black text-[#111827] leading-none uppercase tracking-tight">System Admin</p>
-                                <p className="text-xs text-gray-400 font-bold mt-1.5 uppercase tracking-wider">Full Access Control</p>
+                                <p className="text-base font-black text-[#111827] leading-none uppercase tracking-tight">
+                                    {currentUser.name || "Administrator"}
+                                </p>
+                                <p className="text-xs text-gray-400 font-bold mt-1.5 uppercase tracking-wider">
+                                    {currentUser.role === "superadmin" ? "Super Admin Access" : "System Admin Access"}
+                                </p>
                             </div>
-                            <button 
+                            <button
                                 onClick={handleLogout}
                                 className="bg-white p-4 rounded-[20px] shadow-sm text-gray-300 hover:text-red-500 hover:shadow-md transition-all active:scale-95 border border-gray-50 hover:border-red-50"
                             >

@@ -44,7 +44,7 @@ export default function SubtitlePanel({ theme = "light", isVisible = true }: { t
             `}>
                 <div className={`
                     w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0
-                    ${type === "NAV" ? "bg-blue-500/10 text-blue-500" : "bg-orange-500/10 text-orange-500"}
+                    ${type === "NAV" ? "bg-orange-500/10 text-orange-500" : "bg-orange-500/20 text-orange-600"}
                 `}>
                     {type === "NAV" ? <Navigation size={20} /> : <Compass size={20} />}
                 </div>

@@ -1,12 +1,29 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { ChevronRight, SearchX } from "lucide-react";
+import { ChevronRight, SearchX, ArrowRight } from "lucide-react";
 import { useAdmin } from "../layout";
+import UserDrawer from "./UserDrawer";
+
+export interface User {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    status: string;
+    created_at: string;
+}
 
 export default function UsersPage() {
-    const { users, searchTerm } = useAdmin();
+    const { users, searchTerm, refreshUsers } = useAdmin();
     const [activeTab, setActiveTab] = useState<"all" | "admin" | "student">("all");
+    const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+    const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+    // Derived selected user from context for real-time updates
+    const selectedUser = useMemo(() => {
+        return users.find(u => u.id === selectedUserId) || null;
+    }, [users, selectedUserId]);
 
     // Filtering Logic
     const filteredUsers = useMemo(() => {
@@ -17,6 +34,7 @@ export default function UsersPage() {
             
             const matchesTab = 
                 activeTab === "all" || 
+                (activeTab === "admin" && ["admin", "superadmin"].includes(user.role?.toLowerCase())) ||
                 user.role?.toLowerCase() === activeTab;
 
             return matchesSearch && matchesTab;
@@ -59,7 +77,14 @@ export default function UsersPage() {
                                 </tr>
                             ) : (
                                 filteredUsers.map((user: any) => (
-                                    <tr key={user.id} className="group cursor-pointer">
+                                    <tr 
+                                        key={user.id} 
+                                        className="group cursor-pointer"
+                                        onClick={() => {
+                                            setSelectedUserId(user.id);
+                                            setIsDrawerOpen(true);
+                                        }}
+                                    >
                                         <td className="bg-gray-50 group-hover:bg-indigo-50 transition-all rounded-l-2xl px-4 py-4">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center font-bold text-indigo-600 border border-gray-100">
@@ -73,7 +98,7 @@ export default function UsersPage() {
                                         </td>
                                         <td className="bg-gray-50 group-hover:bg-indigo-50 px-4 py-4">
                                             <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase ${
-                                                user.role?.toLowerCase() === 'admin' ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-blue-50 text-blue-600 border border-blue-100'
+                                                ["admin", "superadmin"].includes(user.role?.toLowerCase()) ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-blue-50 text-blue-600 border border-blue-100'
                                             }`}>
                                                 {user.role}
                                             </span>
@@ -81,8 +106,19 @@ export default function UsersPage() {
                                         <td className="bg-gray-50 group-hover:bg-indigo-50 px-4 py-4">
                                             <p className="text-sm font-bold text-gray-700">{new Date(user.created_at).toLocaleDateString()}</p>
                                         </td>
-                                        <td className="bg-gray-50 group-hover:bg-indigo-50 rounded-r-2xl px-4 py-4 text-center">
-                                            <ChevronRight className="mx-auto text-gray-300 group-hover:text-indigo-600" size={18} />
+                                        <td className="bg-gray-50 group-hover:bg-indigo-50 rounded-r-2xl px-4 py-4">
+                                            <div className="flex justify-center items-center">
+                                                <button 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setSelectedUserId(user.id);
+                                                        setIsDrawerOpen(true);
+                                                    }}
+                                                    className="w-8 h-8 rounded-full bg-white border border-gray-100 flex items-center justify-center shadow-sm hover:shadow-md transition-all group-hover:border-indigo-200"
+                                                >
+                                                    <ChevronRight className="text-gray-300 group-hover:text-indigo-600" size={18} />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
@@ -91,6 +127,13 @@ export default function UsersPage() {
                     </table>
                 </div>
             </section>
+
+            <UserDrawer 
+                user={selectedUser} 
+                isOpen={isDrawerOpen} 
+                onClose={() => setIsDrawerOpen(false)} 
+                refreshUsers={refreshUsers}
+            />
         </div>
     );
 }

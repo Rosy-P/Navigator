@@ -57,26 +57,31 @@ export default function AuthProvider({ children, theme = 'light' }: AuthProvider
     const [isLoading, setIsLoading] = useState(true);
     const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
-    // Initial Auth Check
+    // 🔄 Force Login on Refresh (Initial Mount)
     useEffect(() => {
-        const checkAuth = async () => {
+        const handleRefreshAuth = async () => {
+            console.log("🔄 App Refresh: Clearing session for demonstration...");
             try {
-                const res = await fetch("http://localhost:80/campus-navigator-backend/check-auth.php", {
+                // Clear session on backend
+                await fetch("http://localhost:80/campus-navigator-backend/logout.php", {
+                    method: "POST",
                     credentials: "include"
                 });
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.user) {
-                        setUser(data.user);
-                    }
-                }
             } catch (err) {
-                console.error("Auth check failed:", err);
+                console.error("Forced logout failed:", err);
             } finally {
+                // Clear state and local storage
+                setUser(null);
+                localStorage.removeItem("role");
+                localStorage.removeItem("user_id");
+                localStorage.removeItem("user_name");
                 setIsLoading(false);
+
+                // Overlay stays closed; user will login manually
+                setIsOverlayOpen(false);
             }
         };
-        checkAuth();
+        handleRefreshAuth();
     }, []);
 
     const showAuthOverlay = () => setIsOverlayOpen(true);
@@ -112,7 +117,7 @@ export default function AuthProvider({ children, theme = 'light' }: AuthProvider
                     localStorage.setItem("user_name", data.user.name);
 
                     // ✅ Redirect based on role
-                    if (data.user.role === "admin") {
+                    if (["admin", "superadmin"].includes(data.user.role)) {
                         router.push("/admin");
                     } else {
                         router.push("/");
@@ -136,10 +141,20 @@ export default function AuthProvider({ children, theme = 'light' }: AuthProvider
     };
 
     const logout = async () => {
-        setUser(null);
         try {
-            // Optional: call logout endpoint if needed
-        } catch (e) { }
+            await fetch("http://localhost:80/campus-navigator-backend/logout.php", {
+                method: "POST",
+                credentials: "include"
+            });
+        } catch (e) {
+            console.error("Logout request failed:", e);
+        } finally {
+            setUser(null);
+            localStorage.removeItem("role");
+            localStorage.removeItem("user_id");
+            localStorage.removeItem("user_name");
+            router.push("/");
+        }
     };
 
     const requireAuth = (action?: () => void) => {
