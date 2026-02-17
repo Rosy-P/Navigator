@@ -104,7 +104,8 @@ body {
 
 .nav-arrow,
 .nav-shadow {
-  display: none !important; /* Hidden by default */
+  display: none !important;
+  /* Hidden by default */
 }
 
 /* Navigating state: Arrow visible, Dot/Pulse hidden */
@@ -163,4 +164,57 @@ body {
     transform: scale(3);
     opacity: 0;
   }
+}
+
+/* Apple-style Smooth Animations */
+.animate-in {
+  animation-duration: 700ms;
+  animation-fill-mode: both;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fade-in {
+  animation-name: fadeIn;
+}
+
+.slide-in-from-bottom-4 {
+  animation-name: slideInFromBottom;
+  --slide-offset: 1rem;
+}
+
+.slide-in-from-bottom-6 {
+  animation-name: slideInFromBottom;
+  --slide-offset: 1.5rem;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromBottom {
+  from {
+    opacity: 0;
+    transform: translateY(var(--slide-offset, 1rem));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Hide scrollbar for category tabs */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
