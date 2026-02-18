@@ -157,7 +157,38 @@ export default function FacilitiesPage() {
             const response = await fetch(`http://localhost:80/campus-navigator-backend/getfacilities.php?${params.toString()}`);
             if (!response.ok) throw new Error('Failed to fetch facilities');
             const data = await response.json();
-            setFacilities(data);
+
+            // Image mapping for newly added local images
+            const localImageMap: Record<string, string> = {
+                "Computer Lab": "/images/facilities/compurt lab.jfif",
+                "Zoology Lab": "/images/facilities/zoology lab.jfif",
+                "Botany Lab": "/images/facilities/botany lab.jfif",
+                "Library": "/images/facilities/library"
+            };
+
+            const formattedData = data.map((f: any) => {
+                // Determine status - map lowercase to Capitalized
+                let status: Facility['status'] = 'Open';
+                const s = f.status?.toLowerCase();
+                if (s === 'closed') status = 'Closed';
+                if (s === 'crowded') status = 'Crowded';
+
+                return {
+                    id: f.id,
+                    name: f.name,
+                    category: f.category,
+                    description: f.description,
+                    status: status,
+                    occupancy: parseInt(f.occupancy_percentage) || 0,
+                    distance: f.distance || 'Proximate', // Fallback if not in API
+                    rating: parseFloat(f.rating) || 4.5, // Fallback if not in API
+                    image: localImageMap[f.name] || f.image_url,
+                    latitude: parseFloat(f.latitude),
+                    longitude: parseFloat(f.longitude)
+                };
+            });
+
+            setFacilities(formattedData);
             setError(null);
         } catch (err: any) {
             setError(err.message);
@@ -203,13 +234,13 @@ export default function FacilitiesPage() {
             el.className = `custom-marker transition-all duration-300 ${hoveredFacility === f.id ? 'scale-125 z-50' : 'scale-100 z-10'}`;
             el.innerHTML = `
                 <div class="flex flex-col items-center">
-                    <div class="flex items-center gap-2 p-1.5 pr-3 rounded-full bg-white border border-slate-200 shadow-xl transition-all ${hoveredFacility === f.id ? 'border-blue-500 shadow-blue-200' : ''}">
-                        <div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] ${hoveredFacility === f.id ? 'bg-blue-600' : 'bg-slate-400'}">
+                    <div class="flex items-center gap-2 p-1.5 pr-3 rounded-full bg-white border border-slate-200 shadow-xl transition-all ${hoveredFacility === f.id ? 'border-orange-500 shadow-orange-200' : ''}">
+                        <div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] ${hoveredFacility === f.id ? 'bg-orange-600' : 'bg-slate-400'}">
                             <span class="facility-icon">📍</span>
                         </div>
                         <span class="text-[10px] font-bold text-slate-700 whitespace-nowrap">${f.name}</span>
                     </div>
-                    <div class="w-0.5 h-3 ${hoveredFacility === f.id ? 'bg-blue-500' : 'bg-slate-300'}"></div>
+                    <div class="w-0.5 h-3 ${hoveredFacility === f.id ? 'bg-orange-500' : 'bg-slate-300'}"></div>
                 </div>
             `;
 
@@ -278,8 +309,8 @@ export default function FacilitiesPage() {
                 {/* Hero Section */}
                 <section className="relative overflow-hidden pt-8 pb-6 px-8">
                     <div className="relative max-w-6xl">
-                        <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight mb-2 animate-in fade-in slide-in-from-bottom-4">
-                            Explore <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Campus Facilities</span>
+                        <h1 className="text-4xl md:text-5xl font-extrabold text-slate-950 tracking-tight mb-2 animate-in fade-in slide-in-from-bottom-4">
+                            Explore <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-amber-600">Campus Facilities</span>
                         </h1>
                         <p className="text-base text-slate-500 max-w-2xl leading-relaxed">
                             Smart navigation, real-time status, and seamless campus access.
@@ -291,11 +322,11 @@ export default function FacilitiesPage() {
                 <div className="px-8 mb-8">
                     <div className="sticky top-4 z-40 bg-white/80 backdrop-blur-xl border border-slate-100 p-4 rounded-[24px] shadow-sm flex flex-col md:flex-row gap-4">
                         <div className="relative flex-1 group">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500 transition-colors" size={20} />
                             <input
                                 type="text"
                                 placeholder="Search facilities..."
-                                className="w-full bg-slate-100/50 border-none rounded-2xl py-3 pl-12 pr-4 text-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all"
+                                className="w-full bg-slate-100/50 border-none rounded-2xl py-3 pl-12 pr-4 text-slate-950 placeholder:text-slate-400 focus:ring-2 focus:ring-orange-500/20 focus:bg-white transition-all"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
@@ -317,7 +348,7 @@ export default function FacilitiesPage() {
                             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Open Now</span>
                             <button
                                 onClick={() => setOpenNow(!openNow)}
-                                className={`w-10 h-5 rounded-full p-1 transition-colors duration-300 ${openNow ? 'bg-blue-600' : 'bg-slate-300'}`}
+                                className={`w-10 h-5 rounded-full p-1 transition-colors duration-300 ${openNow ? 'bg-orange-600' : 'bg-slate-300'}`}
                             >
                                 <div className={`w-3 h-3 bg-white rounded-full transition-transform duration-300 ${openNow ? 'translate-x-5' : 'translate-x-0'}`} />
                             </button>
@@ -355,7 +386,7 @@ export default function FacilitiesPage() {
                                         ref={el => { cardRefs.current[facility.id] = el; }}
                                         onMouseEnter={() => setHoveredFacility(facility.id)}
                                         onMouseLeave={() => setHoveredFacility(null)}
-                                        className={`group relative bg-white border rounded-[28px] overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${hoveredFacility === facility.id ? 'border-blue-500 shadow-blue-50' : 'border-slate-100'}`}
+                                        className={`group relative bg-white border rounded-[28px] overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${hoveredFacility === facility.id ? 'border-orange-500 shadow-orange-50' : 'border-slate-100'}`}
                                     >
                                         <div className="relative h-48 overflow-hidden">
                                             <img src={facility.image} alt={facility.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
@@ -369,7 +400,7 @@ export default function FacilitiesPage() {
 
                                         <div className="p-6">
                                             <div className="flex items-center justify-between mb-2">
-                                                <h3 className="text-xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors uppercase">{facility.name}</h3>
+                                                <h3 className="text-xl font-bold text-slate-950 group-hover:text-orange-600 transition-colors uppercase">{facility.name}</h3>
                                                 <div className="flex items-center gap-1 text-amber-500 font-bold text-sm">
                                                     <Star size={14} fill="currentColor" /> {facility.rating}
                                                 </div>
@@ -379,12 +410,12 @@ export default function FacilitiesPage() {
                                             <div className="space-y-4">
                                                 <OccupancyIndicator percentage={facility.occupancy} />
                                                 <div className="grid grid-cols-3 gap-2">
-                                                    <button className="flex flex-col items-center justify-center gap-1 p-2 rounded-2xl bg-slate-50 text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-all active:scale-95">
+                                                    <button className="flex flex-col items-center justify-center gap-1 p-2 rounded-2xl bg-slate-50 text-slate-600 hover:bg-orange-50 hover:text-orange-600 transition-all active:scale-95">
                                                         <Clock size={18} /> <span className="text-[9px] font-bold uppercase">Details</span>
                                                     </button>
                                                     <button
                                                         onClick={() => handleFlyTo(facility)}
-                                                        className="flex flex-col items-center justify-center gap-1 p-2 rounded-2xl bg-blue-600 text-white hover:bg-blue-700 shadow-md transition-all active:scale-95"
+                                                        className="flex flex-col items-center justify-center gap-1 p-2 rounded-2xl bg-orange-600 text-white hover:bg-orange-700 shadow-md transition-all active:scale-95"
                                                     >
                                                         <Navigation size={18} /> <span className="text-[9px] font-bold uppercase">Navigate</span>
                                                     </button>
@@ -408,11 +439,11 @@ export default function FacilitiesPage() {
                             {/* Map Floating Header */}
                             <div className="absolute top-6 left-6 right-6 flex items-center justify-between p-4 bg-white/80 backdrop-blur-xl border border-slate-100 rounded-2xl z-10 shadow-sm">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+                                    <div className="w-10 h-10 bg-orange-600 rounded-xl flex items-center justify-center text-white shadow-lg">
                                         <Compass size={20} className="animate-pulse" />
                                     </div>
                                     <div>
-                                        <h4 className="font-bold text-slate-900 text-sm">Interactive Map</h4>
+                                        <h4 className="font-bold text-slate-950 text-sm">Interactive Map</h4>
                                         <p className="text-[10px] text-slate-500 flex items-center gap-1">
                                             <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
                                             Live facility locations
