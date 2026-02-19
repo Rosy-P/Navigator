@@ -129,7 +129,7 @@ export default function FacilitiesPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [openNow, setOpenNow] = useState(false);
     const [hoveredFacility, setHoveredFacility] = useState<string | null>(null);
-    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true); // Default to collapsed for more space
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     // Map Refs
@@ -154,11 +154,28 @@ export default function FacilitiesPage() {
             if (openNow) params.append('open', 'true');
             if (debouncedSearch) params.append('search', debouncedSearch);
 
-            const response = await fetch(`http://localhost:80/campus-navigator-backend/getfacilities.php?${params.toString()}`);
-            if (!response.ok) throw new Error('Failed to fetch facilities');
+            console.log("📡 Fetching facilities with params:", params.toString());
+            const response = await fetch(`http://localhost:8080/campus-navigator-backend/getfacilities.php?${params.toString()}`);
+            if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+            
             const data = await response.json();
-            setFacilities(data);
-            setError(null);
+            console.log("📦 Facilities API Response:", data);
+            
+            // Fix: API returns { status: "success", data: [...] }
+            if (Array.isArray(data)) {
+                setFacilities(data);
+                setError(null);
+            } else if (data && Array.isArray(data.data)) {
+                // Handle wrapped response format
+                setFacilities(data.data);
+                setError(null);
+            } else {
+                console.warn("⚠️ API returned unexpected format:", data);
+                setFacilities([]);
+                if (data && data.error) setError(data.error);
+                else if (data && data.message) setError(data.message);
+                else setError(null);
+            }
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -326,13 +343,14 @@ export default function FacilitiesPage() {
                 </div>
 
                 {/* Content Grid */}
-                <div className="max-w-7xl mx-auto px-8 grid grid-cols-1 lg:grid-cols-[1fr_400px] xl:grid-cols-[1fr_480px] gap-8 pb-12">
+                {/* CHANGED: Restored xl:flex-row since sidebar is collapsed, giving enough space for laptop split view */}
+                <div className="flex flex-col xl:flex-row max-w-[1920px] mx-auto px-4 md:px-8 gap-8 pb-12">
 
                     {/* Left Side: Cards */}
-                    <div className="space-y-6">
+                    <div className="flex-1 space-y-6 min-w-0">
                         {loading ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {[1, 2, 3, 4].map(i => <SkeletonCard key={i} />)}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-2 2xl:grid-cols-3 gap-6">
+                                {[1, 2, 3, 4, 5, 6, 7, 8].map(i => <SkeletonCard key={i} />)}
                             </div>
                         ) : error ? (
                             <div className="flex flex-col items-center justify-center p-12 bg-rose-50 rounded-[32px] border border-rose-100 text-center">
@@ -348,16 +366,16 @@ export default function FacilitiesPage() {
                                 <p className="text-slate-500">Try adjusting your filters or search query.</p>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {facilities.map((facility) => (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-2 2xl:grid-cols-3 gap-6">
+                                {Array.isArray(facilities) && facilities.map((facility) => (
                                     <div
                                         key={facility.id}
                                         ref={el => { cardRefs.current[facility.id] = el; }}
                                         onMouseEnter={() => setHoveredFacility(facility.id)}
                                         onMouseLeave={() => setHoveredFacility(null)}
-                                        className={`group relative bg-white border rounded-[28px] overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${hoveredFacility === facility.id ? 'border-blue-500 shadow-blue-50' : 'border-slate-100'}`}
+                                        className={`group relative bg-white border rounded-[28px] overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col ${hoveredFacility === facility.id ? 'border-blue-500 shadow-blue-50' : 'border-slate-100'}`}
                                     >
-                                        <div className="relative h-48 overflow-hidden">
+                                        <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100">
                                             <img src={facility.image} alt={facility.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                                             <div className="absolute top-4 right-4 flex gap-2">
                                                 <StatusBadge status={facility.status} />
@@ -367,30 +385,29 @@ export default function FacilitiesPage() {
                                             </div>
                                         </div>
 
-                                        <div className="p-6">
-                                            <div className="flex items-center justify-between mb-2">
-                                                <h3 className="text-xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors uppercase">{facility.name}</h3>
-                                                <div className="flex items-center gap-1 text-amber-500 font-bold text-sm">
-                                                    <Star size={14} fill="currentColor" /> {facility.rating}
+                                        <div className="p-5 flex flex-col flex-1">
+                                            <div className="flex items-start justify-between mb-2 gap-2">
+                                                <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors uppercase leading-tight line-clamp-2">{facility.name}</h3>
+                                                <div className="flex-shrink-0 flex items-center gap-1 text-amber-500 font-bold text-xs bg-amber-50 px-2 py-1 rounded-lg">
+                                                    <Star size={12} fill="currentColor" /> {facility.rating}
                                                 </div>
                                             </div>
-                                            <p className="text-slate-500 text-sm leading-relaxed mb-6 line-clamp-2">{facility.description}</p>
+                                            <p className="text-slate-500 text-xs leading-relaxed mb-4 line-clamp-2 flex-1">{facility.description}</p>
 
-                                            <div className="space-y-4">
-                                                <OccupancyIndicator percentage={facility.occupancy} />
-                                                <div className="grid grid-cols-3 gap-2">
-                                                    <button className="flex flex-col items-center justify-center gap-1 p-2 rounded-2xl bg-slate-50 text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-all active:scale-95">
-                                                        <Clock size={18} /> <span className="text-[9px] font-bold uppercase">Details</span>
+                                            <div className="space-y-4 mt-auto">
+                                                {/* REMOVED: OccupancyIndicator */}
+                                                
+                                                <div className="grid grid-cols-2 gap-2"> {/* Changed to 2 columns since Book is gone */}
+                                                    <button className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-slate-50 text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-all active:scale-95">
+                                                        <Clock size={16} /> <span className="text-[9px] font-bold uppercase">Details</span>
                                                     </button>
                                                     <button
                                                         onClick={() => handleFlyTo(facility)}
-                                                        className="flex flex-col items-center justify-center gap-1 p-2 rounded-2xl bg-blue-600 text-white hover:bg-blue-700 shadow-md transition-all active:scale-95"
+                                                        className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 shadow-md transition-all active:scale-95"
                                                     >
-                                                        <Navigation size={18} /> <span className="text-[9px] font-bold uppercase">Navigate</span>
+                                                        <Navigation size={16} /> <span className="text-[9px] font-bold uppercase">Navigate</span>
                                                     </button>
-                                                    <button className="flex flex-col items-center justify-center gap-1 p-2 rounded-2xl bg-slate-50 text-slate-600 hover:bg-orange-50 hover:text-orange-600 transition-all active:scale-95">
-                                                        <CalendarCheck size={18} /> <span className="text-[9px] font-bold uppercase">Book</span>
-                                                    </button>
+                                                    {/* REMOVED: Book Button */}
                                                 </div>
                                             </div>
                                         </div>
@@ -400,9 +417,9 @@ export default function FacilitiesPage() {
                         )}
                     </div>
 
-                    {/* Right Side: Real Map */}
-                    <div className="hidden lg:block relative">
-                        <div className="sticky top-4 h-[calc(100vh-2rem)] min-h-[500px] bg-white border border-slate-100 rounded-[32px] overflow-hidden shadow-2xl shadow-slate-200/50">
+                    {/* Right Side: Map - Sticky on XL screens, static on smaller */}
+                    <div className="w-full xl:w-[450px] 2xl:w-[500px] flex-shrink-0">
+                        <div className="sticky top-4 h-[400px] xl:h-[calc(100vh-2rem)] bg-white border border-slate-100 rounded-[32px] overflow-hidden shadow-2xl shadow-slate-200/50">
                             <div ref={mapContainer} className="w-full h-full" />
 
                             {/* Map Floating Header */}
