@@ -129,10 +129,12 @@ export default function FacilitiesPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [openNow, setOpenNow] = useState(false);
     const [hoveredFacility, setHoveredFacility] = useState<string | null>(null);
-    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true); // Default to collapsed for more space
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isMapExpanded, setIsMapExpanded] = useState(false);
 
-    // Map Refs
+    // Marker Refs (Zero re-render system)
+    const activeFacilityIdRef = useRef<string | null>(null);
     const mapContainer = useRef<HTMLDivElement>(null);
     const map = useRef<maplibregl.Map | null>(null);
     const markers = useRef<{ [key: string]: maplibregl.Marker }>({});
@@ -159,35 +161,30 @@ export default function FacilitiesPage() {
             if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
             
             const data = await response.json();
-<<<<<<< HEAD
             console.log("📦 Facilities API Response:", data);
-            
+
+            let rawData: any[] = [];
             // Fix: API returns { status: "success", data: [...] }
             if (Array.isArray(data)) {
-                setFacilities(data);
-                setError(null);
+                rawData = data;
             } else if (data && Array.isArray(data.data)) {
                 // Handle wrapped response format
-                setFacilities(data.data);
-                setError(null);
+                rawData = data.data;
             } else {
                 console.warn("⚠️ API returned unexpected format:", data);
-                setFacilities([]);
                 if (data && data.error) setError(data.error);
                 else if (data && data.message) setError(data.message);
-                else setError(null);
             }
-=======
 
             // Image mapping for newly added local images
             const localImageMap: Record<string, string> = {
-                "Computer Lab": "/images/facilities/compurt lab.jfif",
-                "Zoology Lab": "/images/facilities/zoology lab.jfif",
-                "Botany Lab": "/images/facilities/botany lab.jfif",
-                "Library": "/images/facilities/library"
+                "Computer Lab": "/images/facilities/compurt lab.png",
+                "Zoology Lab": "/images/facilities/zoology lab.png",
+                "Botany Lab": "/images/facilities/botany lab.png",
+                "Library": "/images/facilities/library.png"
             };
 
-            const formattedData = data.map((f: any) => {
+            const formattedData = rawData.map((f: any) => {
                 // Determine status - map lowercase to Capitalized
                 let status: Facility['status'] = 'Open';
                 const s = f.status?.toLowerCase();
@@ -209,9 +206,12 @@ export default function FacilitiesPage() {
                 };
             });
 
-            setFacilities(formattedData);
-            setError(null);
->>>>>>> 521c4fc4c078ba1a3ffbc64b095d8f780af71612
+            if (formattedData.length > 0) {
+                 setFacilities(formattedData);
+                 setError(null);
+            } else if (!error && rawData.length === 0) {
+                 setFacilities([]);
+            }
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -237,10 +237,51 @@ export default function FacilitiesPage() {
 
         map.current.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
 
+        // Layout Resize - Handle map resize when container changes
+        const resizeObserver = new ResizeObserver(() => {
+            map.current?.resize();
+        });
+        if (mapContainer.current) {
+            resizeObserver.observe(mapContainer.current);
+        }
+
         return () => {
+            resizeObserver.disconnect();
             map.current?.remove();
             map.current = null;
         };
+    }, []);
+
+    // Highlight Marker Helper (Direct DOM manipulation for premium feel)
+    const highlightMarker = useCallback((id: string | null) => {
+        // Clear previous highlight
+        if (activeFacilityIdRef.current && markers.current[activeFacilityIdRef.current]) {
+            const prevEl = markers.current[activeFacilityIdRef.current].getElement();
+            prevEl.classList.remove('active-marker');
+            const iconWrap = prevEl.querySelector('.marker-icon-wrapper');
+            if (iconWrap) iconWrap.classList.replace('bg-orange-600', 'bg-slate-400');
+            const line = prevEl.querySelector('.marker-line');
+            if (line) line.classList.replace('bg-orange-500', 'bg-slate-300');
+            const pod = prevEl.querySelector('.marker-pod');
+            if (pod) pod.classList.remove('border-orange-500', 'shadow-orange-200');
+        }
+
+        activeFacilityIdRef.current = id;
+
+        // Apply new highlight
+        if (id && markers.current[id]) {
+            const el = markers.current[id].getElement();
+            el.classList.add('active-marker');
+            const iconWrap = el.querySelector('.marker-icon-wrapper');
+            if (iconWrap) iconWrap.classList.replace('bg-slate-400', 'bg-orange-600');
+            const line = el.querySelector('.marker-line');
+            if (line) line.classList.replace('bg-slate-300', 'bg-orange-500');
+            const pod = el.querySelector('.marker-pod');
+            if (pod) pod.classList.add('border-orange-500', 'shadow-orange-200');
+            
+            // Sync hovered state if needed (though highlight is primary)
+            setHoveredFacility(id);
+        }
     }, []);
 
     // Sync Markers
@@ -255,20 +296,21 @@ export default function FacilitiesPage() {
             const el = document.createElement('div');
             el.className = `custom-marker transition-all duration-300 ${hoveredFacility === f.id ? 'scale-125 z-50' : 'scale-100 z-10'}`;
             el.innerHTML = `
-                <div class="flex flex-col items-center">
-                    <div class="flex items-center gap-2 p-1.5 pr-3 rounded-full bg-white border border-slate-200 shadow-xl transition-all ${hoveredFacility === f.id ? 'border-orange-500 shadow-orange-200' : ''}">
-                        <div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] ${hoveredFacility === f.id ? 'bg-orange-600' : 'bg-slate-400'}">
+                <div class="flex flex-col items-center marker-container">
+                    <div class="marker-pod flex items-center gap-2 p-1.5 pr-3 rounded-full bg-white border border-slate-200 shadow-xl transition-all ${hoveredFacility === f.id ? 'border-orange-500 shadow-orange-200' : ''}">
+                        <div class="marker-icon-wrapper w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] ${hoveredFacility === f.id ? 'bg-orange-600' : 'bg-slate-400'}">
                             <span class="facility-icon">📍</span>
                         </div>
                         <span class="text-[10px] font-bold text-slate-700 whitespace-nowrap">${f.name}</span>
                     </div>
-                    <div class="w-0.5 h-3 ${hoveredFacility === f.id ? 'bg-orange-500' : 'bg-slate-300'}"></div>
+                    <div class="marker-line w-0.5 h-3 ${hoveredFacility === f.id ? 'bg-orange-500' : 'bg-slate-300'}"></div>
+                    <div class="marker-pulse-ring"></div>
                 </div>
             `;
 
             el.onclick = () => {
                 cardRefs.current[f.id]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                setHoveredFacility(f.id);
+                highlightMarker(f.id);
             };
 
             const marker = new maplibregl.Marker({ element: el })
@@ -277,6 +319,11 @@ export default function FacilitiesPage() {
 
             markers.current[f.id] = marker;
         });
+
+        // Ensure current active marker is visually synced if markers were recreated
+        if (activeFacilityIdRef.current) {
+            highlightMarker(activeFacilityIdRef.current);
+        }
 
         // Fit bounds if multiple markers
         if (facilities.length > 0) {
@@ -287,13 +334,19 @@ export default function FacilitiesPage() {
     }, [facilities, hoveredFacility]);
 
     const handleFlyTo = (f: Facility) => {
-        map.current?.flyTo({
+        if (!map.current) return;
+
+        map.current.flyTo({
             center: [f.longitude, f.latitude],
             zoom: 18,
             duration: 1500,
             essential: true
         });
-        setHoveredFacility(f.id);
+
+        // Highlight after animation
+        map.current.once('moveend', () => {
+           highlightMarker(f.id);
+        });
     };
 
     return (
@@ -379,11 +432,10 @@ export default function FacilitiesPage() {
                 </div>
 
                 {/* Content Grid */}
-                {/* CHANGED: Restored xl:flex-row since sidebar is collapsed, giving enough space for laptop split view */}
-                <div className="flex flex-col xl:flex-row max-w-[1920px] mx-auto px-4 md:px-8 gap-8 pb-12">
+                <div className={`flex flex-col xl:flex-row max-w-[1920px] mx-auto px-4 md:px-8 gap-8 pb-12 transition-all duration-500 ease-in-out ${isMapExpanded ? 'map-is-expanded' : ''}`}>
 
                     {/* Left Side: Cards */}
-                    <div className="flex-1 space-y-6 min-w-0">
+                    <div className={`flex-1 space-y-6 min-w-0 left-panel-container transition-all duration-500 ${isMapExpanded ? 'w-0 opacity-0 pointer-events-none' : 'w-full opacity-100'}`}>
                         {loading ? (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-2 2xl:grid-cols-3 gap-6">
                                 {[1, 2, 3, 4, 5, 6, 7, 8].map(i => <SkeletonCard key={i} />)}
@@ -409,11 +461,7 @@ export default function FacilitiesPage() {
                                         ref={el => { cardRefs.current[facility.id] = el; }}
                                         onMouseEnter={() => setHoveredFacility(facility.id)}
                                         onMouseLeave={() => setHoveredFacility(null)}
-<<<<<<< HEAD
-                                        className={`group relative bg-white border rounded-[28px] overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col ${hoveredFacility === facility.id ? 'border-blue-500 shadow-blue-50' : 'border-slate-100'}`}
-=======
-                                        className={`group relative bg-white border rounded-[28px] overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${hoveredFacility === facility.id ? 'border-orange-500 shadow-orange-50' : 'border-slate-100'}`}
->>>>>>> 521c4fc4c078ba1a3ffbc64b095d8f780af71612
+                                        className={`group relative bg-white border rounded-[28px] overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col ${hoveredFacility === facility.id ? 'border-orange-500 shadow-orange-50' : 'border-slate-100'}`}
                                     >
                                         <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100">
                                             <img src={facility.image} alt={facility.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
@@ -425,45 +473,25 @@ export default function FacilitiesPage() {
                                             </div>
                                         </div>
 
-<<<<<<< HEAD
                                         <div className="p-5 flex flex-col flex-1">
                                             <div className="flex items-start justify-between mb-2 gap-2">
-                                                <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors uppercase leading-tight line-clamp-2">{facility.name}</h3>
+                                                <h3 className="text-lg font-bold text-slate-900 group-hover:text-orange-600 transition-colors uppercase leading-tight line-clamp-2">{facility.name}</h3>
                                                 <div className="flex-shrink-0 flex items-center gap-1 text-amber-500 font-bold text-xs bg-amber-50 px-2 py-1 rounded-lg">
                                                     <Star size={12} fill="currentColor" /> {facility.rating}
-=======
-                                        <div className="p-6">
-                                            <div className="flex items-center justify-between mb-2">
-                                                <h3 className="text-xl font-bold text-slate-950 group-hover:text-orange-600 transition-colors uppercase">{facility.name}</h3>
-                                                <div className="flex items-center gap-1 text-amber-500 font-bold text-sm">
-                                                    <Star size={14} fill="currentColor" /> {facility.rating}
->>>>>>> 521c4fc4c078ba1a3ffbc64b095d8f780af71612
                                                 </div>
                                             </div>
                                             <p className="text-slate-500 text-xs leading-relaxed mb-4 line-clamp-2 flex-1">{facility.description}</p>
 
-<<<<<<< HEAD
                                             <div className="space-y-4 mt-auto">
                                                 {/* REMOVED: OccupancyIndicator */}
                                                 
                                                 <div className="grid grid-cols-2 gap-2"> {/* Changed to 2 columns since Book is gone */}
-                                                    <button className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-slate-50 text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-all active:scale-95">
+                                                    <button className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-slate-50 text-slate-600 hover:bg-orange-50 hover:text-orange-600 transition-all active:scale-95">
                                                         <Clock size={16} /> <span className="text-[9px] font-bold uppercase">Details</span>
                                                     </button>
                                                     <button
                                                         onClick={() => handleFlyTo(facility)}
-                                                        className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 shadow-md transition-all active:scale-95"
-=======
-                                            <div className="space-y-4">
-                                                <OccupancyIndicator percentage={facility.occupancy} />
-                                                <div className="grid grid-cols-3 gap-2">
-                                                    <button className="flex flex-col items-center justify-center gap-1 p-2 rounded-2xl bg-slate-50 text-slate-600 hover:bg-orange-50 hover:text-orange-600 transition-all active:scale-95">
-                                                        <Clock size={18} /> <span className="text-[9px] font-bold uppercase">Details</span>
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleFlyTo(facility)}
-                                                        className="flex flex-col items-center justify-center gap-1 p-2 rounded-2xl bg-orange-600 text-white hover:bg-orange-700 shadow-md transition-all active:scale-95"
->>>>>>> 521c4fc4c078ba1a3ffbc64b095d8f780af71612
+                                                        className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-orange-600 text-white hover:bg-orange-700 shadow-md transition-all active:scale-95"
                                                     >
                                                         <Navigation size={16} /> <span className="text-[9px] font-bold uppercase">Navigate</span>
                                                     </button>
@@ -477,8 +505,8 @@ export default function FacilitiesPage() {
                         )}
                     </div>
 
-                    {/* Right Side: Map - Sticky on XL screens, static on smaller */}
-                    <div className="w-full xl:w-[450px] 2xl:w-[500px] flex-shrink-0">
+                    {/* Right Side: Map */}
+                    <div className={`flex-shrink-0 transition-all duration-500 ease-in-out map-panel-container ${isMapExpanded ? 'w-full' : 'w-full xl:w-[450px] 2xl:w-[500px]'}`}>
                         <div className="sticky top-4 h-[400px] xl:h-[calc(100vh-2rem)] bg-white border border-slate-100 rounded-[32px] overflow-hidden shadow-2xl shadow-slate-200/50">
                             <div ref={mapContainer} className="w-full h-full" />
 
@@ -497,7 +525,13 @@ export default function FacilitiesPage() {
                                     </div>
                                 </div>
                                 <div className="flex gap-1.5">
-                                    <button className="p-2 bg-white rounded-lg border border-slate-100 text-slate-600 hover:bg-slate-50 transition-colors"><Maximize2 size={16} /></button>
+                                    <button 
+                                        onClick={() => setIsMapExpanded(prev => !prev)}
+                                        className={`p-2 bg-white rounded-lg border border-slate-100 text-slate-600 hover:bg-slate-50 transition-all duration-300 ${isMapExpanded ? 'rotate-180 bg-orange-50 border-orange-200 text-orange-600' : ''}`}
+                                        title={isMapExpanded ? "Minimize Map" : "Maximize Map"}
+                                    >
+                                        <Maximize2 size={16} className={`transition-transform duration-500 ${isMapExpanded ? 'scale-75' : 'scale-100'}`} />
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -506,6 +540,66 @@ export default function FacilitiesPage() {
 
                 <style jsx global>{`
                     .custom-marker { cursor: pointer; }
+                    
+                    /* Premium Marker Active State */
+                    .active-marker {
+                        z-index: 100 !important;
+                        animation: marker-bounce 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                    }
+
+                    .active-marker .marker-pulse-ring {
+                        position: absolute;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -55%);
+                        width: 40px;
+                        height: 40px;
+                        background: rgba(234, 88, 12, 0.2);
+                        border-radius: 50%;
+                        z-index: -1;
+                        animation: marker-pulse 2s infinite;
+                    }
+
+                    @keyframes marker-bounce {
+                        0%, 100% { transform: translateY(0) scale(1.25); }
+                        50% { transform: translateY(-10px) scale(1.3); }
+                    }
+
+                    @keyframes marker-pulse {
+                        0% { transform: translate(-50%, -55%) scale(0.5); opacity: 0.8; }
+                        100% { transform: translate(-50%, -55%) scale(2.5); opacity: 0; }
+                    }
+
+                    /* Layout Engine */
+                    @media (min-width: 1200px) {
+                        .left-panel-container {
+                            max-width: 100%;
+                            overflow: visible;
+                        }
+                        .map-is-expanded .left-panel-container {
+                            width: 0 !important;
+                            padding: 0 !important;
+                            margin: 0 !important;
+                            flex: 0 0 0% !important;
+                        }
+                    }
+
+                    @media (max-width: 1199px) {
+                        .left-panel-container {
+                            position: relative;
+                            z-index: 10;
+                            background: inherit;
+                        }
+                        .map-is-expanded .left-panel-container {
+                            position: absolute;
+                            left: -100%;
+                            transition: left 0.5s ease;
+                        }
+                        .map-panel-container {
+                            width: 100% !important;
+                        }
+                    }
+
                     .scrollbar-hide::-webkit-scrollbar { display: none; }
                     .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
                     main { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
