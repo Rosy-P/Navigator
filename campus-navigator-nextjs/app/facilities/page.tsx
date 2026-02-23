@@ -32,6 +32,8 @@ import { useAuth } from '../components/AuthOverlay';
 import { useMediaQuery } from '../hooks/use-media-query';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import InfoPanel from '../components/InfoPanel';
+import { useRouter } from 'next/navigation';
 
 // --- Types ---
 interface Facility {
@@ -132,6 +134,10 @@ export default function FacilitiesPage() {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isMapExpanded, setIsMapExpanded] = useState(false);
+    const [selectedFacility, setSelectedFacility] = useState<Facility | null>(null);
+    const [isPlanning, setIsPlanning] = useState(false);
+    const [sheetState, setSheetState] = useState<"PEEK" | "HALF" | "FULL">("HALF");
+    const router = useRouter();
 
     // Marker Refs (Zero re-render system)
     const activeFacilityIdRef = useRef<string | null>(null);
@@ -157,9 +163,9 @@ export default function FacilitiesPage() {
             if (debouncedSearch) params.append('search', debouncedSearch);
 
             console.log("📡 Fetching facilities with params:", params.toString());
-            const response = await fetch(`http://localhost:8080/campus-navigator-backend/getfacilities.php?${params.toString()}`);
+            const response = await fetch(`http://localhost:80/campus-navigator-backend/getfacilities.php?${params.toString()}`);
             if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-            
+
             const data = await response.json();
             console.log("📦 Facilities API Response:", data);
 
@@ -181,7 +187,13 @@ export default function FacilitiesPage() {
                 "Computer Lab": "/images/facilities/compurt lab.png",
                 "Zoology Lab": "/images/facilities/zoology lab.png",
                 "Botany Lab": "/images/facilities/botany lab.png",
-                "Library": "/images/facilities/library.png"
+                "Library": "/images/facilities/library.png",
+                "Cafeteria": "/images/facilities/cafeteria.png",
+                "Healthy Cafeteria": "/images/facilities/cafeteria.png",
+                "Bishop Heber Chapel": "/images/facilities/chapel.png",
+                "Chapel": "/images/facilities/chapel.png",
+                "MCC Campus Clinic": "/images/facilities/clinic.png",
+                "Medical Clinic": "/images/facilities/clinic.png"
             };
 
             const formattedData = rawData.map((f: any) => {
@@ -207,10 +219,10 @@ export default function FacilitiesPage() {
             });
 
             if (formattedData.length > 0) {
-                 setFacilities(formattedData);
-                 setError(null);
+                setFacilities(formattedData);
+                setError(null);
             } else if (!error && rawData.length === 0) {
-                 setFacilities([]);
+                setFacilities([]);
             }
         } catch (err: any) {
             setError(err.message);
@@ -278,7 +290,7 @@ export default function FacilitiesPage() {
             if (line) line.classList.replace('bg-slate-300', 'bg-orange-500');
             const pod = el.querySelector('.marker-pod');
             if (pod) pod.classList.add('border-orange-500', 'shadow-orange-200');
-            
+
             // Sync hovered state if needed (though highlight is primary)
             setHoveredFacility(id);
         }
@@ -311,6 +323,8 @@ export default function FacilitiesPage() {
             el.onclick = () => {
                 cardRefs.current[f.id]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 highlightMarker(f.id);
+                setSelectedFacility(f);
+                setSheetState("HALF");
             };
 
             const marker = new maplibregl.Marker({ element: el })
@@ -345,8 +359,23 @@ export default function FacilitiesPage() {
 
         // Highlight after animation
         map.current.once('moveend', () => {
-           highlightMarker(f.id);
+            highlightMarker(f.id);
         });
+    };
+
+    const handleStartNavigation = (f: Facility) => {
+        const params = new URLSearchParams();
+        params.append('dest', f.name);
+        params.append('source', 'facilities');
+        router.push(`/?${params.toString()}`);
+    };
+
+    const handleStartDemo = (f: Facility) => {
+        const params = new URLSearchParams();
+        params.append('dest', f.name);
+        params.append('source', 'facilities');
+        params.append('demo', 'true');
+        router.push(`/?${params.toString()}`);
     };
 
     return (
@@ -484,7 +513,7 @@ export default function FacilitiesPage() {
 
                                             <div className="space-y-4 mt-auto">
                                                 {/* REMOVED: OccupancyIndicator */}
-                                                
+
                                                 <div className="grid grid-cols-2 gap-2"> {/* Changed to 2 columns since Book is gone */}
                                                     <button className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-slate-50 text-slate-600 hover:bg-orange-50 hover:text-orange-600 transition-all active:scale-95">
                                                         <Clock size={16} /> <span className="text-[9px] font-bold uppercase">Details</span>
@@ -525,7 +554,7 @@ export default function FacilitiesPage() {
                                     </div>
                                 </div>
                                 <div className="flex gap-1.5">
-                                    <button 
+                                    <button
                                         onClick={() => setIsMapExpanded(prev => !prev)}
                                         className={`p-2 bg-white rounded-lg border border-slate-100 text-slate-600 hover:bg-slate-50 transition-all duration-300 ${isMapExpanded ? 'rotate-180 bg-orange-50 border-orange-200 text-orange-600' : ''}`}
                                         title={isMapExpanded ? "Minimize Map" : "Maximize Map"}
@@ -537,6 +566,31 @@ export default function FacilitiesPage() {
                         </div>
                     </div>
                 </div>
+                {selectedFacility && (
+                    <InfoPanel
+                        landmark={{
+                            name: selectedFacility.name,
+                            category: selectedFacility.category,
+                            description: selectedFacility.description,
+                            images: selectedFacility.image,
+                            lng: selectedFacility.longitude,
+                            lat: selectedFacility.latitude,
+                        }}
+                        isPlanning={isPlanning}
+                        sheetState={sheetState}
+                        onSetSheetState={setSheetState}
+                        onSetPlanning={setIsPlanning}
+                        onClose={() => {
+                            setSelectedFacility(null);
+                            setIsPlanning(false);
+                        }}
+                        onGetGPSLocation={() => { }} // Not needed here as it redirects
+                        onPickOnMap={() => { }} // Not needed here as it redirects
+                        onStartNavigation={() => handleStartNavigation(selectedFacility)}
+                        onStartDemo={() => handleStartDemo(selectedFacility)}
+                        simulationMode={true}
+                    />
+                )}
 
                 <style jsx global>{`
                     .custom-marker { cursor: pointer; }

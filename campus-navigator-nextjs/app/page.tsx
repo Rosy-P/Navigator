@@ -14,6 +14,7 @@ import SubtitlePanel from "./components/SubtitlePanel";
 import EventsPanel from "./components/events/EventsPanel";
 import AuthProvider, { useAuth, UserData } from "./components/AuthOverlay"; // Updated Import
 import { useMediaQuery } from "./hooks/use-media-query";
+import { useSearchParams, useRouter } from 'next/navigation';
 import { SpeechService } from "./lib/speech/SpeechService";
 import { useSimulation } from "./context/SimulationContext";
 
@@ -64,6 +65,9 @@ function HomeContent() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [isEventsOpen, setIsEventsOpen] = useState(false);
   const [selectedDestination, setSelectedDestination] = useState<string | null>(null);
+  const [navigationSource, setNavigationSource] = useState<"facilities" | "events" | null>(null);
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
   // Simulation Mode Feature Flag
   const { simulationMode } = useSimulation();
@@ -247,6 +251,39 @@ function HomeContent() {
     setSheetState("HALF");
     setIsTourMode(false); // Exclusivity
   }, [user, requireAuth, markerLocation, startLocation, connectors]);
+
+  // Handle Query Parameters for Auto-Navigation
+  useEffect(() => {
+    if (allLandmarks.length === 0) return;
+
+    const dest = searchParams.get('dest');
+    const source = searchParams.get('source');
+    const demo = searchParams.get('demo');
+
+    if (dest) {
+      const normalizedDest = dest.toLowerCase().trim();
+      const landmark = allLandmarks.find(l =>
+        l.name.toLowerCase().includes(normalizedDest) ||
+        l.id?.toString() === normalizedDest
+      );
+
+      if (landmark) {
+        handleSelectLandmark(landmark);
+        if (source === 'facilities') setNavigationSource('facilities');
+        if (source === 'events') setNavigationSource('events');
+
+        // If demo mode requested, start it immediately after selection
+        if (demo === 'true') {
+          setTimeout(() => {
+            setIsGuidanceActive(true);
+            setIsDemoMode(true);
+            setSelectedLandmark(null);
+            setUiState("NAVIGATION_ACTIVE");
+          }, 500);
+        }
+      }
+    }
+  }, [allLandmarks, searchParams, handleSelectLandmark]);
 
   const handleSearch = useCallback((query: string) => {
     const normalizedQuery = query.toLowerCase().trim();
@@ -498,6 +535,14 @@ function HomeContent() {
               setSelectedLandmark(null);
               setIsPlanning(false);
               setUiState("IDLE"); // Ensure UI state resets to IDLE
+
+              // Redirection logic
+              if (navigationSource === 'facilities') {
+                router.push('/facilities');
+              } else if (navigationSource === 'events') {
+                setIsEventsOpen(true);
+              }
+              setNavigationSource(null);
             }}
             onRecenter={() => setRecenterCount(prev => prev + 1)}
             instruction={currentInstruction}
@@ -649,6 +694,7 @@ function HomeContent() {
           theme={theme}
           onClose={() => setIsEventsOpen(false)}
           onNavigate={(location) => {
+            setNavigationSource('events');
             setSelectedDestination(location);
           }}
         />

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { Plus, Calendar, Loader2, Search, SlidersHorizontal } from "lucide-react";
+import { Plus, Calendar, Loader2, Search, SlidersHorizontal, Trash2 } from "lucide-react";
 import { PlaceholderView } from "../components/AdminComponents";
 import { useAdmin } from "../layout";
 import EventCard from "./EventCard";
@@ -18,7 +18,7 @@ export default function EventsPage() {
     const fetchEvents = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await fetch("http://localhost:8080/campus-navigator-backend/get-events.php", {
+            const res = await fetch("http://localhost:80/campus-navigator-backend/get-events.php", {
                 credentials: "include"
             });
             const data = await res.json();
@@ -50,7 +50,7 @@ export default function EventsPage() {
         if (!confirm("Are you sure you want to delete this event? This action cannot be undone.")) return;
 
         try {
-            const res = await fetch("http://localhost:8080/campus-navigator-backend/delete-event.php", {
+            const res = await fetch("http://localhost:80/campus-navigator-backend/delete-event.php", {
                 method: "POST",
                 credentials: "include",
                 headers: { "Content-Type": "application/json" },
@@ -68,6 +68,27 @@ export default function EventsPage() {
         }
     };
 
+    const handleCleanup = async () => {
+        if (!confirm("Are you sure you want to delete all events created more than 30 days ago?")) return;
+
+        try {
+            const res = await fetch("http://localhost:80/campus-navigator-backend/cleanup-events.php", {
+                method: "POST",
+                credentials: "include",
+            });
+            const data = await res.json();
+            if (data.status === "success") {
+                alert(`Cleanup successful! Deleted ${data.deleted_count} old events.`);
+                fetchEvents();
+            } else {
+                alert(data.message || "Cleanup failed");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("An error occurred during cleanup");
+        }
+    };
+
     const filteredEvents = events.filter(e =>
         e.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         e.location.toLowerCase().includes(searchTerm.toLowerCase())
@@ -82,13 +103,22 @@ export default function EventsPage() {
                     <p className="text-gray-400 text-[11px] font-bold uppercase tracking-[0.2em] mt-2 italic">Campus Activities & Scheduling</p>
                 </div>
 
-                <button
-                    onClick={handleAddClick}
-                    className="flex items-center justify-center gap-3 bg-[#111827] hover:bg-black text-white px-8 py-5 rounded-[24px] font-black text-sm uppercase tracking-widest shadow-xl shadow-slate-200 transition-all active:scale-95 group"
-                >
-                    <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" />
-                    <span>Create New Event</span>
-                </button>
+                <div className="flex gap-4">
+                    <button
+                        onClick={handleCleanup}
+                        className="flex items-center justify-center gap-3 bg-red-50 hover:bg-red-100 text-red-600 px-6 py-5 rounded-[24px] font-black text-sm uppercase tracking-widest transition-all active:scale-95 group border border-red-100"
+                    >
+                        <Trash2 size={20} />
+                        <span>Cleanup Old</span>
+                    </button>
+                    <button
+                        onClick={handleAddClick}
+                        className="flex items-center justify-center gap-3 bg-[#111827] hover:bg-black text-white px-8 py-5 rounded-[24px] font-black text-sm uppercase tracking-widest shadow-xl shadow-slate-200 transition-all active:scale-95 group"
+                    >
+                        <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" />
+                        <span>Create New Event</span>
+                    </button>
+                </div>
             </div>
 
             {/* Content Section */}

@@ -28,12 +28,12 @@ export default function UsersPage() {
     // Filtering Logic
     const filteredUsers = useMemo(() => {
         return users.filter(user => {
-            const matchesSearch = 
+            const matchesSearch =
                 user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 user.email.toLowerCase().includes(searchTerm.toLowerCase());
-            
-            const matchesTab = 
-                activeTab === "all" || 
+
+            const matchesTab =
+                activeTab === "all" ||
                 (activeTab === "admin" && ["admin", "superadmin"].includes(user.role?.toLowerCase())) ||
                 user.role?.toLowerCase() === activeTab;
 
@@ -48,7 +48,7 @@ export default function UsersPage() {
                     <h1 className="text-3xl font-black text-gray-900 tracking-tight">User Information</h1>
                     <p className="text-gray-400 font-medium mt-1">Manage and monitor platform members</p>
                 </div>
-                
+
                 <div className="bg-white p-1.5 rounded-2xl shadow-sm flex gap-1 border border-gray-100">
                     <TabButton label="All" active={activeTab === "all"} onClick={() => setActiveTab("all")} />
                     <TabButton label="Admins" active={activeTab === "admin"} onClick={() => setActiveTab("admin")} />
@@ -62,7 +62,8 @@ export default function UsersPage() {
                         <thead>
                             <tr className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.15em]">
                                 <th className="px-4 py-4">User Details</th>
-                                <th className="px-4 py-4">Status</th>
+                                <th className="px-4 py-4 text-center">Role</th>
+                                <th className="px-4 py-4 text-center">Status</th>
                                 <th className="px-4 py-4">Joined</th>
                                 <th className="px-4 py-4 text-center">Manage</th>
                             </tr>
@@ -77,8 +78,8 @@ export default function UsersPage() {
                                 </tr>
                             ) : (
                                 filteredUsers.map((user: any) => (
-                                    <tr 
-                                        key={user.id} 
+                                    <tr
+                                        key={user.id}
                                         className="group cursor-pointer"
                                         onClick={() => {
                                             setSelectedUserId(user.id);
@@ -96,11 +97,16 @@ export default function UsersPage() {
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="bg-gray-50 group-hover:bg-indigo-50 px-4 py-4">
-                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase ${
-                                                ["admin", "superadmin"].includes(user.role?.toLowerCase()) ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-blue-50 text-blue-600 border border-blue-100'
-                                            }`}>
+                                        <td className="bg-gray-50 group-hover:bg-indigo-50 px-4 py-4 text-center">
+                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase ${["admin", "superadmin"].includes(user.role?.toLowerCase()) ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-blue-50 text-blue-600 border border-blue-100'
+                                                }`}>
                                                 {user.role}
+                                            </span>
+                                        </td>
+                                        <td className="bg-gray-50 group-hover:bg-indigo-50 px-4 py-4 text-center">
+                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase ${user.status?.toLowerCase() === 'suspended' ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-green-50 text-green-600 border border-green-100'
+                                                }`}>
+                                                {user.status || 'Active'}
                                             </span>
                                         </td>
                                         <td className="bg-gray-50 group-hover:bg-indigo-50 px-4 py-4">
@@ -108,7 +114,7 @@ export default function UsersPage() {
                                         </td>
                                         <td className="bg-gray-50 group-hover:bg-indigo-50 rounded-r-2xl px-4 py-4">
                                             <div className="flex justify-center items-center">
-                                                <button 
+                                                <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         setSelectedUserId(user.id);
@@ -128,10 +134,10 @@ export default function UsersPage() {
                 </div>
             </section>
 
-            <UserDrawer 
-                user={selectedUser} 
-                isOpen={isDrawerOpen} 
-                onClose={() => setIsDrawerOpen(false)} 
+            <UserDrawer
+                user={selectedUser}
+                isOpen={isDrawerOpen}
+                onClose={() => setIsDrawerOpen(false)}
                 refreshUsers={refreshUsers}
             />
         </div>
