@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Search, Building2, MapPin, Menu, X, Mic, Navigation, Home, Map as MapIcon, Microscope, UtensilsCrossed, Zap } from "lucide-react";
 import Sidebar from "./components/Sidebar";
 import MapView from "./components/MapView";
@@ -68,6 +68,7 @@ function HomeContent() {
   const [navigationSource, setNavigationSource] = useState<"facilities" | "events" | null>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
+  const hasProcessedUrlParams = useRef(false);
 
   // Simulation Mode Feature Flag
   const { simulationMode } = useSimulation();
@@ -254,7 +255,7 @@ function HomeContent() {
 
   // Handle Query Parameters for Auto-Navigation
   useEffect(() => {
-    if (allLandmarks.length === 0) return;
+    if (allLandmarks.length === 0 || hasProcessedUrlParams.current) return;
 
     const dest = searchParams.get('dest');
     const source = searchParams.get('source');
@@ -268,9 +269,26 @@ function HomeContent() {
       );
 
       if (landmark) {
+        hasProcessedUrlParams.current = true; // Mark as processed
         handleSelectLandmark(landmark);
         if (source === 'facilities') setNavigationSource('facilities');
         if (source === 'events') setNavigationSource('events');
+
+        // Handle Start Location override from Facilities/Events
+        const sLat = searchParams.get('source_lat');
+        const sLng = searchParams.get('source_lng');
+        const sLabel = searchParams.get('start_label');
+
+        if (sLat && sLng) {
+          const lat = parseFloat(sLat);
+          const lng = parseFloat(sLng);
+          if (!isNaN(lat) && !isNaN(lng)) {
+            setStartLocation([lng, lat]);
+            setStartLabel(sLabel || "Selected Location");
+            setOriginType("manual");
+            setIsPlanning(true);
+          }
+        }
 
         // If demo mode requested, start it immediately after selection
         if (demo === 'true') {

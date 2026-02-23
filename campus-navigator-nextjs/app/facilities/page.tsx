@@ -33,6 +33,7 @@ import { useMediaQuery } from '../hooks/use-media-query';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import InfoPanel from '../components/InfoPanel';
+import MapControls from '../components/MapControls';
 import { useRouter } from 'next/navigation';
 
 // --- Types ---
@@ -137,6 +138,11 @@ export default function FacilitiesPage() {
     const [selectedFacility, setSelectedFacility] = useState<Facility | null>(null);
     const [isPlanning, setIsPlanning] = useState(false);
     const [sheetState, setSheetState] = useState<"PEEK" | "HALF" | "FULL">("HALF");
+    const [startLocation, setStartLocation] = useState<[number, number] | undefined>();
+    const [startLabel, setStartLabel] = useState<string>("");
+    const [isSelectingStart, setIsSelectingStart] = useState(false);
+    const [pendingPickerLocation, setPendingPickerLocation] = useState<[number, number] | undefined>();
+    const [originType, setOriginType] = useState<"gps" | "manual" | null>(null);
     const router = useRouter();
 
     // Marker Refs (Zero re-render system)
@@ -163,7 +169,7 @@ export default function FacilitiesPage() {
             if (debouncedSearch) params.append('search', debouncedSearch);
 
             console.log("📡 Fetching facilities with params:", params.toString());
-            const response = await fetch(`http://localhost:80/campus-navigator-backend/getfacilities.php?${params.toString()}`);
+            const response = await fetch(`http://localhost:8080/campus-navigator-backend/getfacilities.php?${params.toString()}`);
             if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
 
             const data = await response.json();
@@ -248,6 +254,14 @@ export default function FacilitiesPage() {
         });
 
         map.current.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
+
+        // Handle Map Clicks for Picking Location
+        map.current.on('click', (e) => {
+            // Need to check if in selection mode (accessed via ref or just check state if within closure)
+            // But Map is initialized once. Better use a listener that checks a ref or state.
+            // map.current.isSelectingStart is not a thing, but we can use the state because this is a useEffect.
+            // Wait, useEffect captures initial state. I need to handle this carefully.
+        });
 
         // Layout Resize - Handle map resize when container changes
         const resizeObserver = new ResizeObserver(() => {
@@ -367,6 +381,11 @@ export default function FacilitiesPage() {
         const params = new URLSearchParams();
         params.append('dest', f.name);
         params.append('source', 'facilities');
+        if (startLocation) {
+            params.append('source_lng', startLocation[0].toString());
+            params.append('source_lat', startLocation[1].toString());
+            params.append('start_label', startLabel);
+        }
         router.push(`/?${params.toString()}`);
     };
 
@@ -377,6 +396,84 @@ export default function FacilitiesPage() {
         params.append('demo', 'true');
         router.push(`/?${params.toString()}`);
     };
+
+    const handleGetGPSLocation = () => {
+        requireAuth(() => {
+            const mainGate: [number, number] = [80.120584, 12.923163];
+            setStartLocation(mainGate);
+            setStartLabel("Main Gate (My Location)");
+            setOriginType("gps");
+        });
+    };
+
+    const handlePickOnMapRequested = () => {
+        requireAuth(() => {
+            setIsSelectingStart(true);
+            setPendingPickerLocation(undefined);
+            setOriginType(null); // Reset until picked
+        });
+    };
+
+    const handleConfirmLocation = () => {
+        if (pendingPickerLocation) {
+            setStartLocation(pendingPickerLocation);
+            setStartLabel("Point on Map");
+            setOriginType("manual");
+            setIsSelectingStart(false);
+            setPendingPickerLocation(undefined);
+        }
+    };
+
+    const handleCancelPicking = () => {
+        setIsSelectingStart(false);
+        setPendingPickerLocation(undefined);
+    };
+
+    // Need to handle map click separately or via a ref to access latest state
+    const isSelectingStartRef = useRef(false);
+    useEffect(() => { isSelectingStartRef.current = isSelectingStart; }, [isSelectingStart]);
+
+    useEffect(() => {
+        if (!map.current) return;
+
+        const handleMapClick = (e: maplibregl.MapMouseEvent) => {
+            if (isSelectingStartRef.current) {
+                const coord: [number, number] = [e.lngLat.lng, e.lngLat.lat];
+                setPendingPickerLocation(coord);
+            }
+        };
+
+        map.current.on('click', handleMapClick);
+        return () => {
+            map.current?.off('click', handleMapClick);
+        };
+    }, []);
+
+    // Helper for Auth requirement (mirroring page.tsx)
+    const requireAuth = (callback?: () => void) => {
+        if (!user) {
+            showAuthOverlay();
+            return;
+        }
+        if (callback) callback();
+    };
+
+    // Marker for Pending Picker
+    const pickerMarker = useRef<maplibregl.Marker | null>(null);
+    useEffect(() => {
+        if (!map.current) return;
+        if (pickerMarker.current) pickerMarker.current.remove();
+
+        if (pendingPickerLocation) {
+            const el = document.createElement('div');
+            el.className = 'w-8 h-8 rounded-full bg-orange-500/20 border-2 border-orange-500 flex items-center justify-center animate-pulse';
+            el.innerHTML = '<div class="w-2 h-2 bg-orange-600 rounded-full"></div>';
+
+            pickerMarker.current = new maplibregl.Marker({ element: el })
+                .setLngLat(pendingPickerLocation)
+                .addTo(map.current);
+        }
+    }, [pendingPickerLocation]);
 
     return (
         <div className="h-screen w-screen relative flex overflow-hidden bg-slate-50/50">
@@ -576,20 +673,73 @@ export default function FacilitiesPage() {
                             lng: selectedFacility.longitude,
                             lat: selectedFacility.latitude,
                         }}
+                        startLabel={startLabel}
                         isPlanning={isPlanning}
+                        originType={originType}
                         sheetState={sheetState}
                         onSetSheetState={setSheetState}
                         onSetPlanning={setIsPlanning}
                         onClose={() => {
                             setSelectedFacility(null);
                             setIsPlanning(false);
+                            setStartLocation(undefined);
+                            setStartLabel("");
+                            setOriginType(null);
                         }}
-                        onGetGPSLocation={() => { }} // Not needed here as it redirects
-                        onPickOnMap={() => { }} // Not needed here as it redirects
+                        onGetGPSLocation={handleGetGPSLocation}
+                        onPickOnMap={handlePickOnMapRequested}
                         onStartNavigation={() => handleStartNavigation(selectedFacility)}
                         onStartDemo={() => handleStartDemo(selectedFacility)}
                         simulationMode={true}
                     />
+                )}
+
+                {/* Confirmation Footer for Map Picking */}
+                {isSelectingStart && (
+                    <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-[100] animate-in slide-in-from-bottom-5 duration-500">
+                        <div className="backdrop-blur-2xl border bg-white/80 border-white/60 rounded-3xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.15)] p-4 flex flex-col gap-3 min-w-[280px]">
+                            <div className="text-center px-4">
+                                <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">Choosing Origin</p>
+                                <p className="text-[14px] font-bold text-slate-900">
+                                    {pendingPickerLocation ? "Location Selected" : "Tap on map to pick origin"}
+                                </p>
+                            </div>
+
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={handleCancelPicking}
+                                    className="flex-1 h-11 rounded-xl font-black text-[14px] bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all active:scale-95"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    disabled={!pendingPickerLocation}
+                                    onClick={handleConfirmLocation}
+                                    className={`flex-1 h-11 rounded-xl font-black text-[14px] flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg ${pendingPickerLocation
+                                            ? "bg-[#111827] text-white hover:bg-orange-600"
+                                            : "bg-slate-50 text-slate-300 cursor-not-allowed"
+                                        }`}
+                                >
+                                    Confirm
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Custom Map Controls */}
+                {!isSelectingStart && (
+                    <div className={`
+                        absolute z-30 scale-90 transition-all duration-500
+                        ${selectedFacility
+                            ? (isMobile ? "bottom-[52vh] right-4" : "bottom-8 right-[340px] 2xl:right-[380px]")
+                            : "bottom-8 right-8"}
+                    `}>
+                        <MapControls
+                            onZoomIn={() => map.current?.zoomIn()}
+                            onZoomOut={() => map.current?.zoomOut()}
+                        />
+                    </div>
                 )}
 
                 <style jsx global>{`
