@@ -20,7 +20,7 @@ export default function EventsPanel({ isOpen, onClose, onNavigate, theme }: Even
   useEffect(() => {
     if (isOpen) {
       setLoading(true);
-      fetch("http://localhost:8080/campus-navigator-backend/get-events.php", {
+      fetch("http://localhost:80/campus-navigator-backend/get-events.php", {
         credentials: "include"
       })
         .then((res) => res.json())

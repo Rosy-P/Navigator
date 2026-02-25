@@ -96,7 +96,7 @@ export default function EventModal({ isOpen, onClose, selectedEvent, onSuccess }
         console.log("Submitting Event:", body); // Debug log
 
         try {
-            const res = await fetch(`http://localhost:8080/campus-navigator-backend/${endpoint}`, {
+            const res = await fetch(`http://localhost:80/campus-navigator-backend/${endpoint}`, {
                 method: "POST",
                 credentials: "include",
                 headers: { "Content-Type": "application/json" },

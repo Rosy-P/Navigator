@@ -169,7 +169,7 @@ export default function FacilitiesPage() {
             if (debouncedSearch) params.append('search', debouncedSearch);
 
             console.log("📡 Fetching facilities with params:", params.toString());
-            const response = await fetch(`http://localhost:8080/campus-navigator-backend/getfacilities.php?${params.toString()}`);
+            const response = await fetch(`http://localhost:80/campus-navigator-backend/getfacilities.php?${params.toString()}`);
             if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
 
             const data = await response.json();
@@ -716,8 +716,8 @@ export default function FacilitiesPage() {
                                     disabled={!pendingPickerLocation}
                                     onClick={handleConfirmLocation}
                                     className={`flex-1 h-11 rounded-xl font-black text-[14px] flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg ${pendingPickerLocation
-                                            ? "bg-[#111827] text-white hover:bg-orange-600"
-                                            : "bg-slate-50 text-slate-300 cursor-not-allowed"
+                                        ? "bg-[#111827] text-white hover:bg-orange-600"
+                                        : "bg-slate-50 text-slate-300 cursor-not-allowed"
                                         }`}
                                 >
                                     Confirm

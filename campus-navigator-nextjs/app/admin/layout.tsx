@@ -59,7 +59,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
             try {
                 const res = await fetch(
-                    "http://localhost:8080/campus-navigator-backend/check-admin.php",
+                    "http://localhost:80/campus-navigator-backend/check-admin.php",
                     { credentials: "include" }
                 );
 
@@ -120,7 +120,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const fetchUsers = async () => {
         try {
             const res = await fetch(
-                "http://localhost:8080/campus-navigator-backend/get-users.php",
+                "http://localhost:80/campus-navigator-backend/get-users.php",
                 { credentials: "include" }
             );
             const data = await res.json();
@@ -135,7 +135,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const fetchEvents = async () => {
         try {
             const res = await fetch(
-                "http://localhost:8080/campus-navigator-backend/get-events.php",
+                "http://localhost:80/campus-navigator-backend/get-events.php",
                 { credentials: "include" }
             );
             const data = await res.json();
@@ -155,7 +155,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     const handleLogout = async () => {
         try {
-            await fetch("http://localhost:8080/campus-navigator-backend/logout.php", {
+            await fetch("http://localhost:80/campus-navigator-backend/logout.php", {
                 method: "POST",
                 credentials: "include"
             });
