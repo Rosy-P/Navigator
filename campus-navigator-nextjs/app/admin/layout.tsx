@@ -50,64 +50,39 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const { user, logout, showAuthOverlay } = useAuth();
     const [currentUser, setCurrentUser] = useState({ name: "", role: "" });
 
-    // 🔐 Admin Check Logic & Forced Re-auth on Refresh
+    // 🔐 Admin Check Logic
     useEffect(() => {
         const checkAdmin = async () => {
-            // Requirement: Ask for login again on refresh.
-            // We can achieve this by logging out the current session if it's the first mount of AdminLayout
-            // and the user is arriving here (e.g. from a refresh or direct link).
-
             try {
                 const res = await fetch(
                     "http://localhost:80/campus-navigator-backend/check-admin.php",
                     { credentials: "include" }
                 );
 
-                if (!res.ok) {
-                    // Not an admin or not logged in
-                    await logout();
+                const data = await res.json();
+
+                if (!res.ok || data.status !== "success") {
+                    // Not an admin or not logged in - don't logout, just redirect
                     router.push("/");
                     setTimeout(() => showAuthOverlay(), 500);
                     return;
                 }
 
-                const data = await res.json();
+                // If admin, load data
+                fetchUsers();
+                fetchEvents();
 
-                if (data.status !== "success") {
-                    await logout();
-                    router.push("/");
-                    setTimeout(() => showAuthOverlay(), 500);
+                // Set current user details for header
+                if (data.user) {
+                    setCurrentUser({ name: data.user.name, role: data.user.role });
                 } else {
-                    // If we want to FORCE login EVERY time they refresh /admin,
-                    // we could logout here regardless, but typical UX is to check if session is active.
-                    // The user said: "when i refresh the page, it should again ask for login"
-                    // So let's force a logout on the first mount of the admin layout if we want strict behavior.
-
-                    // To strictly follow "ask for login again on refresh":
-                    // await logout();
-                    // router.push("/");
-                    // showAuthOverlay();
-                    // return;
-
-                    // However, if they JUST logged in and were redirected here, we don't want to loop.
-                    // We can check if they just came from login via a flag or just use the existing session.
-                    // If the requirement is STRICT: "every refresh = login", then:
-
-                    // Let's use a more user-friendly approach: if they are already an admin, let them in,
-                    // BUT if they refresh, the server side session exists. 
-                    // To force "ask for login", we must destroy the session.
-
-                    fetchUsers();
-                    fetchEvents();
-                    const localRole = localStorage.getItem("role");
-                    const localName = localStorage.getItem("user_name");
-                    if (localRole && localName) {
-                        setCurrentUser({ name: localName, role: localRole });
-                    }
+                    // Fallback to local storage if user isn't in response
+                    const localRole = localStorage.getItem("role") || "";
+                    const localName = localStorage.getItem("user_name") || "";
+                    setCurrentUser({ name: localName, role: localRole });
                 }
             } catch (err) {
                 console.error("Admin check failed", err);
-                await logout();
                 router.push("/");
                 setTimeout(() => showAuthOverlay(), 500);
             } finally {

@@ -56,32 +56,27 @@ export default function AuthProvider({ children, theme = 'light' }: AuthProvider
     const [isOverlayOpen, setIsOverlayOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+    const [csrfToken, setCsrfToken] = useState<string | null>(null);
 
-    // 🔄 Force Login on Refresh (Initial Mount)
+    // 🔄 Check Session Persistence on Refresh
     useEffect(() => {
-        const handleRefreshAuth = async () => {
-            console.log("🔄 App Refresh: Clearing session for demonstration...");
+        const checkSession = async () => {
             try {
-                // Clear session on backend
-                await fetch("http://localhost:80/campus-navigator-backend/logout.php", {
-                    method: "POST",
+                const res = await fetch("http://localhost:80/campus-navigator-backend/check-auth.php", {
                     credentials: "include"
                 });
+                const data = await res.json();
+                if (data.authenticated && data.user) {
+                    setUser(data.user);
+                    if (data.csrf_token) setCsrfToken(data.csrf_token);
+                }
             } catch (err) {
-                console.error("Forced logout failed:", err);
+                console.error("Session check failed:", err);
             } finally {
-                // Clear state and local storage
-                setUser(null);
-                localStorage.removeItem("role");
-                localStorage.removeItem("user_id");
-                localStorage.removeItem("user_name");
                 setIsLoading(false);
-
-                // Overlay stays closed; user will login manually
-                setIsOverlayOpen(false);
             }
         };
-        handleRefreshAuth();
+        checkSession();
     }, []);
 
     const showAuthOverlay = () => setIsOverlayOpen(true);
@@ -93,45 +88,34 @@ export default function AuthProvider({ children, theme = 'light' }: AuthProvider
 
     const login = async (formData: any) => {
         try {
-            const formDataObj = new FormData();
-            Object.keys(formData).forEach(key => formDataObj.append(key, formData[key]));
-
             const res = await fetch("http://localhost:80/campus-navigator-backend/login.php", {
                 method: "POST",
-                body: formDataObj,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData),
                 credentials: "include"
             });
 
             const data = await res.json();
 
-            console.log("Login response:", data);
-
             if (data.status === "success") {
-
                 if (data.user) {
                     setUser(data.user);
-
-                    // ✅ Store role locally (UI control only)
+                    if (data.csrf_token) setCsrfToken(data.csrf_token);
                     localStorage.setItem("role", data.user.role);
                     localStorage.setItem("user_id", data.user.id);
                     localStorage.setItem("user_name", data.user.name);
 
-                    // ✅ Redirect based on role
                     if (["admin", "superadmin"].includes(data.user.role)) {
                         router.push("/admin");
                     } else {
                         router.push("/");
                     }
                 }
-
                 if (pendingAction) {
                     pendingAction();
                     setPendingAction(null);
                 }
-
-            }
-
-            else {
+            } else {
                 throw new Error(data.message || "Login failed");
             }
         } catch (error) {
@@ -210,48 +194,42 @@ function AuthOverlayUI({ theme, onClose, modeProp }: { theme: 'light' | 'dark', 
 
         try {
             if (mode === 'signup') {
-                // Validate passwords match
+                // Strong Password Validation
+                const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
+                if (!passwordRegex.test(formData.password)) {
+                    throw new Error("Password must be at least 8 characters long and contain both letters and numbers.");
+                }
+
                 if (formData.password !== formData.confirmPassword) {
                     throw new Error("Passwords do not match.");
                 }
 
-                // Call register.php
-                const formDataObj = new FormData();
-                formDataObj.append('name', formData.name);
-                formDataObj.append('email', formData.email);
-                formDataObj.append('password', formData.password);
-
                 const res = await fetch("http://localhost:80/campus-navigator-backend/register.php", {
                     method: "POST",
-                    body: formDataObj,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: formData.name,
+                        email: formData.email,
+                        password: formData.password
+                    }),
                     credentials: "include"
                 });
 
                 const data = await res.json();
-
-                console.log("Signup response:", data);
-
                 if (data.status === "success") {
-                    console.log("Signup successful, showing success message and scheduling redirect");
-                    // Registration successful, switch to sign-in mode
                     setSuccess("Account created successfully! Please sign in.");
                     setIsSubmitting(false);
-                    // Clear form and switch to signin after a brief delay
                     setTimeout(() => {
-                        console.log("Switching to signin mode now");
                         setMode('signin');
                         setFormData({
                             name: "",
-                            email: formData.email, // Keep email for convenience
+                            email: formData.email,
                             password: "",
                             confirmPassword: ""
                         });
                         setSuccess(null);
                     }, 2000);
-                    return; // Important: exit here to prevent further execution
-                } else if (res.status === 409 || data.status === "error") {
-                    // User already exists or other error
-                    throw new Error(data.message || "Registration failed");
+                    return;
                 } else {
                     throw new Error(data.message || "Registration failed");
                 }
@@ -276,7 +254,7 @@ function AuthOverlayUI({ theme, onClose, modeProp }: { theme: 'light' | 'dark', 
 
             // Check for network errors or account not found
             if (err.name === 'TypeError' && message.toLowerCase().includes('fetch')) {
-                message = "Account not found. Please create an account first.";
+                message = "Unable to connect to the server. Please check your connection.";
             }
             // Check for common backend error messages indicating user doesn't exist
             else if (
