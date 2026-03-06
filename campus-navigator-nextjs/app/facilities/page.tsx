@@ -29,7 +29,9 @@ import {
     Globe,
     Phone,
     Building,
-    X
+    X,
+    Calendar,
+    ChevronDown
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { useAuth } from '../components/AuthOverlay';
@@ -228,7 +230,7 @@ const FacilityDetailsPopup = ({ facility, onClose }: { facility: Facility; onClo
 
 
 export default function FacilitiesPage() {
-    const { user, showAuthOverlay, logout } = useAuth();
+    const { user, showAuthOverlay, logout, isLoading } = useAuth();
     const isMobile = useMediaQuery("(max-width: 768px)");
 
     // State
@@ -248,6 +250,17 @@ export default function FacilitiesPage() {
     const [startLocation, setStartLocation] = useState<[number, number] | undefined>();
     const [startLabel, setStartLabel] = useState<string>("");
     const [isSelectingStart, setIsSelectingStart] = useState(false);
+
+    if (isLoading) {
+        return (
+            <div className="h-screen w-screen flex items-center justify-center bg-slate-50">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-12 h-12 border-4 border-orange-500/20 border-t-orange-500 rounded-full animate-spin" />
+                    <p className="text-slate-400 font-medium animate-pulse">Initializing campus resources...</p>
+                </div>
+            </div>
+        );
+    }
     const [pendingPickerLocation, setPendingPickerLocation] = useState<[number, number] | undefined>();
     const [originType, setOriginType] = useState<"gps" | "manual" | null>(null);
     const [activePopupId, setActivePopupId] = useState<string | null>(null);

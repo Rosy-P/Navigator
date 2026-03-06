@@ -30,6 +30,8 @@ interface SidebarProps {
     onToggleTourMode?: () => void;
     onSelectLocations?: () => void;
     onOpenEvents?: () => void;
+    onOpenFacilities?: () => void;
+    onOpenEmergency?: () => void;
     theme?: 'light' | 'dark';
 }
 
@@ -48,6 +50,8 @@ export default function Sidebar({
     onToggleTourMode,
     onSelectLocations,
     onOpenEvents,
+    onOpenFacilities,
+    onOpenEmergency,
     theme = 'light'
 }: SidebarProps) {
 
@@ -56,15 +60,15 @@ export default function Sidebar({
     const menuItems = [
         // { icon: <LayoutGrid size={18} />, label: "Dashboard", href: "/dashboard" }, // Removed for user side
         { icon: <MapPin size={18} />, label: "Locations", onClick: onSelectLocations, href: "/" },
-        { icon: <Building2 size={18} />, label: "Facilities", href: "/facilities" },
+        { icon: <Building2 size={18} />, label: "Facilities", onClick: onOpenFacilities, href: "/facilities" },
         { icon: <Calendar size={18} />, label: "Events", onClick: onOpenEvents },
         { icon: <Compass size={18} />, label: "Tour Mode", onClick: onToggleTourMode, isActiveOverride: isTourMode },
         { icon: <Settings size={18} />, label: "Settings", onClick: onOpenSettings },
-        { icon: <AlertCircle size={18} />, label: "Emergency", href: "/emergency" },
+        { icon: <AlertCircle size={18} />, label: "Emergency", onClick: onOpenEmergency, href: "/emergency" },
     ];
 
     return (
-        <aside 
+        <aside
             className={`
                 fixed top-0 left-0 h-screen flex z-50 overflow-hidden shadow-2xl transition-all duration-500 ease-in-out
                 ${isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
@@ -101,11 +105,11 @@ export default function Sidebar({
 
                             const className = `
                                 w-full h-[48px] 2xl:h-[56px] flex items-center justify-center transition-all duration-300 relative cursor-pointer
-                                ${isActive 
-                                    ? `bite-active ml-2 rounded-l-2xl shadow-[-10px_0_30px_rgba(0,0,0,0.1)] ${theme === 'dark' ? 'bg-[#1a1a1a]' : 'bg-white'}` 
+                                ${isActive
+                                    ? `bite-active ml-2 rounded-l-2xl shadow-[-10px_0_30px_rgba(0,0,0,0.1)] ${theme === 'dark' ? 'bg-[#1a1a1a]' : 'bg-white'}`
                                     : "text-white/30 hover:text-white group"}
                             `;
-                            
+
                             if (item.onClick || !item.href) {
                                 return (
                                     <div key={item.label} onClick={item.onClick} className={className}>
@@ -115,9 +119,9 @@ export default function Sidebar({
                             }
 
                             return (
-                                <Link 
-                                    key={item.label} 
-                                    href={item.href} 
+                                <Link
+                                    key={item.label}
+                                    href={item.href}
                                     className={className}
                                     onClick={item.onClick}
                                 >
@@ -165,8 +169,8 @@ export default function Sidebar({
 
                             const className = `
                                 h-[48px] 2xl:h-[56px] flex items-center px-6 transition-all duration-300 font-bold text-[13px] 2xl:text-base cursor-pointer
-                                ${isActive 
-                                    ? (theme === 'dark' ? "text-white bg-[#1a1a1a]" : "text-slate-900 bg-white") 
+                                ${isActive
+                                    ? (theme === 'dark' ? "text-white bg-[#1a1a1a]" : "text-slate-900 bg-white")
                                     : (theme === 'dark' ? "text-slate-500 hover:text-slate-300 hover:bg-white/5" : "text-slate-400/80 hover:text-slate-600 hover:bg-slate-50/50")}
                             `;
 
@@ -179,9 +183,9 @@ export default function Sidebar({
                             }
 
                             return (
-                                <Link 
-                                    key={item.label} 
-                                    href={item.href} 
+                                <Link
+                                    key={item.label}
+                                    href={item.href}
                                     className={className}
                                     onClick={item.onClick}
                                 >

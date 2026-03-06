@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     ShieldHalf,
     Truck,
@@ -154,14 +154,25 @@ const NavigationButton = ({ point, theme, onClick }: { point: typeof NAVIGATION_
 // --- Main Page ---
 
 export default function EmergencyPage() {
-    const { user, showAuthOverlay, logout } = useAuth();
+    const { user, showAuthOverlay, logout, isLoading } = useAuth();
     const isMobile = useMediaQuery("(max-width: 768px)");
     const router = useRouter();
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+    if (isLoading) {
+        return (
+            <div className="h-screen w-screen flex items-center justify-center bg-slate-50">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-12 h-12 border-4 border-rose-500/20 border-t-rose-500 rounded-full animate-spin" />
+                    <p className="text-slate-400 font-medium animate-pulse">Initializing emergency protocols...</p>
+                </div>
+            </div>
+        );
+    }
+
     // Theme management - Default to light, can be synced with home page settings later
-    const theme: 'light' | 'dark' = 'light';
+    const theme = 'light' as 'light' | 'dark';
     const isDark = theme === 'dark';
 
     const handleNavigate = (landmark: string) => {

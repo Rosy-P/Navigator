@@ -389,6 +389,8 @@ function HomeContent() {
             // Reset map view logic if needed, but sidebar's tour flush handles most
           }
         })}
+        onOpenFacilities={() => requireAuth(() => router.push('/facilities'))}
+        onOpenEmergency={() => requireAuth(() => router.push('/emergency'))}
         forceActiveLabel={showSettings ? "Settings" : (isEventsOpen ? "Events" : (isTourMode ? "Tour Mode" : (selectedLandmark ? "Locations" : undefined)))}
         user={user}
         isTourMode={isTourMode}
