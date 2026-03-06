@@ -6,11 +6,14 @@ import Image from "next/image";
 interface Landmark {
     name: string;
     category?: string;
-    address?: string;
     images?: string | string[];
     lng: number;
     lat: number;
     description?: string;
+    hours?: string;
+    phone?: string;
+    website?: string;
+    address?: string;
 }
 
 interface InfoPanelProps {
@@ -170,9 +173,22 @@ export default function InfoPanel({
                                 </p>
 
                                 <ul className="space-y-1.5 2xl:space-y-2">
-                                    <AboutItem label="Departments" />
-                                    <AboutItem label="Facilities" />
-                                    <AboutItem label="Special notes" />
+                                    {landmark.hours && <AboutItem label={`Hours: ${landmark.hours}`} />}
+                                    {landmark.phone && <AboutItem label={`Phone: ${landmark.phone}`} />}
+                                    {landmark.website && (
+                                        <li className="flex items-center gap-2 border-b border-slate-50 pb-1.5 last:border-0">
+                                            <div className="w-0.5 h-0.5 bg-[#fb923c] rounded-full opacity-40" />
+                                            <a
+                                                href={landmark.website}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-[11px] font-bold text-orange-600 hover:underline truncate"
+                                            >
+                                                Website
+                                            </a>
+                                        </li>
+                                    )}
+                                    {landmark.address && <AboutItem label={landmark.address} />}
                                 </ul>
                             </div>
 

@@ -25,7 +25,11 @@ import {
     XCircle,
     Maximize2,
     Layers,
-    Navigation2
+    Navigation2,
+    Globe,
+    Phone,
+    Building,
+    X
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { useAuth } from '../components/AuthOverlay';
@@ -49,6 +53,10 @@ interface Facility {
     image: string;
     latitude: number;
     longitude: number;
+    hours?: string;
+    phone?: string;
+    website?: string;
+    address?: string;
 }
 
 const CATEGORIES = [
@@ -120,6 +128,105 @@ const OccupancyIndicator = ({ percentage }: { percentage: number }) => {
     );
 };
 
+const FACILITY_ABOUT: Record<string, string> = {
+    "Computer Lab": "The Madras Christian College Computer Science lab is a cornerstone of digital excellence, providing students with access to high-end workstations and industry-standard software. It serves as a hub for programming, data science research, and collaborative software projects, fosterring a culture of innovation and technical proficiency within the campus.",
+    "Zoology Lab": "A prestigious center for biological study, the Zoology Lab houses a vast collection of specimens and advanced microscopy equipment. Students engage in hands-on research here, exploring the complexities of animal biology and genetics, contributing to the college's long-standing reputation for scientific inquiry.",
+    "Botany Lab": "Surrounded by the lush greenery of the MCC campus, the Botany Lab is a premier facility for plant science. It offers specialized equipment for physiological and taxonomic studies, allowing students to conduct experimental research on the diverse flora found both on campus and in the wider region.",
+    "Library": "The Miller Memorial Library is a majestic repository of knowledge, boasting an extensive collection of over 100,000 volumes. Its quiet study zones, digital archives, and specialized research rooms provide an unparalleled environment for academic growth and intellectual exploration.",
+    "Bishop Heber Chapel": "The Bishop Heber Chapel is a serene and historic sanctuary at the heart of MCC. Its stunning architecture and peaceful atmosphere provide a space for quiet reflection, prayer, and weekly services, serving as a spiritual anchor for the entire college community.",
+    "Chapel": "The Bishop Heber Chapel is a serene and historic sanctuary at the heart of MCC.",
+    "MCC Campus Clinic": "The MCC Campus Clinic provides essential healthcare services to the student and staff community. Managed by qualified professionals, it offers first aid, primary consultations, and emergency stabilization, ensuring that health remains a priority for every resident on campus.",
+    "MCC Cafeteria": "The heart of social life at MCC, the Cafeteria offers a vibrant atmosphere and a wide variety of meals. From traditional South Indian fare to modern snacks, it is a place where students gather, share ideas, and enjoy a well-earned break.",
+    "Cafeteria": "The heart of social life at MCC, the Cafeteria offers a vibrant atmosphere and a wide variety of meals.",
+    "Healthy Cafeteria": "Focused on wellness and nutrition, the Healthy Cafeteria provides balanced, wholesome meals prepared with organic ingredients. It's the perfect spot for those seeking nutritious fuel for their academic and athletic pursuits.",
+    "MCC Indoor Stadium": "The MCC Indoor Stadium is a state-of-the-art sports complex designed for excellence. Equipped with international-grade courts for basketball and badminton, it hosts numerous regional tournaments and provides students with world-class athletic training facilities.",
+    "Outdoor Playground": "The MCC ground is a vast open-air venue for track and field, football, and cricket. It serves as the primary arena for inter-collegiate sports meets and provides ample space for students to engage in rigorous physical training and outdoor recreation.",
+    "Main Gate": "The iconic Main Gate of MCC is more than just an entrance. It symbolizes the transition from the bustling Tambaram town into the serene, 365-acre scrub jungle campus that has been our home since 1937.",
+};
+
+const FacilityDetailsPopup = ({ facility, onClose }: { facility: Facility; onClose: () => void }) => {
+    return (
+        <div className="absolute inset-2 z-[100] animate-in slide-in-from-bottom-2 duration-300">
+            <div className="h-full bg-white p-5 flex flex-col relative rounded-[24px] shadow-2xl border border-slate-100 overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-amber-500"></div>
+
+                {/* Close Button */}
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onClose();
+                    }}
+                    className="absolute top-3 right-3 p-2 rounded-full bg-slate-100 text-slate-500 hover:text-slate-900 transition-all z-10 shadow-sm"
+                >
+                    <X size={18} />
+                </button>
+
+                <div className="flex-1 overflow-y-auto pr-1 pt-10 scrollbar-thin scrollbar-thumb-slate-200">
+                    <div className="mb-4">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Facility Details</p>
+                        <h3 className="text-xl font-bold text-slate-900 leading-tight pr-8">{facility.name}</h3>
+                    </div>
+
+                    {/* Quick Info Grid - MOVED TO TOP */}
+                    <div className="grid grid-cols-1 gap-2 mb-6">
+                        {facility.hours && (
+                            <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100/50">
+                                <div className="w-8 h-8 rounded-xl bg-orange-100 flex items-center justify-center text-orange-600 shadow-sm">
+                                    <Clock size={16} />
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">Hours</p>
+                                    <p className="text-[12px] font-bold text-slate-700">{facility.hours}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {facility.phone && (facility.phone !== 'N/A' && facility.phone !== '') && (
+                            <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100/50">
+                                <div className="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 shadow-sm">
+                                    <Phone size={16} />
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">Contact</p>
+                                    <p className="text-[12px] font-bold text-slate-700">{facility.phone}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {facility.address && (
+                            <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100/50">
+                                <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600 shadow-sm">
+                                    <Building size={16} />
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">Location</p>
+                                    <p className="text-[12px] font-bold text-slate-700 leading-snug">{facility.address}</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* About Section - MOVED TO BOTTOM */}
+                    {(FACILITY_ABOUT[facility.name] || facility.description) && (
+                        <div className="mb-4">
+                            <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-2 flex items-center gap-2">
+                                <span className="w-4 h-0.5 bg-orange-600/30 rounded-full"></span>
+                                About this place
+                            </p>
+                            <p className="text-[13px] text-slate-600 leading-relaxed font-medium bg-slate-50/50 p-4 rounded-2xl border border-dashed border-slate-200">
+                                {FACILITY_ABOUT[facility.name] || facility.description}
+                            </p>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
+
+
 export default function FacilitiesPage() {
     const { user, showAuthOverlay, logout } = useAuth();
     const isMobile = useMediaQuery("(max-width: 768px)");
@@ -143,6 +250,7 @@ export default function FacilitiesPage() {
     const [isSelectingStart, setIsSelectingStart] = useState(false);
     const [pendingPickerLocation, setPendingPickerLocation] = useState<[number, number] | undefined>();
     const [originType, setOriginType] = useState<"gps" | "manual" | null>(null);
+    const [activePopupId, setActivePopupId] = useState<string | null>(null);
     const router = useRouter();
 
     // Marker Refs (Zero re-render system)
@@ -215,12 +323,16 @@ export default function FacilitiesPage() {
                     category: f.category,
                     description: f.description,
                     status: status,
-                    occupancy: parseInt(f.occupancy_percentage) || 0,
+                    occupancy: parseInt(f.occupancy) || 0,
                     distance: f.distance || 'Proximate', // Fallback if not in API
                     rating: parseFloat(f.rating) || 4.5, // Fallback if not in API
-                    image: localImageMap[f.name] || f.image_url,
+                    image: localImageMap[f.name] || f.image,
                     latitude: parseFloat(f.latitude),
-                    longitude: parseFloat(f.longitude)
+                    longitude: parseFloat(f.longitude),
+                    hours: f.hours,
+                    phone: f.phone,
+                    website: f.website,
+                    address: f.address
                 };
             });
 
@@ -612,7 +724,13 @@ export default function FacilitiesPage() {
                                                 {/* REMOVED: OccupancyIndicator */}
 
                                                 <div className="grid grid-cols-2 gap-2"> {/* Changed to 2 columns since Book is gone */}
-                                                    <button className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-slate-50 text-slate-600 hover:bg-orange-50 hover:text-orange-600 transition-all active:scale-95">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setActivePopupId(activePopupId === facility.id ? null : facility.id);
+                                                        }}
+                                                        className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl border transition-all active:scale-95 ${activePopupId === facility.id ? 'bg-orange-600 text-white border-orange-600 shadow-md' : 'bg-slate-50 text-slate-600 border-slate-100 hover:bg-orange-50 hover:text-orange-600'}`}
+                                                    >
                                                         <Clock size={16} /> <span className="text-[9px] font-bold uppercase">Details</span>
                                                     </button>
                                                     <button
@@ -621,9 +739,16 @@ export default function FacilitiesPage() {
                                                     >
                                                         <Navigation size={16} /> <span className="text-[9px] font-bold uppercase">Navigate</span>
                                                     </button>
-                                                    {/* REMOVED: Book Button */}
                                                 </div>
                                             </div>
+
+                                            {/* Details Pop-up - ABSOLUTE INSIDE CARD */}
+                                            {activePopupId === facility.id && (
+                                                <FacilityDetailsPopup
+                                                    facility={facility}
+                                                    onClose={() => setActivePopupId(null)}
+                                                />
+                                            )}
                                         </div>
                                     </div>
                                 ))}
@@ -672,6 +797,10 @@ export default function FacilitiesPage() {
                             images: selectedFacility.image,
                             lng: selectedFacility.longitude,
                             lat: selectedFacility.latitude,
+                            hours: selectedFacility.hours,
+                            phone: selectedFacility.phone,
+                            website: selectedFacility.website,
+                            address: selectedFacility.address,
                         }}
                         startLabel={startLabel}
                         isPlanning={isPlanning}
