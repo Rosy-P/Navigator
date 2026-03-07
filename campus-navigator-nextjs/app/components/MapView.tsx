@@ -257,7 +257,7 @@ export default function MapView({
                 type: "Feature",
                 properties: {
                   landmarkId: item.id || `${cat}-${idx}`,
-                  id: item.id || `${cat}-${idx}`, // Keep both for compatibility
+                  id: item.id || `${cat}-${idx}`,
                   ...item,
                 },
                 geometry: { type: "Point", coordinates: [item.lng, item.lat] },
@@ -270,8 +270,41 @@ export default function MapView({
           type: "geojson",
           data: { type: "FeatureCollection", features } as any,
         });
-        setAllLandmarks(
-          features.map((f) => ({
+
+        // 2b. Secondary Landmarks (Classrooms & Departments)
+        const secondaryRes = await fetch("/data/raw/mcc-secondary.json");
+        const secondaryData = await secondaryRes.json();
+        const secondaryFeatures: any[] = [];
+
+        // Departments (Secondary)
+        if (secondaryData.departments) {
+          secondaryData.departments.forEach((item: any) => {
+            secondaryFeatures.push({
+              type: "Feature",
+              properties: { ...item, isSecondary: true, type: "department" },
+              geometry: { type: "Point", coordinates: [item.lng, item.lat] },
+            });
+          });
+        }
+
+        // Classrooms (Secondary)
+        if (secondaryData.classrooms) {
+          secondaryData.classrooms.forEach((item: any) => {
+            secondaryFeatures.push({
+              type: "Feature",
+              properties: { ...item, isSecondary: true, type: "classroom" },
+              geometry: { type: "Point", coordinates: [item.lng, item.lat] },
+            });
+          });
+        }
+
+        map.addSource("secondary-landmarks", {
+          type: "geojson",
+          data: { type: "FeatureCollection", features: secondaryFeatures } as any,
+        });
+
+        setAllLandmarks([
+          ...features.map((f) => ({
             id: f.properties.id,
             name: f.properties.name,
             lat: f.geometry.coordinates[1],
@@ -280,7 +313,20 @@ export default function MapView({
             voice: f.properties.voice,
             category: f.properties.category,
           })),
-        );
+          ...secondaryFeatures.map((f) => ({
+            id: f.properties.id,
+            name: f.properties.name,
+            lat: f.geometry.coordinates[1],
+            lng: f.geometry.coordinates[0],
+            navPrompt: f.properties.navPrompt,
+            voice: f.properties.voice,
+            category: f.properties.category,
+            isSecondary: true,
+            roomNumber: f.properties.roomNumber,
+            block: f.properties.block,
+            floor: f.properties.floor
+          }))
+        ]);
         setIsGraphReady(true);
 
         map.addLayer({
@@ -342,6 +388,96 @@ export default function MapView({
             "text-halo-color": mapStyle === "satellite" ? "#000000" : "#ffffff",
             "text-halo-width": 2,
           },
+        });
+
+        // 2. Classrooms (Secondary) - Circular with Room Number
+        map.addLayer({
+          id: "secondary-classrooms-points",
+          type: "circle",
+          source: "secondary-landmarks",
+          filter: ["==", "type", "classroom"],
+          paint: {
+            "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 12, 18, 20],
+            "circle-color": [
+              "case",
+              ["match", ["slice", ["get", "id"], 0, 1], "S", true, false], "#ef4444", // Science - Red
+              ["match", ["slice", ["get", "id"], 0, 1], "C", true, false], "#eab308", // Commerce - Yellow
+              ["match", ["slice", ["get", "id"], 0, 1], "A", true, false], "#a855f7", // Arts - Purple
+              "#64748b" // Default
+            ],
+            "circle-stroke-width": 2,
+            "circle-stroke-color": "#ffffff",
+          },
+          layout: {
+            visibility: "none"
+          }
+        });
+
+        map.addLayer({
+          id: "secondary-classrooms-labels",
+          type: "symbol",
+          source: "secondary-landmarks",
+          filter: ["==", "type", "classroom"],
+          layout: {
+            "text-field": ["get", "roomNumber"],
+            "text-size": 11,
+            "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+            "text-allow-overlap": true,
+            visibility: "none"
+          },
+          paint: {
+            "text-color": "#ffffff",
+          }
+        });
+
+        // 3. Departments (Secondary) - Blue with Building Icon
+        map.addLayer({
+          id: "secondary-departments-points",
+          type: "circle",
+          source: "secondary-landmarks",
+          filter: ["==", "type", "department"],
+          paint: {
+            "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 9, 18, 18],
+            "circle-color": "#3b82f6", // Distinct Blue
+            "circle-stroke-width": 2,
+            "circle-stroke-color": "#ffffff",
+          },
+          layout: { visibility: "none" }
+        });
+
+        map.addLayer({
+          id: "secondary-departments-icons",
+          type: "symbol",
+          source: "secondary-landmarks",
+          filter: ["==", "type", "department"],
+          layout: {
+            "text-field": "🏢", // Building Icon
+            "text-size": 12,
+            "text-allow-overlap": true,
+            visibility: "none"
+          },
+          paint: { "text-color": "#ffffff" },
+        });
+
+        // Add interaction for secondary layers
+        map.on("click", "secondary-departments-points", (e) => {
+          if (e.features && e.features[0]) {
+            const feature = e.features[0];
+            const coord = (feature.geometry as any).coordinates as [number, number];
+            if (onSelectLandmarkRef.current) {
+              onSelectLandmarkRef.current({ ...feature.properties, lng: coord[0], lat: coord[1] }, true);
+            }
+          }
+        });
+
+        map.on("click", "secondary-classrooms-points", (e) => {
+          if (e.features && e.features[0]) {
+            const feature = e.features[0];
+            const coord = (feature.geometry as any).coordinates as [number, number];
+            if (onSelectLandmarkRef.current) {
+              onSelectLandmarkRef.current({ ...feature.properties, lng: coord[0], lat: coord[1] }, true);
+            }
+          }
         });
 
         // 3. Unified Walk Network
@@ -482,31 +618,50 @@ export default function MapView({
   // Handle Category Filtering and Map Bounds
   useEffect(() => {
     if (!mapInstance.current || !allLandmarks.length) return;
+    const map = mapInstance.current;
 
-    const filtered = activeCategory
-      ? allLandmarks.filter((l) => l.category === activeCategory)
-      : allLandmarks;
+    // 1. Primary Landmarks Filtering
+    const filteredPrimary = activeCategory
+      ? allLandmarks.filter((l) => l.category === activeCategory && !l.isSecondary)
+      : allLandmarks.filter(l => !l.isSecondary);
 
-    if (activeCategory && filtered.length === 0) {
-      console.warn(`No landmarks found for category: ${activeCategory}`);
-      return;
-    }
-
-    const source = mapInstance.current.getSource("landmarks") as maplibregl.GeoJSONSource;
-    if (source) {
-      const features = filtered.map((item) => ({
+    const primarySource = map.getSource("landmarks") as maplibregl.GeoJSONSource;
+    if (primarySource) {
+      const features = filteredPrimary.map((item) => ({
         type: "Feature",
         properties: { ...item },
         geometry: { type: "Point", coordinates: [item.lng, item.lat] },
       }));
-      source.setData({ type: "FeatureCollection", features } as any);
+      primarySource.setData({ type: "FeatureCollection", features } as any);
+    }
+
+    // 2. Secondary Landmarks Visibility & Filtering
+    const isClassroomFilter = activeCategory === "Classroom";
+    const isDeptFilter = activeCategory === "Department";
+
+    // Toggle Department Layer Visibility
+    const deptVisibility = isDeptFilter ? "visible" : "none";
+    if (map.getLayer("secondary-departments-points")) {
+      map.setLayoutProperty("secondary-departments-points", "visibility", deptVisibility);
+      map.setLayoutProperty("secondary-departments-icons", "visibility", deptVisibility);
+    }
+
+    // Toggle Classroom Layer Visibility
+    const classroomVisibility = isClassroomFilter ? "visible" : "none";
+    if (map.getLayer("secondary-classrooms-points")) {
+      map.setLayoutProperty("secondary-classrooms-points", "visibility", classroomVisibility);
+      map.setLayoutProperty("secondary-classrooms-labels", "visibility", classroomVisibility);
     }
 
     // Auto-fit bounds if a category is active
-    if (activeCategory && filtered.length > 0) {
+    const filteredAll = activeCategory
+      ? allLandmarks.filter((l) => l.category === activeCategory)
+      : filteredPrimary; // Default to primary if no category
+
+    if (activeCategory && filteredAll.length > 0) {
       const bounds = new maplibregl.LngLatBounds();
-      filtered.forEach((l) => bounds.extend([l.lng, l.lat]));
-      mapInstance.current.fitBounds(bounds, {
+      filteredAll.forEach((l) => bounds.extend([l.lng, l.lat]));
+      map.fitBounds(bounds, {
         padding: 80,
         duration: 1200,
         essential: true,
@@ -514,15 +669,49 @@ export default function MapView({
     }
   }, [activeCategory, allLandmarks]);
 
-  // Zoom to Destination
+  // Zoom to Destination & Marker Priority (ALWAYS show selected secondary marker)
   useEffect(() => {
     if (!mapInstance.current || !destination || isGuidanceActive) return;
-    mapInstance.current.easeTo({
+    const map = mapInstance.current;
+
+    map.easeTo({
       center: destination,
       zoom: 18,
       duration: 1200,
     });
-  }, [destination, isGuidanceActive]);
+
+    // MARKER PRIORITY LOGIC
+    // Find if destination matches any secondary landmark
+    const destLandmark = allLandmarks.find(l =>
+      Math.abs(l.lng - destination[0]) < 0.00001 &&
+      Math.abs(l.lat - destination[1]) < 0.00001
+    );
+
+    if (destLandmark?.isSecondary) {
+      if (destLandmark.category === "Classroom") {
+        // Filter the layer to ONLY show this specific classroom OR classrooms matching the current filter
+        const isClassroomFilter = activeCategory === "Classroom";
+        const filter = isClassroomFilter
+          ? ["==", "type", "classroom"]
+          : ["all", ["==", "type", "classroom"], ["==", "id", destLandmark.id]];
+
+        map.setFilter("secondary-classrooms-points", filter as any);
+        map.setFilter("secondary-classrooms-labels", filter as any);
+        map.setLayoutProperty("secondary-classrooms-points", "visibility", "visible");
+        map.setLayoutProperty("secondary-classrooms-labels", "visibility", "visible");
+      } else if (destLandmark.category === "Department") {
+        const isDeptFilter = activeCategory === "Department";
+        const filter = isDeptFilter
+          ? ["==", "type", "department"]
+          : ["all", ["==", "type", "department"], ["==", "id", destLandmark.id]];
+
+        map.setFilter("secondary-departments-points", filter as any);
+        map.setFilter("secondary-departments-icons", filter as any);
+        map.setLayoutProperty("secondary-departments-points", "visibility", "visible");
+        map.setLayoutProperty("secondary-departments-icons", "visibility", "visible");
+      }
+    }
+  }, [destination, isGuidanceActive, allLandmarks, activeCategory]);
 
   // Reset Map View when Navigation or Tour Ends
   const prevGuidanceRef = useRef(isGuidanceActive);
@@ -867,18 +1056,18 @@ export default function MapView({
       resetSession();
 
       let fullPath: [number, number][] = [];
-      
+
       // Determine points to visit
       // For real tour (not simulation), start from current location
       const pointsToVisit = [...GRAND_TOUR_PATH];
       if (isTourMode && !isTourSimulation && startLocation) {
-         // Prepend current location to the tour
-         pointsToVisit.unshift(startLocation);
+        // Prepend current location to the tour
+        pointsToVisit.unshift(startLocation);
       } else if (isTourMode && !isTourSimulation && !startLocation) {
-         // Fallback if startLocation is not yet available, maybe just use default or wait?
-         // For now, let's just use GRAND_TOUR_PATH if startLocation is missing, 
-         // OR we could use the defaultLocation but that might be far. 
-         // Let's assume startLocation is available or we use GRAND_TOUR_PATH basic loop.
+        // Fallback if startLocation is not yet available, maybe just use default or wait?
+        // For now, let's just use GRAND_TOUR_PATH if startLocation is missing, 
+        // OR we could use the defaultLocation but that might be far. 
+        // Let's assume startLocation is available or we use GRAND_TOUR_PATH basic loop.
       }
 
       // Connect all points in the tour path
@@ -1073,11 +1262,11 @@ export default function MapView({
     if (isDemoMode || isTourSimulation) return;
 
     console.log("🛣️ Calculating Route:", {
-        originType: isSelectingStart ? "Picking" : "Standard",
-        start: currentUserLocation,
-        dest: destination,
-        isDemo: isDemoMode,
-        graphStat: graphRef.current ? `${graphRef.current.size} nodes` : "Not Ready"
+      originType: isSelectingStart ? "Picking" : "Standard",
+      start: currentUserLocation,
+      dest: destination,
+      isDemo: isDemoMode,
+      graphStat: graphRef.current ? `${graphRef.current.size} nodes` : "Not Ready"
     });
 
     const routeFeature = getRouteGeoJSON(
@@ -1089,7 +1278,7 @@ export default function MapView({
 
     if (routeFeature) {
       const routeCoords = routeFeature.geometry.coordinates;
-      
+
       // Visual Fix: Ensure route connects to marker
       // If markerLocation is different from destination, append it to create visual connection
       let finalRouteCoords = [...routeCoords];
@@ -1135,7 +1324,7 @@ export default function MapView({
         destMarkerRef.current.remove();
         destMarkerRef.current = null;
       }
-      
+
       // CRITICAL: Always use markerLocation if available (for landmarks with connectors)
       // Only fall back to destination if markerLocation is explicitly undefined
       let markerPos: [number, number] | undefined;
@@ -1146,7 +1335,7 @@ export default function MapView({
         markerPos = destination;
         console.log("🔴 Using destination for marker (no markerLocation):", destination);
       }
-      
+
       if (markerPos) {
         destMarkerRef.current = new maplibregl.Marker({ color: "#ef4444" })
           .setLngLat(markerPos)
@@ -1228,8 +1417,8 @@ export default function MapView({
           <button
             onClick={onToggleSubtitles}
             className={`p-3 rounded-full shadow-lg backdrop-blur-md transition-all ${showSubtitles
-                ? "bg-orange-500 text-white"
-                : "bg-white/90 text-slate-800"
+              ? "bg-orange-500 text-white"
+              : "bg-white/90 text-slate-800"
               }`}
             title={showSubtitles ? "Hide Subtitles" : "Show Subtitles"}
           >
@@ -1311,7 +1500,7 @@ export default function MapView({
       )}
 
       {/* Real Application Start Tour Button (GPS Mode) */}
-       {!simulationMode && isTourMode && !isTourSimulation && !isVirtualTourRunning && (
+      {!simulationMode && isTourMode && !isTourSimulation && !isVirtualTourRunning && (
         <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-[40]">
           <button
             onClick={() => {
@@ -1327,7 +1516,7 @@ export default function MapView({
               viewBox="0 0 24 24"
               stroke="currentColor"
             >
-               <path
+              <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}

@@ -1,0 +1,104 @@
+{
+    "classrooms": [
+        {
+            "id": "S101",
+            "name": "S101",
+            "roomNumber": "101",
+            "block": "Science Block",
+            "floor": 0,
+            "lat": 12.9181,
+            "lng": 80.1385,
+            "category": "Classroom",
+            "voice": {
+                "navigation": "Heading to Science Block Room S101.",
+                "tour": "This is S101, one of the primary lecture halls in the Science Block."
+            }
+        },
+        {
+            "id": "S217",
+            "name": "S217",
+            "roomNumber": "217",
+            "block": "Science Block",
+            "floor": 1,
+            "lat": 12.9183,
+            "lng": 80.1387,
+            "category": "Classroom",
+            "voice": {
+                "navigation": "Moving towards Science Block Room S217 on the first floor.",
+                "tour": "Room S217 is a specialized lab space."
+            }
+        },
+        {
+            "id": "C204",
+            "name": "C204",
+            "roomNumber": "204",
+            "block": "Commerce Block",
+            "floor": 1,
+            "lat": 12.9228,
+            "lng": 80.1195,
+            "category": "Classroom",
+            "voice": {
+                "navigation": "Heading to Commerce Block Room C204.",
+                "tour": "C204 is used for advanced management lectures."
+            }
+        },
+        {
+            "id": "A105",
+            "name": "A105",
+            "roomNumber": "105",
+            "block": "Arts Block",
+            "floor": 0,
+            "lat": 12.9192,
+            "lng": 80.1215,
+            "category": "Classroom",
+            "voice": {
+                "navigation": "Walking towards Arts Block Room A105.",
+                "tour": "A105 is known for its acoustic design, often used for literature classes."
+            }
+        }
+    ],
+    "departments": [
+        {
+            "id": "dept-physics",
+            "name": "Physics Department",
+            "lat": 12.9184,
+            "lng": 80.1388,
+            "category": "Department",
+            "address": "Science Block, MCC",
+            "floor": 0,
+            "phone": "+91 44 2239 1001",
+            "website": "https://mcc.edu.in/dept-physics",
+            "voice": {
+                "navigation": "The Physics Department is located in the Science Block.",
+                "tour": "The Physics Department is one of the oldest and most prestigious departments at MCC."
+            }
+        },
+        {
+            "id": "dept-chemistry",
+            "name": "Chemistry Department",
+            "lat": 12.9182,
+            "lng": 80.1389,
+            "category": "Department",
+            "address": "Science Block, MCC",
+            "floor": 0,
+            "phone": "+91 44 2239 1002",
+            "voice": {
+                "navigation": "Move towards the Chemistry Department.",
+                "tour": "Welcome to the Chemistry Department, featuring state-of-the-art research laboratories."
+            }
+        },
+        {
+            "id": "dept-history",
+            "name": "History Department",
+            "lat": 12.9213,
+            "lng": 80.1221,
+            "category": "Department",
+            "address": "Main Building, MCC",
+            "floor": 1,
+            "voice": {
+                "navigation": "The History Department is located in the heritage Main Building.",
+                "tour": "MCC's History Department has a rich legacy of archaeological and historical research."
+            }
+        }
+    ]
+}

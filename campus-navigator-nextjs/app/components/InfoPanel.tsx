@@ -4,6 +4,7 @@ import { X, Navigation, Play, Bookmark, Info, ChevronLeft, MapPin, Target, Send,
 import Image from "next/image";
 
 interface Landmark {
+    id?: string;
     name: string;
     category?: string;
     images?: string | string[];
@@ -14,6 +15,11 @@ interface Landmark {
     phone?: string;
     website?: string;
     address?: string;
+    // Classroom specific
+    block?: string;
+    roomNumber?: string;
+    floor?: string;
+    isSecondary?: boolean;
 }
 
 interface InfoPanelProps {
@@ -135,10 +141,24 @@ export default function InfoPanel({
                         <div className="p-4 2xl:p-6 pb-8">
                             {/* Title & Category Info */}
                             <div className="mb-4 2xl:mb-5">
-                                <h2 className="text-[17px] 2xl:text-xl font-black text-[#111827] leading-tight mb-1 font-sans">{landmark.name}</h2>
-                                <p className="text-[11px] 2xl:text-xs font-bold text-slate-400 uppercase tracking-tighter">
-                                    {landmark.category || "Location"} • {landmark.address?.includes("Main") ? "Main Campus" : "MCC Campus"}
-                                </p>
+                                {landmark.category === "Classroom" ? (
+                                    <>
+                                        <h2 className="text-[17px] 2xl:text-xl font-black text-[#111827] leading-tight mb-1 font-sans">{landmark.block}</h2>
+                                        <p className="text-[14px] 2xl:text-base font-bold text-slate-700 leading-tight mb-0.5">Room {landmark.name}</p>
+                                        <p className="text-[11px] 2xl:text-xs font-bold text-slate-400 uppercase tracking-tighter">
+                                            {typeof landmark.floor === 'number'
+                                                ? (landmark.floor === 0 ? "Ground Floor" : landmark.floor === 1 ? "First Floor" : `${landmark.floor}${["st", "nd", "rd"][((landmark.floor + 90) % 100 - 10) % 10 - 1] || "th"} Floor`)
+                                                : landmark.floor || "General Area"}
+                                        </p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <h2 className="text-[17px] 2xl:text-xl font-black text-[#111827] leading-tight mb-1 font-sans">{landmark.name}</h2>
+                                        <p className="text-[11px] 2xl:text-xs font-bold text-slate-400 uppercase tracking-tighter">
+                                            {landmark.category || "Location"} • {landmark.address?.includes("Main") ? "Main Campus" : "MCC Campus"}
+                                        </p>
+                                    </>
+                                )}
                             </div>
 
                             {/* Action Buttons Row */}

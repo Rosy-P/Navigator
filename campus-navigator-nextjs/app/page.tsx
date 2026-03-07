@@ -117,23 +117,34 @@ function HomeContent() {
 
   // Fetch landmarks for search
   useEffect(() => {
-    fetch("/data/raw/mcc-landmarks.json")
-      .then(r => r.json())
-      .then(data => {
-        const flattened = [
-          ...(data.classrooms || []),
-          ...(data.departments || []),
-          ...(data.facilities || [])
-        ];
-        setAllLandmarks(flattened);
-      });
+    const fetchData = async () => {
+      try {
+        const [primaryRes, secondaryRes, connectorsRes] = await Promise.all([
+          fetch("/data/raw/mcc-landmarks.json"),
+          fetch("/data/raw/mcc-secondary.json"),
+          fetch("/data/final/mcc-connectors.final.geojson")
+        ]);
 
-    // Fetch connectors
-    fetch("/data/final/mcc-connectors.final.geojson")
-      .then(r => r.json())
-      .then(data => {
-        setConnectors(data.features || []);
-      });
+        const primaryData = await primaryRes.json();
+        const secondaryData = await secondaryRes.json();
+        const connectorsData = await connectorsRes.json();
+
+        const flattened = [
+          ...(primaryData.classrooms || []),
+          ...(primaryData.departments || []),
+          ...(primaryData.facilities || []),
+          ...(secondaryData.classrooms || []).map((c: any) => ({ ...c, isSecondary: true })),
+          ...(secondaryData.departments || []).map((d: any) => ({ ...d, isSecondary: true }))
+        ];
+
+        setAllLandmarks(flattened);
+        setConnectors(connectorsData.features || []);
+      } catch (err) {
+        console.error("Error fetching map data:", err);
+      }
+    };
+
+    fetchData();
   }, []);
 
   // Filter landmarks logic

@@ -145,7 +145,9 @@ export default function SearchPanel({
                                             {result.name}
                                         </span>
                                         <span className={`text-[11px] 2xl:text-[12px] font-semibold tracking-tight ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
-                                            {result.category} • {result.floor ? `Floor ${result.floor}` : 'Main Campus'}
+                                            {result.category} • {typeof result.floor === 'number'
+                                                ? (result.floor === 0 ? "Ground Floor" : `Floor ${result.floor}`)
+                                                : result.category === 'Classroom' ? 'Main Campus' : 'Main Campus'}
                                         </span>
                                     </div>
                                 </div>
