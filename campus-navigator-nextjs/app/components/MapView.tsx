@@ -49,6 +49,10 @@ interface MapViewProps {
   onToggleSubtitles?: () => void;
   activeCategory?: string | null;
   simulationMode?: boolean;
+  buildings?: any[];
+  entrances?: any[];
+  selectedLandmark?: any;
+  onEntranceSelected?: (entrance: any) => void;
 }
 
 const GRAND_TOUR_PATH: [number, number][] = [
@@ -90,6 +94,10 @@ export default function MapView({
   onToggleSubtitles,
   activeCategory = null,
   simulationMode = false,
+  buildings = [],
+  entrances = [],
+  selectedLandmark = null,
+  onEntranceSelected,
 }: MapViewProps) {
   console.log("🗺️ MapView Rendering:", { isDemoMode, isGuidanceActive, isTourSimulation, startLocation });
   const mapRef = useRef<HTMLDivElement>(null);
@@ -131,6 +139,7 @@ export default function MapView({
   const simStartTimeRef = useRef<number | null>(null);
   const simSegmentDistRef = useRef<number>(0);
   const simSegmentDurationRef = useRef<number>(0);
+  const currentUserLocationRef = useRef<[number, number]>(defaultLocation);
 
   useEffect(() => {
     onSelectLandmarkRef.current = onSelectLandmark;
@@ -271,36 +280,26 @@ export default function MapView({
           data: { type: "FeatureCollection", features } as any,
         });
 
-        // 2b. Secondary Landmarks (Classrooms & Departments)
-        const secondaryRes = await fetch("/data/raw/mcc-secondary.json");
-        const secondaryData = await secondaryRes.json();
-        const secondaryFeatures: any[] = [];
-
-        // Departments (Secondary)
-        if (secondaryData.departments) {
-          secondaryData.departments.forEach((item: any) => {
-            secondaryFeatures.push({
-              type: "Feature",
-              properties: { ...item, isSecondary: true, type: "department" },
-              geometry: { type: "Point", coordinates: [item.lng, item.lat] },
-            });
-          });
-        }
-
-        // Classrooms (Secondary)
-        if (secondaryData.classrooms) {
-          secondaryData.classrooms.forEach((item: any) => {
-            secondaryFeatures.push({
-              type: "Feature",
-              properties: { ...item, isSecondary: true, type: "classroom" },
-              geometry: { type: "Point", coordinates: [item.lng, item.lat] },
-            });
-          });
-        }
-
-        map.addSource("secondary-landmarks", {
+        // 2b. Buildings Data
+        const buildingsRes = await fetch("/data/buildings.json");
+        const buildingsData = await buildingsRes.json();
+        
+        map.addSource("buildings", {
           type: "geojson",
-          data: { type: "FeatureCollection", features: secondaryFeatures } as any,
+          data: {
+            type: "FeatureCollection",
+            features: buildingsData.map((b: any) => ({
+              type: "Feature",
+              properties: { ...b },
+              geometry: { type: "Point", coordinates: [b.lng, b.lat] },
+            }))
+          } as any,
+        });
+
+        // Building Highlight Source
+        map.addSource("building-highlight", {
+          type: "geojson",
+          data: { type: "FeatureCollection", features: [] },
         });
 
         setAllLandmarks([
@@ -312,19 +311,6 @@ export default function MapView({
             navPrompt: f.properties.navPrompt,
             voice: f.properties.voice,
             category: f.properties.category,
-          })),
-          ...secondaryFeatures.map((f) => ({
-            id: f.properties.id,
-            name: f.properties.name,
-            lat: f.geometry.coordinates[1],
-            lng: f.geometry.coordinates[0],
-            navPrompt: f.properties.navPrompt,
-            voice: f.properties.voice,
-            category: f.properties.category,
-            isSecondary: true,
-            roomNumber: f.properties.roomNumber,
-            block: f.properties.block,
-            floor: f.properties.floor
           }))
         ]);
         setIsGraphReady(true);
@@ -390,94 +376,46 @@ export default function MapView({
           },
         });
 
-        // 2. Classrooms (Secondary) - Circular with Room Number
+        // 2c. Building Layers
         map.addLayer({
-          id: "secondary-classrooms-points",
-          type: "circle",
-          source: "secondary-landmarks",
-          filter: ["==", "type", "classroom"],
-          paint: {
-            "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 12, 18, 20],
-            "circle-color": [
-              "case",
-              ["match", ["slice", ["get", "id"], 0, 1], "S", true, false], "#ef4444", // Science - Red
-              ["match", ["slice", ["get", "id"], 0, 1], "C", true, false], "#eab308", // Commerce - Yellow
-              ["match", ["slice", ["get", "id"], 0, 1], "A", true, false], "#a855f7", // Arts - Purple
-              "#64748b" // Default
-            ],
-            "circle-stroke-width": 2,
-            "circle-stroke-color": "#ffffff",
-          },
-          layout: {
-            visibility: "none"
-          }
-        });
-
-        map.addLayer({
-          id: "secondary-classrooms-labels",
+          id: "building-markers",
           type: "symbol",
-          source: "secondary-landmarks",
-          filter: ["==", "type", "classroom"],
+          source: "buildings",
           layout: {
-            "text-field": ["get", "roomNumber"],
-            "text-size": 11,
-            "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+            "text-field": "🏢",
+            "text-size": 16,
             "text-allow-overlap": true,
-            visibility: "none"
           },
-          paint: {
-            "text-color": "#ffffff",
-          }
-        });
-
-        // 3. Departments (Secondary) - Blue with Building Icon
-        map.addLayer({
-          id: "secondary-departments-points",
-          type: "circle",
-          source: "secondary-landmarks",
-          filter: ["==", "type", "department"],
-          paint: {
-            "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 9, 18, 18],
-            "circle-color": "#3b82f6", // Distinct Blue
-            "circle-stroke-width": 2,
-            "circle-stroke-color": "#ffffff",
-          },
-          layout: { visibility: "none" }
         });
 
         map.addLayer({
-          id: "secondary-departments-icons",
+          id: "building-labels",
           type: "symbol",
-          source: "secondary-landmarks",
-          filter: ["==", "type", "department"],
+          source: "buildings",
           layout: {
-            "text-field": "🏢", // Building Icon
-            "text-size": 12,
-            "text-allow-overlap": true,
-            visibility: "none"
+            "text-field": ["get", "name"],
+            "text-size": ["interpolate", ["linear"], ["zoom"], 14, 0, 15, 12, 18, 14],
+            "text-offset": [0, 1.8],
+            "text-anchor": "top",
           },
-          paint: { "text-color": "#ffffff" },
-        });
-
-        // Add interaction for secondary layers
-        map.on("click", "secondary-departments-points", (e) => {
-          if (e.features && e.features[0]) {
-            const feature = e.features[0];
-            const coord = (feature.geometry as any).coordinates as [number, number];
-            if (onSelectLandmarkRef.current) {
-              onSelectLandmarkRef.current({ ...feature.properties, lng: coord[0], lat: coord[1] }, true);
-            }
+          paint: {
+            "text-color": mapStyle === "satellite" ? "#ffffff" : "#1e1b4b",
+            "text-halo-color": mapStyle === "satellite" ? "#000000" : "#ffffff",
+            "text-halo-width": 2,
           }
         });
 
-        map.on("click", "secondary-classrooms-points", (e) => {
-          if (e.features && e.features[0]) {
-            const feature = e.features[0];
-            const coord = (feature.geometry as any).coordinates as [number, number];
-            if (onSelectLandmarkRef.current) {
-              onSelectLandmarkRef.current({ ...feature.properties, lng: coord[0], lat: coord[1] }, true);
-            }
-          }
+        map.addLayer({
+          id: "building-highlight-layer",
+          type: "circle",
+          source: "building-highlight",
+          paint: {
+            "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 20, 18, 50],
+            "circle-color": "#2563eb",
+            "circle-opacity": 0.2,
+            "circle-stroke-width": 2,
+            "circle-stroke-color": "#2563eb",
+          },
         });
 
         // 3. Unified Walk Network
@@ -635,83 +573,96 @@ export default function MapView({
       primarySource.setData({ type: "FeatureCollection", features } as any);
     }
 
-    // 2. Secondary Landmarks Visibility & Filtering
-    const isClassroomFilter = activeCategory === "Classroom";
-    const isDeptFilter = activeCategory === "Department";
-
-    // Toggle Department Layer Visibility
-    const deptVisibility = isDeptFilter ? "visible" : "none";
-    if (map.getLayer("secondary-departments-points")) {
-      map.setLayoutProperty("secondary-departments-points", "visibility", deptVisibility);
-      map.setLayoutProperty("secondary-departments-icons", "visibility", deptVisibility);
+    // 2. Building Markers Visibility & Logic
+    const buildingSource = map.getSource("buildings") as maplibregl.GeoJSONSource;
+    if (buildingSource && buildings.length) {
+      const features = buildings.map((b) => ({
+        type: "Feature",
+        properties: { ...b },
+        geometry: { type: "Point", coordinates: [b.lng, b.lat] },
+      }));
+      buildingSource.setData({ type: "FeatureCollection", features } as any);
     }
 
-    // Toggle Classroom Layer Visibility
-    const classroomVisibility = isClassroomFilter ? "visible" : "none";
-    if (map.getLayer("secondary-classrooms-points")) {
-      map.setLayoutProperty("secondary-classrooms-points", "visibility", classroomVisibility);
-      map.setLayoutProperty("secondary-classrooms-labels", "visibility", classroomVisibility);
+    // 3. Handle Highlight and View Logic for selectedLandmark
+    if (selectedLandmark) {
+      const highlightSource = map.getSource("building-highlight") as maplibregl.GeoJSONSource;
+      let buildingId = selectedLandmark.type === "building" ? selectedLandmark.id : selectedLandmark.buildingId;
+      
+      if (buildingId && highlightSource) {
+        const building = buildings.find(b => b.id === buildingId);
+        if (building) {
+          highlightSource.setData({
+            type: "FeatureCollection",
+            features: [{
+              type: "Feature",
+              geometry: { type: "Point", coordinates: [building.lng, building.lat] },
+              properties: {}
+            }]
+          } as any);
+          
+          // If room search triggered this, we might want to zoom slightly more
+          const zoomLevel = selectedLandmark.type === "room" ? 18.5 : 17.5;
+          map.easeTo({
+            center: [building.lng, building.lat],
+            zoom: zoomLevel,
+            duration: 1500
+          });
+        }
+      } else if (highlightSource) {
+        // Clear highlight if not a building/room
+        highlightSource.setData({ type: "FeatureCollection", features: [] } as any);
+      }
     }
+  }, [activeCategory, allLandmarks, buildings, selectedLandmark]);
 
-    // Auto-fit bounds if a category is active
-    const filteredAll = activeCategory
-      ? allLandmarks.filter((l) => l.category === activeCategory)
-      : filteredPrimary; // Default to primary if no category
-
-    if (activeCategory && filteredAll.length > 0) {
-      const bounds = new maplibregl.LngLatBounds();
-      filteredAll.forEach((l) => bounds.extend([l.lng, l.lat]));
-      map.fitBounds(bounds, {
-        padding: 80,
-        duration: 1200,
-        essential: true,
-      });
-    }
-  }, [activeCategory, allLandmarks]);
-
-  // Zoom to Destination & Marker Priority (ALWAYS show selected secondary marker)
+  // Zoom to Destination & Nearest Entrance Calculation
   useEffect(() => {
     if (!mapInstance.current || !destination || isGuidanceActive) return;
     const map = mapInstance.current;
 
+    let targetDest = destination;
+    let targetZoom = 18;
+
+    // Handle Optional Coordinates & Type-Specific Logic
+    const destType = selectedLandmark?.type || "landmark";
+
+    if (destType === "room" && entrances.length) {
+      const buildingEntrances = entrances.filter(e => e.buildingId === selectedLandmark.buildingId);
+      if (buildingEntrances.length) {
+        // Calculate nearest entrance to user location (startLocation or map center if unknown)
+        const origin: [number, number] = startLocation || currentUserLocationRef.current || [80.120584, 12.923163];
+        
+        let nearest = buildingEntrances[0];
+        let minDist = distance(origin, [nearest.lng, nearest.lat]);
+
+        buildingEntrances.forEach(ent => {
+          const d = distance(origin, [ent.lng, ent.lat]);
+          if (d < minDist) {
+            minDist = d;
+            nearest = ent;
+          }
+        });
+
+        console.log(`📍 Nearest entrance to building ${selectedLandmark.buildingId} is ${nearest.name}`);
+        targetDest = [nearest.lng, nearest.lat];
+        targetZoom = 18.5; // Zoom in closer for rooms
+
+        // SYNC ENTRANCE TO PARENT
+        if (onEntranceSelected) {
+          onEntranceSelected(nearest);
+        }
+      }
+    } else if (destType === "building") {
+      targetZoom = 17.5;
+    }
+
     map.easeTo({
-      center: destination,
-      zoom: 18,
+      center: targetDest,
+      zoom: targetZoom,
       duration: 1200,
     });
-
-    // MARKER PRIORITY LOGIC
-    // Find if destination matches any secondary landmark
-    const destLandmark = allLandmarks.find(l =>
-      Math.abs(l.lng - destination[0]) < 0.00001 &&
-      Math.abs(l.lat - destination[1]) < 0.00001
-    );
-
-    if (destLandmark?.isSecondary) {
-      if (destLandmark.category === "Classroom") {
-        // Filter the layer to ONLY show this specific classroom OR classrooms matching the current filter
-        const isClassroomFilter = activeCategory === "Classroom";
-        const filter = isClassroomFilter
-          ? ["==", "type", "classroom"]
-          : ["all", ["==", "type", "classroom"], ["==", "id", destLandmark.id]];
-
-        map.setFilter("secondary-classrooms-points", filter as any);
-        map.setFilter("secondary-classrooms-labels", filter as any);
-        map.setLayoutProperty("secondary-classrooms-points", "visibility", "visible");
-        map.setLayoutProperty("secondary-classrooms-labels", "visibility", "visible");
-      } else if (destLandmark.category === "Department") {
-        const isDeptFilter = activeCategory === "Department";
-        const filter = isDeptFilter
-          ? ["==", "type", "department"]
-          : ["all", ["==", "type", "department"], ["==", "id", destLandmark.id]];
-
-        map.setFilter("secondary-departments-points", filter as any);
-        map.setFilter("secondary-departments-icons", filter as any);
-        map.setLayoutProperty("secondary-departments-points", "visibility", "visible");
-        map.setLayoutProperty("secondary-departments-icons", "visibility", "visible");
-      }
-    }
-  }, [destination, isGuidanceActive, allLandmarks, activeCategory]);
+  }, [destination, isGuidanceActive, selectedLandmark, entrances, startLocation, onEntranceSelected]);
 
   // Reset Map View when Navigation or Tour Ends
   const prevGuidanceRef = useRef(isGuidanceActive);

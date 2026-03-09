@@ -1,0 +1,30 @@
+[
+  {
+    "id": "science_block",
+    "name": "Science Block",
+    "lat": 12.92134,
+    "lng": 80.12318,
+    "block": "science"
+  },
+  {
+    "id": "commerce_block",
+    "name": "Commerce Block",
+    "lat": 12.92296,
+    "lng": 80.11967,
+    "block": "commerce"
+  },
+  {
+    "id": "arts_block",
+    "name": "Arts Block",
+    "lat": 12.92163,
+    "lng": 80.12134,
+    "block": "arts"
+  },
+  {
+    "id": "main_building",
+    "name": "Main Building",
+    "lat": 12.92122,
+    "lng": 80.12211,
+    "block": "general"
+  }
+]

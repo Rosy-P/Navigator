@@ -11,8 +11,16 @@ import { SpeechService } from '../speech/SpeechService';
 
 export interface Landmark {
   id?: string;
+  name: string;
   lat: number;
   lng: number;
+  type?: string;
+  buildingId?: string;
+  buildingName?: string;
+  block?: string;
+  roomNumber?: string;
+  floor?: number | string;
+  category?: string;
   voice?: {
     navigation?: string; // Used for "Brief" narration
     tour?: string;       // Used for "Rich" narration

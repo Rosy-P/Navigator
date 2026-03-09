@@ -64,7 +64,8 @@ function HomeContent() {
   const [showSubtitles, setShowSubtitles] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [isEventsOpen, setIsEventsOpen] = useState(false);
-  const [selectedDestination, setSelectedDestination] = useState<string | null>(null);
+  const [selectedDestination, setSelectedDestination] = useState<any | null>(null);
+  const [selectedEntrance, setSelectedEntrance] = useState<any | null>(null);
   const [navigationSource, setNavigationSource] = useState<"facilities" | "events" | null>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -78,6 +79,10 @@ function HomeContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredResults, setFilteredResults] = useState<any[]>([]);
   const [allLandmarks, setAllLandmarks] = useState<any[]>([]);
+  const [buildings, setBuildings] = useState<any[]>([]);
+  const [entrances, setEntrances] = useState<any[]>([]);
+  const [rooms, setRooms] = useState<any[]>([]);
+  const [isRoomsLoaded, setIsRoomsLoaded] = useState(false);
   const [connectors, setConnectors] = useState<any[]>([]);
 
   // DEBUG: Track markerLocation and destination changes
@@ -115,29 +120,32 @@ function HomeContent() {
     });
   }, []);
 
-  // Fetch landmarks for search
+  // Fetch initial data (Landmarks, Buildings, Entrances)
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [primaryRes, secondaryRes, connectorsRes] = await Promise.all([
+        const [primaryRes, buildingsRes, entrancesRes, connectorsRes] = await Promise.all([
           fetch("/data/raw/mcc-landmarks.json"),
-          fetch("/data/raw/mcc-secondary.json"),
+          fetch("/data/buildings.json"),
+          fetch("/data/entrances.json"),
           fetch("/data/final/mcc-connectors.final.geojson")
         ]);
 
         const primaryData = await primaryRes.json();
-        const secondaryData = await secondaryRes.json();
+        const buildingsData = await buildingsRes.json();
+        const entrancesData = await entrancesRes.json();
         const connectorsData = await connectorsRes.json();
 
-        const flattened = [
+        const initialLandmarks = [
           ...(primaryData.classrooms || []),
           ...(primaryData.departments || []),
           ...(primaryData.facilities || []),
-          ...(secondaryData.classrooms || []).map((c: any) => ({ ...c, isSecondary: true })),
-          ...(secondaryData.departments || []).map((d: any) => ({ ...d, isSecondary: true }))
+          ...buildingsData.map((b: any) => ({ ...b, category: "Building", type: "building" }))
         ];
 
-        setAllLandmarks(flattened);
+        setAllLandmarks(initialLandmarks);
+        setBuildings(buildingsData);
+        setEntrances(entrancesData);
         setConnectors(connectorsData.features || []);
       } catch (err) {
         console.error("Error fetching map data:", err);
@@ -146,6 +154,35 @@ function HomeContent() {
 
     fetchData();
   }, []);
+
+  // Lazy load rooms when search is focused
+  useEffect(() => {
+    if (isSearchFocused && !isRoomsLoaded) {
+      const loadRooms = async () => {
+        try {
+          const res = await fetch("/data/rooms.json");
+          const roomsData = await res.json();
+          setRooms(roomsData);
+          setAllLandmarks(prev => [
+            ...prev,
+            ...roomsData.map((r: any) => ({
+              id: `room-${r.room}`,
+              name: r.room,
+              type: "room",
+              category: "Classroom",
+              buildingId: r.buildingId,
+              buildingName: r.buildingName,
+              floor: r.floor
+            }))
+          ]);
+          setIsRoomsLoaded(true);
+        } catch (err) {
+          console.error("Error loading rooms:", err);
+        }
+      };
+      loadRooms();
+    }
+  }, [isSearchFocused, isRoomsLoaded]);
 
   // Filter landmarks logic
   useEffect(() => {
@@ -157,9 +194,10 @@ function HomeContent() {
     const query = searchQuery.toLowerCase();
     const filtered = allLandmarks.filter(l =>
       l.name.toLowerCase().includes(query) ||
-      l.category.toLowerCase().includes(query)
-    ).slice(0, 6); // Limit to top 6
-    console.log(`🔎 Search query: "${searchQuery}" found ${filtered.length} results:`, filtered.map(f => f.name));
+      (l.category && l.category.toLowerCase().includes(query)) ||
+      (l.buildingName && l.buildingName.toLowerCase().includes(query)) ||
+      (l.room && l.room.toLowerCase().includes(query))
+    ).slice(0, 10);
     setFilteredResults(filtered);
     setSelectedIndex(-1);
   }, [searchQuery, allLandmarks]);
@@ -224,11 +262,29 @@ function HomeContent() {
 
     // 2. Logic for authenticated user
     const effectiveId = landmark.landmarkId || landmark.id;
-    const landmarkPos: [number, number] = [landmark.lng, landmark.lat];
+    let landmarkPos: [number, number] | undefined = [landmark.lng, landmark.lat];
 
-    // Requirement: Open panel immediately on click
-    console.log("🔍 Selection: Opening landmark:", landmark.name, "ID:", effectiveId);
-    setSelectedLandmark(landmark);
+    // Normalize Destination Type
+    let normalizedLandmark = { ...landmark };
+    if (!landmark.type) {
+      if (landmark.category === "Classroom") normalizedLandmark.type = "room";
+      else if (landmark.category === "Building") normalizedLandmark.type = "building";
+      else normalizedLandmark.type = "landmark";
+    }
+
+    // Coordinates are optional for rooms
+    if (normalizedLandmark.type === "room") {
+      landmarkPos = undefined;
+      const building = buildings.find(b => b.id === landmark.buildingId);
+      if (building) {
+        // Initial view can be building center
+        landmarkPos = [building.lng, building.lat];
+      }
+    }
+
+    console.log("🔍 Selection: Opening:", normalizedLandmark.name, "Type:", normalizedLandmark.type);
+    setSelectedLandmark(normalizedLandmark);
+    setSelectedEntrance(null); // Reset entrance for new selection
     setIsSidebarCollapsed(true);
     setIsPlanning(!!startLocation);
     setRouteInfo(null);
@@ -241,14 +297,9 @@ function HomeContent() {
     );
 
     if (connector) {
-      console.log("✅ Connector found for:", landmark.name, connector);
-      // SIMPLIFIED: Route directly to landmark position for both destination and marker
-      // This ensures marker always appears at the correct location
       setDestination(landmarkPos);
       setMarkerLocation(landmarkPos);
-      console.log("🎯 Routing to landmark position:", landmarkPos);
     } else {
-      console.warn("❌ No connector found for:", landmark.name, "- routing directly.");
       setDestination(landmarkPos);
       setMarkerLocation(landmarkPos);
     }
@@ -314,7 +365,15 @@ function HomeContent() {
     }
   }, [allLandmarks, searchParams, handleSelectLandmark]);
 
-  const handleSearch = useCallback((query: string) => {
+  const handleSearch = useCallback((query: string | any) => {
+    if (!query) return;
+    
+    // If we're passed a full object, we already have what we need
+    if (typeof query !== 'string') {
+      handleSelectLandmark(query);
+      return;
+    }
+
     const normalizedQuery = query.toLowerCase().trim();
     // Try to find landmark by name or ID
     const landmark = allLandmarks.find(l =>
@@ -331,7 +390,7 @@ function HomeContent() {
   useEffect(() => {
     if (selectedDestination) {
       handleSearch(selectedDestination);
-      setSelectedDestination(null); // Reset after search
+      setSelectedDestination(null); // Only clear if we processed it
     }
   }, [selectedDestination, handleSearch]);
 
@@ -540,6 +599,10 @@ function HomeContent() {
             showSubtitles={showSubtitles}
             onToggleSubtitles={() => setShowSubtitles(prev => !prev)}
             simulationMode={simulationMode}
+            buildings={buildings}
+            entrances={entrances}
+            selectedLandmark={selectedLandmark}
+            onEntranceSelected={setSelectedEntrance}
           />
 
 
@@ -660,6 +723,8 @@ function HomeContent() {
               setUiState("NAVIGATION_ACTIVE");
             }}
             simulationMode={simulationMode}
+            entrance={selectedEntrance}
+            theme={theme}
           />
 
         )}

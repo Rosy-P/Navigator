@@ -1,0 +1,458 @@
+[
+  {
+    "room": "C101",
+    "buildingId": "commerce_block",
+    "buildingName": "Commerce Block",
+    "floor": "0"
+  },
+  {
+    "room": "C102",
+    "buildingId": "commerce_block",
+    "buildingName": "Commerce Block",
+    "floor": "0"
+  },
+  {
+    "room": "C103",
+    "buildingId": "commerce_block",
+    "buildingName": "Commerce Block",
+    "floor": "0"
+  },
+  {
+    "room": "C104",
+    "buildingId": "commerce_block",
+    "buildingName": "Commerce Block",
+    "floor": "0"
+  },
+  {
+    "room": "C201",
+    "buildingId": "commerce_block",
+    "buildingName": "Commerce Block",
+    "floor": "1"
+  },
+  {
+    "room": "C202",
+    "buildingId": "commerce_block",
+    "buildingName": "Commerce Block",
+    "floor": "1"
+  },
+  {
+    "room": "C203",
+    "buildingId": "commerce_block",
+    "buildingName": "Commerce Block",
+    "floor": "1"
+  },
+  {
+    "room": "C204",
+    "buildingId": "commerce_block",
+    "buildingName": "Commerce Block",
+    "floor": "1"
+  },
+  {
+    "room": "A118",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A117",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A116",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A114",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A112",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A111",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A110",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A108",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A107",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A106",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A105",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A104",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A103",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A102",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A101",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A129",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A126",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A127",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A128",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A120",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A119",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A118",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A123",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A121",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A218",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A215",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A214",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A213",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A212",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A113",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A210",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A208",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A207",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A206",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A205",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A203",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A202",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A201",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A204",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A200",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A231",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "A113",
+    "buildingId": "arts_block",
+    "buildingName": "Arts Block",
+    "floor": "0"
+  },
+  {
+    "room": "S221",
+    "buildingId": "science_block",
+    "buildingName": "Science Block",
+    "floor": "0"
+  },
+  {
+    "room": "S222",
+    "buildingId": "science_block",
+    "buildingName": "Science Block",
+    "floor": "0"
+  },
+  {
+    "room": "S220",
+    "buildingId": "science_block",
+    "buildingName": "Science Block",
+    "floor": "0"
+  },
+  {
+    "room": "S219",
+    "buildingId": "science_block",
+    "buildingName": "Science Block",
+    "floor": "0"
+  },
+  {
+    "room": "S217",
+    "buildingId": "science_block",
+    "buildingName": "Science Block",
+    "floor": "0"
+  },
+  {
+    "room": "S103",
+    "buildingId": "science_block",
+    "buildingName": "Science Block",
+    "floor": "0"
+  },
+  {
+    "room": "S102",
+    "buildingId": "science_block",
+    "buildingName": "Science Block",
+    "floor": "0"
+  },
+  {
+    "room": "S101",
+    "buildingId": "science_block",
+    "buildingName": "Science Block",
+    "floor": "0"
+  },
+  {
+    "room": "S125",
+    "buildingId": "science_block",
+    "buildingName": "Science Block",
+    "floor": "0"
+  },
+  {
+    "room": "S123",
+    "buildingId": "science_block",
+    "buildingName": "Science Block",
+    "floor": "0"
+  },
+  {
+    "room": "S122",
+    "buildingId": "science_block",
+    "buildingName": "Science Block",
+    "floor": "0"
+  },
+  {
+    "room": "S121",
+    "buildingId": "science_block",
+    "buildingName": "Science Block",
+    "floor": "0"
+  },
+  {
+    "room": "S216",
+    "buildingId": "science_block",
+    "buildingName": "Science Block",
+    "floor": "0"
+  },
+  {
+    "room": "S107",
+    "buildingId": "science_block",
+    "buildingName": "Science Block",
+    "floor": "0"
+  },
+  {
+    "room": "S109",
+    "buildingId": "science_block",
+    "buildingName": "Science Block",
+    "floor": "0"
+  },
+  {
+    "room": "S218",
+    "buildingId": "science_block",
+    "buildingName": "Science Block",
+    "floor": "0"
+  },
+  {
+    "room": "S201",
+    "buildingId": "science_block",
+    "buildingName": "Science Block",
+    "floor": "0"
+  },
+  {
+    "room": "S202",
+    "buildingId": "science_block",
+    "buildingName": "Science Block",
+    "floor": "0"
+  },
+  {
+    "room": "S203",
+    "buildingId": "science_block",
+    "buildingName": "Science Block",
+    "floor": "0"
+  },
+  {
+    "room": "S205",
+    "buildingId": "science_block",
+    "buildingName": "Science Block",
+    "floor": "0"
+  },
+  {
+    "room": "S207",
+    "buildingId": "science_block",
+    "buildingName": "Science Block",
+    "floor": "0"
+  },
+  {
+    "room": "S208",
+    "buildingId": "science_block",
+    "buildingName": "Science Block",
+    "floor": "0"
+  },
+  {
+    "room": "S209",
+    "buildingId": "science_block",
+    "buildingName": "Science Block",
+    "floor": "0"
+  },
+  {
+    "room": "S210",
+    "buildingId": "science_block",
+    "buildingName": "Science Block",
+    "floor": "0"
+  },
+  {
+    "room": "S211",
+    "buildingId": "science_block",
+    "buildingName": "Science Block",
+    "floor": "0"
+  },
+  {
+    "room": "S212",
+    "buildingId": "science_block",
+    "buildingName": "Science Block",
+    "floor": "0"
+  }
+]

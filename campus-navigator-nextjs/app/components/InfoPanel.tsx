@@ -23,7 +23,9 @@ interface Landmark {
 }
 
 interface InfoPanelProps {
-    landmark: Landmark;
+    landmark: any; // Using any for flexibility during migration, but ideally based on DestinationType
+    destination?: any; 
+    entrance?: any;
     startLabel?: string;
     isPlanning: boolean;
     isNavigationActive?: boolean;
@@ -38,10 +40,12 @@ interface InfoPanelProps {
     onStartNavigation: (coord: [number, number]) => void;
     onStartDemo: () => void;
     simulationMode?: boolean;
+    theme?: "light" | "dark";
 }
 
 export default function InfoPanel({
-    landmark,
+    landmark: destination, // Renaming for internal clarity
+    entrance,
     startLabel = "Current Location",
     isPlanning,
     isNavigationActive,
@@ -55,9 +59,10 @@ export default function InfoPanel({
     onPickOnMap,
     onStartNavigation,
     onStartDemo,
-    simulationMode = false
+    simulationMode = false,
+    theme = "light"
 }: InfoPanelProps) {
-    if (!landmark) return null;
+    if (!destination) return null;
 
     // Map internal state names to CSS height classes for mobile
     const hClasses = {
@@ -85,9 +90,9 @@ export default function InfoPanel({
         return undefined;
     };
 
-    const displayImage = getImageUrl(landmark.images) || "https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=800&q=80";
+    const displayImage = getImageUrl(destination.images) || "https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=800&q=80";
 
-    const secondaryImage = getImageUrl(Array.isArray(landmark.images) ? landmark.images[1] : undefined) || "https://images.unsplash.com/photo-1541339907198-e08756eaa539?auto=format&fit=crop&w=800&q=80";
+    const secondaryImage = getImageUrl(Array.isArray(destination.images) ? destination.images[1] : undefined) || "https://images.unsplash.com/photo-1541339907198-e08756eaa539?auto=format&fit=crop&w=800&q=80";
 
     return (
         <div
@@ -119,7 +124,7 @@ export default function InfoPanel({
                     <div className="relative h-[160px] md:h-[180px] 2xl:h-[220px] w-full overflow-hidden flex-shrink-0 bg-slate-200">
                         <Image
                             src={displayImage}
-                            alt={landmark.name}
+                            alt={destination.name}
                             fill
                             className="object-cover"
                             unoptimized={displayImage.includes("unsplash.com")}
@@ -140,29 +145,38 @@ export default function InfoPanel({
                     <div className="flex-1 overflow-y-auto custom-scrollbar" onClick={(e) => e.stopPropagation()}>
                         <div className="p-4 2xl:p-6 pb-8">
                             {/* Title & Category Info */}
-                            <div className="mb-4 2xl:mb-5">
-                                {landmark.category === "Classroom" ? (
+                             <div className="mb-4 2xl:mb-5">
+                                {destination.type === "room" ? (
                                     <>
-                                        <h2 className="text-[17px] 2xl:text-xl font-black text-[#111827] leading-tight mb-1 font-sans">{landmark.block}</h2>
-                                        <p className="text-[14px] 2xl:text-base font-bold text-slate-700 leading-tight mb-0.5">Room {landmark.name}</p>
+                                        <h2 className="text-[17px] 2xl:text-xl font-black text-[#111827] leading-tight mb-1 font-sans">
+                                            {destination.buildingName || "Science Block"}
+                                        </h2>
+                                        <p className="text-[14px] 2xl:text-base font-bold text-slate-700 leading-tight mb-0.5">Room {destination.name}</p>
                                         <p className="text-[11px] 2xl:text-xs font-bold text-slate-400 uppercase tracking-tighter">
-                                            {typeof landmark.floor === 'number'
-                                                ? (landmark.floor === 0 ? "Ground Floor" : landmark.floor === 1 ? "First Floor" : `${landmark.floor}${["st", "nd", "rd"][((landmark.floor + 90) % 100 - 10) % 10 - 1] || "th"} Floor`)
-                                                : landmark.floor || "General Area"}
+                                            {typeof destination.floor === 'number'
+                                                ? (destination.floor === 0 ? "Ground Floor" : destination.floor === 1 ? "First Floor" : `${destination.floor}th Floor`)
+                                                : `Floor ${destination.floor || "?"}`}
+                                        </p>
+                                    </>
+                                ) : destination.type === "building" ? (
+                                    <>
+                                        <h2 className="text-[17px] 2xl:text-xl font-black text-[#111827] leading-tight mb-1 font-sans">{destination.name}</h2>
+                                        <p className="text-[11px] 2xl:text-xs font-bold text-slate-400 uppercase tracking-tighter">
+                                            Major Campus Block • Built for Excellence
                                         </p>
                                     </>
                                 ) : (
                                     <>
-                                        <h2 className="text-[17px] 2xl:text-xl font-black text-[#111827] leading-tight mb-1 font-sans">{landmark.name}</h2>
+                                        <h2 className="text-[17px] 2xl:text-xl font-black text-[#111827] leading-tight mb-1 font-sans">{destination.name}</h2>
                                         <p className="text-[11px] 2xl:text-xs font-bold text-slate-400 uppercase tracking-tighter">
-                                            {landmark.category || "Location"} • {landmark.address?.includes("Main") ? "Main Campus" : "MCC Campus"}
+                                            {destination.category || "Landmark"} • {destination.address?.includes("Main") ? "Main Campus" : "MCC Campus"}
                                         </p>
                                     </>
                                 )}
                             </div>
 
-                            {/* Action Buttons Row */}
-                            <div className="flex justify-around mb-5 2xl:mb-7 border-b border-slate-50 pb-5 2xl:pb-7">
+
+                            {/* Action Buttons Row */}                             <div className="flex justify-around mb-5 2xl:mb-7 border-b border-slate-50 pb-5 2xl:pb-7">
                                 <ActionButton
                                     icon={<Navigation size={16} className="fill-current 2xl:w-4 2xl:h-4" />}
                                     label="Navigate"
@@ -171,7 +185,7 @@ export default function InfoPanel({
                                 <ActionButton
                                     icon={<Play size={16} className="fill-current 2xl:w-4 2xl:h-4" />}
                                     label="Start"
-                                    onClick={() => onStartNavigation([landmark.lng, landmark.lat])}
+                                    onClick={() => onStartNavigation([destination.lng, destination.lat])}
                                 />
                                 <ActionButton
                                     icon={<Bookmark size={16} className="2xl:w-4 2xl:h-4" />}
@@ -179,38 +193,54 @@ export default function InfoPanel({
                                 />
                             </div>
 
-                            {/* About section */}
-                            <div className="mb-5 2xl:mb-7">
-                                <div className="flex items-center gap-2 mb-3 2xl:mb-4">
-                                    <div className="w-3.5 h-3.5 2xl:w-4 2xl:h-4 bg-[#fb923c] rounded-[3px] flex items-center justify-center">
-                                        <Info size={9} className="text-white fill-white" />
+                            {/* Navigation Target (Entrance) Info */}
+                            {entrance && (
+                                <div className={`mb-5 p-3 rounded-2xl border ${theme === 'dark' ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <Target size={14} className="text-orange-500" />
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Navigation Target</span>
                                     </div>
-                                    <h3 className="font-black text-slate-800 text-[11px] 2xl:text-xs uppercase tracking-widest">About</h3>
+                                    <p className={`text-xs font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+                                        {destination.buildingName || "Building"} {entrance.name}
+                                    </p>
                                 </div>
+                            )}
 
-                                <p className="text-[12px] 2xl:text-sm text-slate-600 leading-relaxed mb-4">
-                                    {landmark.description || "Premium campus facility offering state-of-the-art resources and accessibility for all students."}
-                                </p>
+                            {/* About section */}
+                            {!destination.isSecondary && (
+                                <div className="mb-5 2xl:mb-7">
+                                    <div className="flex items-center gap-2 mb-3 2xl:mb-4">
+                                        <div className="w-3.5 h-3.5 2xl:w-4 2xl:h-4 bg-[#fb923c] rounded-[3px] flex items-center justify-center">
+                                            <Info size={9} className="text-white fill-white" />
+                                        </div>
+                                        <h3 className="font-black text-slate-800 text-[11px] 2xl:text-xs uppercase tracking-widest">About</h3>
+                                    </div>
 
-                                <ul className="space-y-1.5 2xl:space-y-2">
-                                    {landmark.hours && <AboutItem label={`Hours: ${landmark.hours}`} />}
-                                    {landmark.phone && <AboutItem label={`Phone: ${landmark.phone}`} />}
-                                    {landmark.website && (
-                                        <li className="flex items-center gap-2 border-b border-slate-50 pb-1.5 last:border-0">
-                                            <div className="w-0.5 h-0.5 bg-[#fb923c] rounded-full opacity-40" />
-                                            <a
-                                                href={landmark.website}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="text-[11px] font-bold text-orange-600 hover:underline truncate"
-                                            >
-                                                Website
-                                            </a>
-                                        </li>
-                                    )}
-                                    {landmark.address && <AboutItem label={landmark.address} />}
-                                </ul>
-                            </div>
+                                    <p className="text-[12px] 2xl:text-sm text-slate-600 leading-relaxed mb-4">
+                                        {destination.description || "Premium campus facility offering state-of-the-art resources and accessibility for all students."}
+                                    </p>
+
+                                    <ul className="space-y-1.5 2xl:space-y-2">
+                                        {destination.hours && <AboutItem label={`Hours: ${destination.hours}`} />}
+                                        {destination.phone && <AboutItem label={`Phone: ${destination.phone}`} />}
+                                        {destination.website && (
+                                            <li className="flex items-center gap-2 border-b border-slate-50 pb-1.5 last:border-0">
+                                                <div className="w-0.5 h-0.5 bg-[#fb923c] rounded-full opacity-40" />
+                                                <a
+                                                    href={destination.website}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-[11px] font-bold text-orange-600 hover:underline truncate"
+                                                >
+                                                    Website
+                                                </a>
+                                            </li>
+                                        )}
+                                        {destination.address && <AboutItem label={destination.address} />}
+                                    </ul>
+                                </div>
+                            )}
+
 
                             {/* Photos section */}
                             <div>
@@ -305,7 +335,7 @@ export default function InfoPanel({
                                     <MapPin size={16} fill="currentColor" />
                                 </div>
                                 <div className="text-left">
-                                    <p className="text-[13px] 2xl:text-base font-black text-[#111827]">{landmark.name}</p>
+                                    <p className="text-[13px] 2xl:text-base font-black text-[#111827]">{destination.name}</p>
                                     <p className="text-[10px] 2xl:text-[11px] font-bold text-slate-400 uppercase leading-tight">Selected Target</p>
                                 </div>
                             </div>
@@ -337,7 +367,7 @@ export default function InfoPanel({
                         )}
                         <button
                             disabled={!startLabel}
-                            onClick={() => onStartNavigation([landmark.lng, landmark.lat])}
+                            onClick={() => onStartNavigation([destination.lng, destination.lat])}
                             className={`w-full h-12 2xl:h-14 rounded-xl 2xl:rounded-2xl font-black text-[14px] 2xl:text-base flex items-center justify-center gap-2 transition-all active:scale-95 shadow-md ${!startLabel
                                 ? "bg-slate-100 text-slate-400 cursor-not-allowed"
                                 : "bg-[#111827] text-white hover:bg-[#fb923c]"
