@@ -281,19 +281,12 @@ export default function MapView({
         });
 
         // 2b. Buildings Data
-        const buildingsRes = await fetch("/data/buildings.json");
-        const buildingsData = await buildingsRes.json();
+        const buildingsRes = await fetch("/data/buildings.geojson");
+        const buildingsGeoJSON = await buildingsRes.json();
         
         map.addSource("buildings", {
           type: "geojson",
-          data: {
-            type: "FeatureCollection",
-            features: buildingsData.map((b: any) => ({
-              type: "Feature",
-              properties: { ...b },
-              geometry: { type: "Point", coordinates: [b.lng, b.lat] },
-            }))
-          } as any,
+          data: buildingsGeoJSON,
         });
 
         // Building Highlight Source
@@ -378,13 +371,44 @@ export default function MapView({
 
         // 2c. Building Layers
         map.addLayer({
+          id: "building-fills",
+          type: "fill",
+          source: "buildings",
+          paint: {
+            "fill-color": ["coalesce", ["get", "color"], "#3b82f6"],
+            "fill-opacity": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              15,
+              0.1,
+              16,
+              0.2,
+              18,
+              0.3
+            ],
+          },
+        });
+
+        map.addLayer({
+          id: "building-outlines",
+          type: "line",
+          source: "buildings",
+          paint: {
+            "line-color": ["coalesce", ["get", "color"], "#2563eb"],
+            "line-width": ["interpolate", ["linear"], ["zoom"], 15, 1, 18, 3],
+            "line-opacity": 0.8,
+          },
+        });
+
+        map.addLayer({
           id: "building-markers",
           type: "symbol",
           source: "buildings",
           layout: {
             "text-field": "🏢",
-            "text-size": 16,
-            "text-allow-overlap": true,
+            "text-size": ["interpolate", ["linear"], ["zoom"], 15, 0, 16, 16],
+            "text-allow-overlap": false,
           },
         });
 
@@ -407,15 +431,23 @@ export default function MapView({
 
         map.addLayer({
           id: "building-highlight-layer",
-          type: "circle",
+          type: "fill",
           source: "building-highlight",
           paint: {
-            "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 20, 18, 50],
-            "circle-color": "#2563eb",
-            "circle-opacity": 0.2,
-            "circle-stroke-width": 2,
-            "circle-stroke-color": "#2563eb",
+            "fill-color": "#2563eb",
+            "fill-opacity": 0.4,
+            "fill-outline-color": "#1d4ed8",
           },
+        });
+
+        map.addLayer({
+          id: "building-highlight-outline",
+          type: "line",
+          source: "building-highlight",
+          paint: {
+            "line-color": "#2563eb",
+            "line-width": 4,
+          }
         });
 
         // 3. Unified Walk Network
@@ -576,12 +608,17 @@ export default function MapView({
     // 2. Building Markers Visibility & Logic
     const buildingSource = map.getSource("buildings") as maplibregl.GeoJSONSource;
     if (buildingSource && buildings.length) {
-      const features = buildings.map((b) => ({
-        type: "Feature",
-        properties: { ...b },
-        geometry: { type: "Point", coordinates: [b.lng, b.lat] },
-      }));
-      buildingSource.setData({ type: "FeatureCollection", features } as any);
+      // In polygon mode, the source is already loaded with GeoJSON in loadResources
+      // But if we want to sync it with properties from props:
+      const features = buildings.map((b) => {
+        // If 'b' is a GeoJSON Feature, use it, else try to find the feature by ID
+        if (b.type === "Feature") return b;
+        return null;
+      }).filter(Boolean);
+      
+      if (features.length > 0) {
+        buildingSource.setData({ type: "FeatureCollection", features } as any);
+      }
     }
 
     // 3. Handle Highlight and View Logic for selectedLandmark
@@ -590,21 +627,29 @@ export default function MapView({
       let buildingId = selectedLandmark.type === "building" ? selectedLandmark.id : selectedLandmark.buildingId;
       
       if (buildingId && highlightSource) {
-        const building = buildings.find(b => b.id === buildingId);
-        if (building) {
+        // Find the feature in the buildings GeoJSON
+        const buildingFeature = buildings.find(b => (b.id === buildingId || b.properties?.id === buildingId));
+        if (buildingFeature) {
           highlightSource.setData({
             type: "FeatureCollection",
-            features: [{
+            features: [buildingFeature.type === "Feature" ? buildingFeature : {
               type: "Feature",
-              geometry: { type: "Point", coordinates: [building.lng, building.lat] },
-              properties: {}
+              geometry: buildingFeature.geometry,
+              properties: buildingFeature.properties || buildingFeature
             }]
           } as any);
           
+          // Calculate center for zooming
+          const coords = buildingFeature.geometry?.coordinates[0];
+          const center: [number, number] = coords ? [
+            coords.reduce((acc: number, curr: number[]) => acc + curr[0], 0) / coords.length,
+            coords.reduce((acc: number, curr: number[]) => acc + curr[1], 0) / coords.length
+          ] : [buildingFeature.lng, buildingFeature.lat];
+
           // If room search triggered this, we might want to zoom slightly more
           const zoomLevel = selectedLandmark.type === "room" ? 18.5 : 17.5;
           map.easeTo({
-            center: [building.lng, building.lat],
+            center: center,
             zoom: zoomLevel,
             duration: 1500
           });

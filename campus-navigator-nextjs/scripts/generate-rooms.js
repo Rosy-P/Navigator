@@ -1,11 +1,12 @@
 const fs = require('fs');
 
 const secondaryDataPath = 'c:\\Users\\acer\\OneDrive\\Documents\\project\\Navigator\\campus-navigator-nextjs\\public\\data\\raw\\mcc-secondary-locations.json';
-const buildingsPath = 'c:\\Users\\acer\\OneDrive\\Documents\\project\\Navigator\\campus-navigator-nextjs\\public\\data\\buildings.json';
+const buildingsPath = 'c:\\Users\\acer\\OneDrive\\Documents\\project\\Navigator\\campus-navigator-nextjs\\public\\data\\buildings.geojson';
 const roomsOutputPath = 'c:\\Users\\acer\\OneDrive\\Documents\\project\\Navigator\\campus-navigator-nextjs\\public\\data\\rooms.json';
 
 const secondaryData = JSON.parse(fs.readFileSync(secondaryDataPath, 'utf8'));
-const buildings = JSON.parse(fs.readFileSync(buildingsPath, 'utf8'));
+const buildingsGeoJSON = JSON.parse(fs.readFileSync(buildingsPath, 'utf8'));
+const buildings = buildingsGeoJSON.features.map(f => ({ ...f.properties, id: f.id || f.properties.id }));
 
 const rooms = secondaryData.classrooms.map(c => {
     const buildingId = c.block === 'science' ? 'science_block' : 

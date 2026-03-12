@@ -126,13 +126,14 @@ function HomeContent() {
       try {
         const [primaryRes, buildingsRes, entrancesRes, connectorsRes] = await Promise.all([
           fetch("/data/raw/mcc-landmarks.json"),
-          fetch("/data/buildings.json"),
+          fetch("/data/buildings.geojson"),
           fetch("/data/entrances.json"),
           fetch("/data/final/mcc-connectors.final.geojson")
         ]);
 
         const primaryData = await primaryRes.json();
-        const buildingsData = await buildingsRes.json();
+        const buildingsGeoJSON = await buildingsRes.json();
+        const buildingsData = buildingsGeoJSON.features;
         const entrancesData = await entrancesRes.json();
         const connectorsData = await connectorsRes.json();
 
@@ -140,7 +141,12 @@ function HomeContent() {
           ...(primaryData.classrooms || []),
           ...(primaryData.departments || []),
           ...(primaryData.facilities || []),
-          ...buildingsData.map((b: any) => ({ ...b, category: "Building", type: "building" }))
+          ...buildingsData.map((f: any) => ({ 
+            ...f.properties, 
+            id: f.id || f.properties.id,
+            category: "Building", 
+            type: "building" 
+          }))
         ];
 
         setAllLandmarks(initialLandmarks);
