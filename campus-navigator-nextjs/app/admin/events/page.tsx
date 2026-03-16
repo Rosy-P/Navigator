@@ -18,7 +18,7 @@ export default function EventsPage() {
     const fetchEvents = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await fetch("http://localhost:80/campus-navigator-backend/get-events.php", {
+            const res = await fetch("http://localhost:8080/campus-navigator-backend/get-events.php", {
                 credentials: "include"
             });
             const data = await res.json();
@@ -50,7 +50,7 @@ export default function EventsPage() {
         if (!confirm("Are you sure you want to delete this event? This action cannot be undone.")) return;
 
         try {
-            const res = await fetch("http://localhost:80/campus-navigator-backend/delete-event.php", {
+            const res = await fetch("http://localhost:8080/campus-navigator-backend/delete-event.php", {
                 method: "POST",
                 credentials: "include",
                 headers: { "Content-Type": "application/json" },
@@ -72,7 +72,7 @@ export default function EventsPage() {
         if (!confirm("Are you sure you want to delete all events created more than 30 days ago?")) return;
 
         try {
-            const res = await fetch("http://localhost:80/campus-navigator-backend/cleanup-events.php", {
+            const res = await fetch("http://localhost:8080/campus-navigator-backend/cleanup-events.php", {
                 method: "POST",
                 credentials: "include",
             });

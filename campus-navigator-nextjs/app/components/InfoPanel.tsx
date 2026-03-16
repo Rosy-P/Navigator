@@ -148,14 +148,14 @@ export default function InfoPanel({
                              <div className="mb-4 2xl:mb-5">
                                 {destination.type === "room" ? (
                                     <>
-                                        <h2 className="text-[17px] 2xl:text-xl font-black text-[#111827] leading-tight mb-1 font-sans">
-                                            {destination.buildingName || "Science Block"}
+                                        <h2 className="text-3xl 2xl:text-4xl font-black text-[#111827] leading-tight mb-1 font-sans dark:text-white">
+                                            {destination.name}
                                         </h2>
-                                        <p className="text-[14px] 2xl:text-base font-bold text-slate-700 leading-tight mb-0.5">Room {destination.name}</p>
+                                        <p className="text-[14px] 2xl:text-base font-bold text-slate-700 leading-tight mb-0.5 dark:text-slate-300">
+                                            {destination.buildingName || "Building"}
+                                        </p>
                                         <p className="text-[11px] 2xl:text-xs font-bold text-slate-400 uppercase tracking-tighter">
-                                            {typeof destination.floor === 'number'
-                                                ? (destination.floor === 0 ? "Ground Floor" : destination.floor === 1 ? "First Floor" : `${destination.floor}th Floor`)
-                                                : `Floor ${destination.floor || "?"}`}
+                                            {destination.floor}
                                         </p>
                                     </>
                                 ) : destination.type === "building" ? (
@@ -201,8 +201,13 @@ export default function InfoPanel({
                                         <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Navigation Target</span>
                                     </div>
                                     <p className={`text-xs font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
-                                        {destination.buildingName || "Building"} {entrance.name}
+                                        {entrance.name}
                                     </p>
+                                    {destination.type === "room" && (
+                                        <p className={`mt-2 text-[11px] 2xl:text-xs leading-relaxed ${theme === 'dark' ? 'text-slate-300' : 'text-slate-600'}`}>
+                                            After reaching the entrance, proceed inside to {destination.floor}. Rooms are within range {destination.rangeStart}–{destination.rangeEnd}.
+                                        </p>
+                                    )}
                                 </div>
                             )}
 

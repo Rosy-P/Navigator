@@ -142,12 +142,14 @@ export default function SearchPanel({
                                     </div>
                                     <div className="flex flex-col">
                                         <span className={`text-[14px] 2xl:text-[15px] font-extrabold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
-                                            {result.name}
+                                            {result.type === "room" && result.buildingName && result.floor 
+                                                ? `${result.name} \u2013 ${result.buildingName} \u2013 ${result.floor}` 
+                                                : result.name}
                                         </span>
                                         <span className={`text-[11px] 2xl:text-[12px] font-semibold tracking-tight ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
                                             {result.category} • {typeof result.floor === 'number'
                                                 ? (result.floor === 0 ? "Ground Floor" : `Floor ${result.floor}`)
-                                                : result.category === 'Classroom' ? 'Main Campus' : 'Main Campus'}
+                                                : result.floor ? result.floor : result.category === 'Classroom' ? 'Main Campus' : 'Main Campus'}
                                         </span>
                                     </div>
                                 </div>

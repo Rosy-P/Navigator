@@ -109,6 +109,7 @@ export default function MapView({
 
   const currentRouteRef = useRef<[number, number][]>([]);
   const animFrameRef = useRef<number | null>(null);
+  const glowAnimFrameRef = useRef<number | null>(null);
   const defaultLocation: [number, number] = [80.120584, 12.923163];
   const [isGraphReady, setIsGraphReady] = useState(false);
   const [allLandmarks, setAllLandmarks] = useState<Landmark[]>([]);
@@ -306,7 +307,6 @@ export default function MapView({
             category: f.properties.category,
           }))
         ]);
-        setIsGraphReady(true);
 
         map.addLayer({
           id: "landmarks-points",
@@ -454,6 +454,7 @@ export default function MapView({
         const networkRes = await fetch("/data/final/mcc-walk-network.geojson");
         const networkData = await networkRes.json();
         graphRef.current = buildGraph(networkData);
+        setIsGraphReady(true);
         map.addSource("mcc-paths", { type: "geojson", data: networkData });
 
         map.addLayer({
@@ -622,6 +623,15 @@ export default function MapView({
     }
 
     // 3. Handle Highlight and View Logic for selectedLandmark
+    if (glowAnimFrameRef.current) {
+      cancelAnimationFrame(glowAnimFrameRef.current);
+      glowAnimFrameRef.current = null;
+    }
+    // reset opacity to default
+    if (map.getLayer("building-highlight-layer")) {
+      map.setPaintProperty("building-highlight-layer", "fill-opacity", 0.4);
+    }
+
     if (selectedLandmark) {
       const highlightSource = map.getSource("building-highlight") as maplibregl.GeoJSONSource;
       let buildingId = selectedLandmark.type === "building" ? selectedLandmark.id : selectedLandmark.buildingId;
@@ -639,6 +649,19 @@ export default function MapView({
             }]
           } as any);
           
+          if (selectedLandmark.type === "room") {
+            let startTime = performance.now();
+            const animateGlow = (timestamp: number) => {
+                const elapsed = timestamp - startTime;
+                const opacity = 0.45 + Math.sin(elapsed / 250) * 0.25;
+                if (map.getLayer("building-highlight-layer")) {
+                    map.setPaintProperty("building-highlight-layer", "fill-opacity", opacity);
+                }
+                glowAnimFrameRef.current = requestAnimationFrame(animateGlow);
+            };
+            glowAnimFrameRef.current = requestAnimationFrame(animateGlow);
+          }
+
           // Calculate center for zooming
           const coords = buildingFeature.geometry?.coordinates[0];
           const center: [number, number] = coords ? [
@@ -657,6 +680,12 @@ export default function MapView({
       } else if (highlightSource) {
         // Clear highlight if not a building/room
         highlightSource.setData({ type: "FeatureCollection", features: [] } as any);
+      }
+    }
+
+    return () => {
+      if (glowAnimFrameRef.current) {
+        cancelAnimationFrame(glowAnimFrameRef.current);
       }
     }
   }, [activeCategory, allLandmarks, buildings, selectedLandmark]);
@@ -1130,14 +1159,40 @@ export default function MapView({
 
     const effectiveStart: [number, number] = startLocation || defaultLocation;
 
+    let navigationTargetCoordinate = destination;
+    if (selectedLandmark?.type === "room" && entrances.length > 0) {
+      const buildingEntrances = entrances.filter(e => e.buildingId === selectedLandmark.buildingId);
+      if (buildingEntrances.length > 0) {
+        let nearest = buildingEntrances[0];
+        let minDist = distance(effectiveStart, [nearest.lng, nearest.lat]);
+        buildingEntrances.forEach(ent => {
+          const d = distance(effectiveStart, [ent.lng, ent.lat]);
+          if (d < minDist) {
+            minDist = d;
+            nearest = ent;
+          }
+        });
+        navigationTargetCoordinate = [nearest.lng, nearest.lat];
+        console.log(`🧭 [Demo] Rerouted target to nearest entrance: ${nearest.name}`);
+        if (onEntranceSelected) onEntranceSelected(nearest);
+      }
+    }
+
     const routeFeature = getRouteGeoJSON(
       graphRef.current,
       effectiveStart,
-      destination
+      navigationTargetCoordinate
     );
 
     if (!routeFeature) {
-      console.error("❌ Demo Route Generation Failed: No route found");
+      console.error("❌ Demo Route Generation Failed", {
+        start: effectiveStart,
+        target: navigationTargetCoordinate,
+        landmarkName: selectedLandmark?.name,
+        targetType: selectedLandmark?.type,
+        entranceCount: entrances.length,
+        graphSize: graphRef.current?.size ?? 0
+      });
       return;
     }
 
@@ -1160,14 +1215,14 @@ export default function MapView({
     // Destination marker
     if (destMarkerRef.current) destMarkerRef.current.remove();
     destMarkerRef.current = new maplibregl.Marker({ color: "#ef4444" })
-      .setLngLat(destination)
+      .setLngLat(navigationTargetCoordinate)
       .addTo(mapInstance.current);
 
     const bounds = new maplibregl.LngLatBounds();
     routeCoords.forEach((c: any) => bounds.extend(c as [number, number]));
     mapInstance.current.fitBounds(bounds, { padding: 100, duration: 1000 });
 
-  }, [isDemoMode, destination, isGraphReady]);
+  }, [isDemoMode, destination, isGraphReady, selectedLandmark, entrances, startLocation]);
 
   // Toggle Layer Visibility (Navigation vs Tour)
   useEffect(() => {
@@ -1265,12 +1320,31 @@ export default function MapView({
       graphStat: graphRef.current ? `${graphRef.current.size} nodes` : "Not Ready"
     });
 
+    let navigationTargetCoordinate = destination;
+
+    if (selectedLandmark?.type === "room" && entrances.length > 0) {
+      const buildingEntrances = entrances.filter(e => e.buildingId === selectedLandmark.buildingId);
+      if (buildingEntrances.length > 0) {
+        let nearest = buildingEntrances[0];
+        let minDist = distance(currentUserLocation, [nearest.lng, nearest.lat]);
+        buildingEntrances.forEach(ent => {
+          const d = distance(currentUserLocation, [ent.lng, ent.lat]);
+          if (d < minDist) {
+            minDist = d;
+            nearest = ent;
+          }
+        });
+        navigationTargetCoordinate = [nearest.lng, nearest.lat];
+        console.log(`🧭 Rerouted target to nearest entrance: ${nearest.name}`);
+        if (onEntranceSelected) onEntranceSelected(nearest);
+      }
+    }
+
     const routeFeature = getRouteGeoJSON(
       graphRef.current,
       currentUserLocation,
-      destination,
+      navigationTargetCoordinate,
     );
-
 
     if (routeFeature) {
       const routeCoords = routeFeature.geometry.coordinates;
@@ -1332,7 +1406,9 @@ export default function MapView({
         console.log("🔴 Using destination for marker (no markerLocation):", destination);
       }
 
-      if (markerPos) {
+      if (selectedLandmark?.type === "room") {
+        console.log("🔴 Skipping marker for room (intentionally hiding classroom pin)");
+      } else if (markerPos && markerPos[0] !== undefined && markerPos[1] !== undefined) {
         destMarkerRef.current = new maplibregl.Marker({ color: "#ef4444" })
           .setLngLat(markerPos)
           .addTo(mapInstance.current);
@@ -1354,6 +1430,8 @@ export default function MapView({
     isGraphReady,
     isGuidanceActive,
     isTourSimulation,
+    selectedLandmark,
+    entrances,
   ]);
 
 

@@ -290,7 +290,7 @@ export default function FacilitiesPage() {
             if (debouncedSearch) params.append('search', debouncedSearch);
 
             console.log("📡 Fetching facilities with params:", params.toString());
-            const response = await fetch(`http://localhost:80/campus-navigator-backend/getfacilities.php?${params.toString()}`);
+            const response = await fetch(`http://localhost:8080/campus-navigator-backend/getfacilities.php?${params.toString()}`);
             if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
 
             const data = await response.json();

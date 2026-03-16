@@ -14,6 +14,8 @@ interface NavigationOverlayProps {
     totalDistance?: string;
     totalTime?: string;
     theme?: 'light' | 'dark';
+    destination?: any;
+    entrance?: any;
 }
 
 export default function NavigationOverlay({
@@ -27,48 +29,90 @@ export default function NavigationOverlay({
     distance = "60m",
     totalDistance = "110 m",
     totalTime = "2 min",
-    theme = 'dark'
+    theme = 'dark',
+    destination,
+    entrance
 }: NavigationOverlayProps) {
     // We'll force a darker, glassmorphism theme to match the reference image
     const isLeft = instruction.toLowerCase().includes("left");
     const isRight = instruction.toLowerCase().includes("right");
-    const isArrived = instruction.toLowerCase().includes("arrived");
+    
+    // Parse distance to number if possible
+    const distMatch = distance.match(/(\d+(?:\.\d+)?)/);
+    const distValue = distMatch ? parseFloat(distMatch[1]) : 999;
+    
+    const isArrivedStatus = instruction.toLowerCase().includes("arrived") || distValue <= 20;
+
+    const isClassroomArrival = destination?.type === "room" && isArrivedStatus;
 
     return (
         <div className="absolute inset-0 pointer-events-none z-[100] flex flex-col justify-between p-4 font-sans">
-            {/* Top Direction Panel - Normal Navigation Style */}
+            {/* Top Direction Panel */}
             <div className="w-full max-w-[360px] mx-auto pointer-events-auto animate-in slide-in-from-top-5 duration-500">
-                <div className="bg-black border border-white/10 rounded-[24px] shadow-[0_15px_40px_rgba(0,0,0,0.5)] overflow-hidden">
-                    <div className="flex items-center p-2 gap-3">
-                        {/* Icon Container - Scaled Down */}
-                        <div className="w-10 h-10 bg-orange-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
-                            {isLeft ? (
-                                <CornerUpLeft className="text-white" size={24} strokeWidth={3} />
-                            ) : isRight ? (
-                                <CornerUpRight className="text-white" size={24} strokeWidth={3} />
-                            ) : isArrived ? (
-                                <Navigation className="text-white" size={20} fill="white" />
-                            ) : (
-                                <ArrowUp className="text-white" size={24} strokeWidth={2.5} />
+                {isClassroomArrival ? (
+                    /* CLASSROOM GUIDANCE MODE UI */
+                    <div className="bg-white border text-center border-slate-200 rounded-[28px] shadow-[0_20px_50px_rgba(0,0,0,0.15)] overflow-hidden p-6 relative">
+                        {/* Decorative Top Accent */}
+                        <div className="absolute top-0 left-0 right-0 h-1.5 bg-orange-500" />
+                        
+                        <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                            <Navigation className="text-orange-600" size={24} fill="currentColor" />
+                        </div>
+                        
+                        <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-none mb-1">
+                            {destination.name}
+                        </h1>
+                        <p className="text-[13px] font-black text-slate-400 uppercase tracking-widest mb-4">
+                            {destination.buildingName} • {destination.floor}
+                        </p>
+
+                        <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-left">
+                            <p className="text-[13px] font-bold text-slate-700 leading-relaxed">
+                                You have reached <span className="text-orange-600">{destination.buildingName}</span>. Proceed inside to <span className="text-orange-600">{destination.floor}</span>.
+                            </p>
+                            <p className="text-[11px] font-bold text-slate-500 mt-2">
+                                Rooms are within range {destination.rangeStart}–{destination.rangeEnd}.
+                            </p>
+                        </div>
+                    </div>
+                ) : (
+                    /* STANDARD NAVIGATION UI */
+                    <div className="bg-black border border-white/10 rounded-[24px] shadow-[0_15px_40px_rgba(0,0,0,0.5)] overflow-hidden">
+                        <div className="flex items-center p-2 gap-3">
+                            {/* Icon Container - Scaled Down */}
+                            <div className="w-10 h-10 bg-orange-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+                                {isLeft ? (
+                                    <CornerUpLeft className="text-white" size={24} strokeWidth={3} />
+                                ) : isRight ? (
+                                    <CornerUpRight className="text-white" size={24} strokeWidth={3} />
+                                ) : isArrivedStatus ? (
+                                    <Navigation className="text-white" size={20} fill="white" />
+                                ) : (
+                                    <ArrowUp className="text-white" size={24} strokeWidth={2.5} />
+                                )}
+                            </div>
+
+                            {/* Instruction Text - Scaled Down */}
+                            <div className="flex-1">
+                                <h2 className="text-white text-[16px] font-bold tracking-tight leading-tight">
+                                    {isArrivedStatus 
+                                        ? "Arrived" 
+                                        : (destination?.type === "room" 
+                                            ? `Navigating to ${entrance ? entrance.name : `${destination.buildingName} Entrance`}` 
+                                            : `${instruction} in ${distance}`)}
+                                </h2>
+                            </div>
+
+                            {/* Right Side Info - Hidden on arrival */}
+                            {!isArrivedStatus && (
+                                <div className="flex flex-col items-end pr-2 text-emerald-400 border-l border-white/10 pl-3">
+                                    <span className="text-[13px] font-black leading-none">{totalTime}</span>
+                                    <span className="text-[10px] font-bold opacity-60 mt-0.5">{totalDistance}</span>
+                                </div>
                             )}
                         </div>
-
-                        {/* Instruction Text - Scaled Down */}
-                        <div className="flex-1">
-                            <h2 className="text-white text-[16px] font-bold tracking-tight leading-tight">
-                                {isArrived ? "Arrived" : `${instruction} in ${distance}`}
-                            </h2>
-                        </div>
-
-                        {/* Right Side Info - Hidden on arrival */}
-                        {!isArrived && (
-                            <div className="flex flex-col items-end pr-2 text-emerald-400 border-l border-white/10 pl-3">
-                                <span className="text-[13px] font-black leading-none">{totalTime}</span>
-                                <span className="text-[10px] font-bold opacity-60 mt-0.5">{totalDistance}</span>
-                            </div>
-                        )}
                     </div>
-                </div>
+                )}
             </div>
 
             {/* Bottom Controls Panel - Ultra Compact Pill */}

@@ -169,18 +169,6 @@ function HomeContent() {
           const res = await fetch("/data/rooms.json");
           const roomsData = await res.json();
           setRooms(roomsData);
-          setAllLandmarks(prev => [
-            ...prev,
-            ...roomsData.map((r: any) => ({
-              id: `room-${r.room}`,
-              name: r.room,
-              type: "room",
-              category: "Classroom",
-              buildingId: r.buildingId,
-              buildingName: r.buildingName,
-              floor: r.floor
-            }))
-          ]);
           setIsRoomsLoaded(true);
         } catch (err) {
           console.error("Error loading rooms:", err);
@@ -197,16 +185,41 @@ function HomeContent() {
       setSelectedIndex(-1);
       return;
     }
-    const query = searchQuery.toLowerCase();
+    const query = searchQuery.toLowerCase().trim();
+    
+    // Dynamic logic for blocks
+    const matchedRooms: any[] = [];
+    const roomMatch = query.match(/^([a-z])\s*(\d+)$/i);
+    if (roomMatch) {
+      const prefix = roomMatch[1].toUpperCase();
+      const number = parseInt(roomMatch[2], 10);
+      
+      const block = rooms.find((r: any) => r.prefix === prefix && number >= r.rangeStart && number <= r.rangeEnd);
+      if (block) {
+        matchedRooms.push({
+          id: `room-${prefix}${number}`,
+          name: `${prefix}${number}`, // we will override label in search panel
+          type: "room",
+          category: "Classroom",
+          buildingId: block.buildingId,
+          buildingName: block.buildingName,
+          floor: block.floor,
+          rangeStart: block.rangeStart,
+          rangeEnd: block.rangeEnd,
+        });
+      }
+    }
+
     const filtered = allLandmarks.filter(l =>
       l.name.toLowerCase().includes(query) ||
       (l.category && l.category.toLowerCase().includes(query)) ||
       (l.buildingName && l.buildingName.toLowerCase().includes(query)) ||
       (l.room && l.room.toLowerCase().includes(query))
     ).slice(0, 10);
-    setFilteredResults(filtered);
+    
+    setFilteredResults([...matchedRooms, ...filtered].slice(0, 10));
     setSelectedIndex(-1);
-  }, [searchQuery, allLandmarks]);
+  }, [searchQuery, allLandmarks, rooms]);
 
   useEffect(() => {
     if (isSearchFocused && filteredResults.length > 0) {
@@ -253,7 +266,13 @@ function HomeContent() {
     setPendingPickerLocation(undefined);
   };
 
+  const isProcessingSelection = useRef(false);
+
   const handleSelectLandmark = useCallback((landmark: any, isFromMap: boolean = false) => {
+    if (isProcessingSelection.current) return;
+    isProcessingSelection.current = true;
+    setTimeout(() => { isProcessingSelection.current = false; }, 300);
+
     // 1. Check authentication first
     if (!user) {
       if (isFromMap) {
@@ -292,7 +311,7 @@ function HomeContent() {
     setSelectedLandmark(normalizedLandmark);
     setSelectedEntrance(null); // Reset entrance for new selection
     setIsSidebarCollapsed(true);
-    setIsPlanning(!!startLocation);
+    setIsPlanning(false);
     setRouteInfo(null);
 
     // Connector logic: Find connector for this landmark
@@ -650,6 +669,8 @@ function HomeContent() {
             totalDistance={routeInfo ? `${Math.round(routeInfo.distance)} m` : undefined}
             totalTime={routeInfo ? `${routeInfo.time} min` : undefined}
             theme={theme}
+            destination={selectedLandmark}
+            entrance={selectedEntrance}
           />
         )}
 
