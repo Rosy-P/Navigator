@@ -440,13 +440,36 @@ export function getRouteGeoJSON(
     const coordinates = simplifiedPath.map(id => graph.get(id)!.coord);
 
     // VISUAL FIX: Connect the exact start/end points to the graph path
-    // This ensures the blue line visually touches the "Pick on Map" pins
+    // Also snip the tail if we are explicitly returning backwards to the node
+    if (start && coordinates.length > 1) {
+        const d1 = distance(start, coordinates[1]);
+        const segLen = distance(coordinates[0], coordinates[1]);
+        // If start is closer to the next node than the segment length, 
+        // we are likely between the two nodes, so dropping the first node prevents a visible tail.
+        if (d1 < segLen) {
+            coordinates.shift();
+            console.log("✂️ Dropped backtracking start node");
+        }
+    }
+
     if (start) {
         const firstNodeCoord = coordinates[0];
         const distToStart = distance(start, firstNodeCoord);
         if (distToStart > 0.5 && distToStart < 100) {
             coordinates.unshift(start);
             console.log(`🔌 Visually connected start point (${distToStart.toFixed(1)}m gap)`);
+        }
+    }
+
+    if (end && coordinates.length > 1) {
+        const lastIdx = coordinates.length - 1;
+        const dPrev = distance(end, coordinates[lastIdx - 1]);
+        const segLen = distance(coordinates[lastIdx - 1], coordinates[lastIdx]);
+        // If end is closer to the previous node than the segment length, 
+        // we are likely past the target node, so dropping the last node prevents a visible tail.
+        if (dPrev < segLen) {
+            coordinates.pop();
+            console.log("✂️ Dropped backtracking end node");
         }
     }
 

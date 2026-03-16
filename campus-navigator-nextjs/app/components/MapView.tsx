@@ -53,6 +53,8 @@ interface MapViewProps {
   entrances?: any[];
   selectedLandmark?: any;
   onEntranceSelected?: (entrance: any) => void;
+  navigationPhase?: "outdoor" | "indoor" | "completed";
+  onPhaseChange?: (phase: "outdoor" | "indoor" | "completed") => void;
 }
 
 const GRAND_TOUR_PATH: [number, number][] = [
@@ -98,8 +100,10 @@ export default function MapView({
   entrances = [],
   selectedLandmark = null,
   onEntranceSelected,
+  navigationPhase = "outdoor",
+  onPhaseChange,
 }: MapViewProps) {
-  console.log("🗺️ MapView Rendering:", { isDemoMode, isGuidanceActive, isTourSimulation, startLocation });
+  console.log("🗺️ MapView Rendering:", { isDemoMode, isGuidanceActive, isTourSimulation, startLocation, navigationPhase });
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<maplibregl.Map | null>(null);
   const graphRef = useRef<Map<string, Node> | null>(null);
@@ -997,6 +1001,35 @@ export default function MapView({
         }
       }
 
+      // --- PHASE TRANSITION LOGIC ---
+      // Distances are in meters. Arrived logic: close to final destination
+      const distToFinal = distance(currentPos, path[path.length - 1]);
+      const arrivalThreshold = 15; // meters
+
+      if (distToFinal < arrivalThreshold && navigationPhase === "outdoor" && onPhaseChange) {
+        if (selectedLandmark?.type === "room") {
+            console.log("🏫 Indoor phase triggered");
+            onPhaseChange("indoor");
+        } else {
+            console.log("✅ Navigation completed triggered");
+            onPhaseChange("completed");
+        }
+      }
+      
+      // Stop moving the camera logic if we're done or indoor
+      if (navigationPhase === "completed") {
+         // Freeze simulation entirely
+         return;
+      }
+      
+      // If we are in indoor phase, we stop checking for maneuvers, but we want the user
+      // to still be able to see their dot moving (or demo moving slowly). 
+      // But we prevent the simulation index from advancing past the entrance.
+      if (navigationPhase === "indoor" && t >= 0.95 && simIndexRef.current >= path.length - 2) {
+          // Keep dot at entrance, do not finish the demo loop completely yet
+          t = 0.95;
+      }
+
       const distText =
         distToManeuver >= 1000
           ? `${(distToManeuver / 1000).toFixed(1)}km`
@@ -1055,7 +1088,33 @@ export default function MapView({
     simulationSpeed,
     isTourSimulation,
     isPathReady,
+    navigationPhase, // Add phase to dep array so animation loop can react to it
   ]);
+
+  // Phase-Based Layer Visibility & Behavior
+  useEffect(() => {
+    if (!mapInstance.current) return;
+    const map = mapInstance.current;
+
+    if (navigationPhase === "completed" || navigationPhase === "indoor") {
+        // Fade out or hide route lines
+        if (map.getLayer("route-line")) {
+            map.setPaintProperty("route-line", "line-opacity", 0.2); 
+            // Or use visibility none if preferred, but fading is smoother. Let's do opacity.
+        }
+        if (map.getLayer("route-covered")) {
+            map.setPaintProperty("route-covered", "line-opacity", 0.2);
+        }
+    } else {
+        // Restore opacity if we start a new query outdoors
+        if (map.getLayer("route-line")) {
+            map.setPaintProperty("route-line", "line-opacity", 1);
+        }
+        if (map.getLayer("route-covered")) {
+            map.setPaintProperty("route-covered", "line-opacity", 0.7);
+        }
+    }
+  }, [navigationPhase]);
 
   // Manual Recenter
   useEffect(() => {

@@ -16,6 +16,8 @@ interface NavigationOverlayProps {
     theme?: 'light' | 'dark';
     destination?: any;
     entrance?: any;
+    navigationPhase?: "outdoor" | "indoor" | "completed";
+    onStartNewNavigation?: () => void;
 }
 
 export default function NavigationOverlay({
@@ -31,7 +33,9 @@ export default function NavigationOverlay({
     totalTime = "2 min",
     theme = 'dark',
     destination,
-    entrance
+    entrance,
+    navigationPhase = "outdoor",
+    onStartNewNavigation
 }: NavigationOverlayProps) {
     // We'll force a darker, glassmorphism theme to match the reference image
     const isLeft = instruction.toLowerCase().includes("left");
@@ -95,16 +99,18 @@ export default function NavigationOverlay({
                             {/* Instruction Text - Scaled Down */}
                             <div className="flex-1">
                                 <h2 className="text-white text-[16px] font-bold tracking-tight leading-tight">
-                                    {isArrivedStatus 
-                                        ? "Arrived" 
-                                        : (destination?.type === "room" 
-                                            ? `Navigating to ${entrance ? entrance.name : `${destination.buildingName} Entrance`}` 
-                                            : `${instruction} in ${distance}`)}
+                                    {navigationPhase === "completed" 
+                                        ? "You have arrived at your destination" 
+                                        : navigationPhase === "indoor"
+                                            ? `You have reached ${entrance ? entrance.name : `${destination?.buildingName} Entrance`}`
+                                            : (destination?.type === "room" 
+                                                ? `Navigating to ${entrance ? entrance.name : `${destination.buildingName} Entrance`}` 
+                                                : `${instruction} in ${distance}`)}
                                 </h2>
                             </div>
 
                             {/* Right Side Info - Hidden on arrival */}
-                            {!isArrivedStatus && (
+                            {navigationPhase === "outdoor" && !isArrivedStatus && (
                                 <div className="flex flex-col items-end pr-2 text-emerald-400 border-l border-white/10 pl-3">
                                     <span className="text-[13px] font-black leading-none">{totalTime}</span>
                                     <span className="text-[10px] font-bold opacity-60 mt-0.5">{totalDistance}</span>
@@ -116,8 +122,9 @@ export default function NavigationOverlay({
             </div>
 
             {/* Bottom Controls Panel - Ultra Compact Pill */}
-            <div className="w-full max-w-[280px] mx-auto pointer-events-auto animate-in slide-in-from-bottom-5 duration-500 mb-2">
-                <div className="bg-[#1e293b]/90 backdrop-blur-md border border-white/5 rounded-full shadow-[0_12px_35px_rgba(0,0,0,0.3)] px-2 py-1">
+            {navigationPhase === "outdoor" && (
+                <div className="w-full max-w-[280px] mx-auto pointer-events-auto animate-in slide-in-from-bottom-5 duration-500 mb-2">
+                    <div className="bg-[#1e293b]/90 backdrop-blur-md border border-white/5 rounded-full shadow-[0_12px_35px_rgba(0,0,0,0.3)] px-2 py-1">
                     <div className="flex items-center justify-between gap-0.5">
                         <BottomControlBtn
                             onClick={onPauseToggle}
@@ -147,8 +154,9 @@ export default function NavigationOverlay({
                             <span className="text-red-600 text-[8px] font-black tracking-widest">END</span>
                         </button>
                     </div>
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 }

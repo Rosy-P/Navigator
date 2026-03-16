@@ -41,6 +41,7 @@ interface InfoPanelProps {
     onStartDemo: () => void;
     simulationMode?: boolean;
     theme?: "light" | "dark";
+    navigationPhase?: "outdoor" | "indoor" | "completed";
 }
 
 export default function InfoPanel({
@@ -60,7 +61,8 @@ export default function InfoPanel({
     onStartNavigation,
     onStartDemo,
     simulationMode = false,
-    theme = "light"
+    theme = "light",
+    navigationPhase = "outdoor"
 }: InfoPanelProps) {
     if (!destination) return null;
 
@@ -118,7 +120,39 @@ export default function InfoPanel({
                 <div className="w-12 h-1.5 bg-slate-200 rounded-full" />
             </div>
 
-            {!isPlanning ? (
+            {navigationPhase === "indoor" && destination.type === "room" ? (
+                <div className="p-6 bg-white flex flex-col items-center text-center h-full">
+                    {/* Decorative Top Accent for Indoor */}
+                    <div className="absolute top-0 left-0 right-0 h-1.5 bg-orange-500" />
+                    
+                    <div className="w-14 h-14 bg-orange-100 rounded-3xl flex items-center justify-center mx-auto mb-4 mt-2">
+                        <Navigation className="text-orange-600" size={28} fill="currentColor" />
+                    </div>
+                    
+                    <h1 className="text-[40px] font-black text-slate-900 tracking-tight leading-none mb-1">
+                        {destination.name}
+                    </h1>
+                    <p className="text-[14px] font-black text-slate-400 uppercase tracking-widest mb-6">
+                        {destination.buildingName} • {destination.floor}
+                    </p>
+
+                    <div className="bg-slate-50 border border-slate-100 rounded-[20px] p-5 w-full text-left">
+                        <p className="text-[14px] font-bold text-slate-700 leading-relaxed mb-1">
+                            You have reached <span className="text-orange-600">{destination.buildingName}</span>. Proceed inside to <span className="text-orange-600">{destination.floor}</span>.
+                        </p>
+                        <p className="text-[12px] font-bold text-slate-500">
+                            Rooms are within range {destination.rangeStart}–{destination.rangeEnd}.
+                        </p>
+                    </div>
+
+                    <button
+                        onClick={onClose}
+                        className="mt-8 w-full h-14 bg-[#111827] text-white font-black text-[15px] rounded-2xl shadow-xl hover:bg-[#1f2937] transition-all active:scale-95 border border-white/10"
+                    >
+                        End Navigation
+                    </button>
+                </div>
+            ) : !isPlanning ? (
                 <>
                     {/* Header Image */}
                     <div className="relative h-[160px] md:h-[180px] 2xl:h-[220px] w-full overflow-hidden flex-shrink-0 bg-slate-200">
@@ -193,8 +227,8 @@ export default function InfoPanel({
                                 />
                             </div>
 
-                            {/* Navigation Target (Entrance) Info */}
-                            {entrance && (
+                            {/* Navigation Target (Entrance) Info - Hide if we already arrived and aren't in indoor mode because we replaced it entirely above */}
+                            {entrance && navigationPhase === "outdoor" && (
                                 <div className={`mb-5 p-3 rounded-2xl border ${theme === 'dark' ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                                     <div className="flex items-center gap-2 mb-1">
                                         <Target size={14} className="text-orange-500" />

@@ -18,10 +18,11 @@ interface VoiceNavOptions {
   isGuidanceActive?: boolean;
   isDemoMode?: boolean;
   isVirtualTourRunning?: boolean; // Master control flag for landmark narration
+  navigationPhase?: "outdoor" | "indoor" | "completed";
 }
 
 export function useVoiceNavigation(landmarks: Landmark[], options: VoiceNavOptions) {
-  const { currentLocation, nextManeuver, maneuverCoord, distanceToManeuver, isTourMode, isGuidanceActive, isDemoMode, isVirtualTourRunning = false } = options;
+  const { currentLocation, nextManeuver, maneuverCoord, distanceToManeuver, isTourMode, isGuidanceActive, isDemoMode, isVirtualTourRunning = false, navigationPhase = "outdoor" } = options;
   const [isMuted, setIsMuted] = useState(false);
   const [subtitle, setSubtitle] = useState<string | null>(null);
   const synthesizerRef = useRef<GuidanceSynthesizer | null>(null);
@@ -55,6 +56,23 @@ export function useVoiceNavigation(landmarks: Landmark[], options: VoiceNavOptio
   useEffect(() => {
     if (!currentLocation) return;
     const speech = SpeechService.getInstance();
+
+    // --- PHASE TRANSITION OVERRIDES ---
+    if (navigationPhase === "completed") {
+        if (lastSpokenManeuverKey.current !== "phase-completed") {
+            speech.speak("You have arrived at your destination.", 'NAV');
+            lastSpokenManeuverKey.current = "phase-completed";
+        }
+        return; // Stop other nav speech
+    }
+
+    if (navigationPhase === "indoor") {
+        if (lastSpokenManeuverKey.current !== "phase-indoor") {
+            speech.speak("You have reached the building entrance. Please proceed inside.", 'NAV');
+            lastSpokenManeuverKey.current = "phase-indoor";
+        }
+        return; // Stop other nav routing speech as we are indoors now
+    }
 
     // --- SYSTEM 1: ROUTE NAVIGATION (Audio Only, Absolute Priority) ---
     // Should NEVER depend on GuidanceSynthesizer or be delayed.
@@ -146,7 +164,7 @@ export function useVoiceNavigation(landmarks: Landmark[], options: VoiceNavOptio
         }
     }
 
-  }, [currentLocation, nextManeuver, distanceToManeuver, maneuverCoord, isTourMode, isGuidanceActive, isDemoMode, isVirtualTourRunning]);
+  }, [currentLocation, nextManeuver, distanceToManeuver, maneuverCoord, isTourMode, isGuidanceActive, isDemoMode, isVirtualTourRunning, navigationPhase]);
 
   const toggleMute = () => {
     const next = !isMuted;

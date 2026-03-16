@@ -21,6 +21,7 @@ import { useSimulation } from "./context/SimulationContext";
 
 type UIState = "IDLE" | "SEARCHING" | "PLACE_SELECTED" | "NAVIGATION_ACTIVE";
 type SheetState = "PEEK" | "HALF" | "FULL";
+type NavigationPhase = "outdoor" | "indoor" | "completed";
 
 // --- Wrapper Component ---
 export default function HomePage() {
@@ -40,6 +41,7 @@ function HomeContent() {
   const [sheetState, setSheetState] = useState<SheetState>("HALF");
 
   // Navigation States
+  const [navigationPhase, setNavigationPhase] = useState<NavigationPhase>("outdoor");
   const [startLocation, setStartLocation] = useState<[number, number] | undefined>();
   const [startLabel, setStartLabel] = useState<string>("");
   const [isSelectingStart, setIsSelectingStart] = useState(false);
@@ -324,9 +326,11 @@ function HomeContent() {
     if (connector) {
       setDestination(landmarkPos);
       setMarkerLocation(landmarkPos);
+      setNavigationPhase("outdoor");
     } else {
       setDestination(landmarkPos);
       setMarkerLocation(landmarkPos);
+      setNavigationPhase("outdoor");
     }
 
     setStartLocation(undefined);
@@ -628,10 +632,36 @@ function HomeContent() {
             entrances={entrances}
             selectedLandmark={selectedLandmark}
             onEntranceSelected={setSelectedEntrance}
+            navigationPhase={navigationPhase}
+            onPhaseChange={setNavigationPhase}
           />
-
-
         </div>
+
+        {/* Auto-End Navigation when completed */}
+        {navigationPhase === "completed" && (
+          <AutoEndTimer
+            onComplete={() => {
+              setIsGuidanceActive(false);
+              setIsDemoMode(false);
+              setDestination(undefined);
+              setRouteInfo(null);
+              setIsPaused(false);
+              setIsSidebarCollapsed(false);
+              setSelectedLandmark(null);
+              setIsPlanning(false);
+              setNavigationPhase("outdoor");
+              setUiState("IDLE");
+
+              // Redirection logic
+              if (navigationSource === 'facilities') {
+                router.push('/facilities');
+              } else if (navigationSource === 'events') {
+                setIsEventsOpen(true);
+              }
+              setNavigationSource(null);
+            }}
+          />
+        )}
 
         {/* Subtitle Panel */}
         <SubtitlePanel theme={theme} isVisible={showSubtitles} />
@@ -653,6 +683,7 @@ function HomeContent() {
               setIsSidebarCollapsed(false);
               setSelectedLandmark(null);
               setIsPlanning(false);
+              setNavigationPhase("outdoor");
               setUiState("IDLE"); // Ensure UI state resets to IDLE
 
               // Redirection logic
@@ -671,6 +702,19 @@ function HomeContent() {
             theme={theme}
             destination={selectedLandmark}
             entrance={selectedEntrance}
+            navigationPhase={navigationPhase}
+            onStartNewNavigation={() => {
+              setIsGuidanceActive(false);
+              setIsDemoMode(false);
+              setDestination(undefined);
+              setRouteInfo(null);
+              setIsPaused(false);
+              setIsSidebarCollapsed(false);
+              setSelectedLandmark(null);
+              setIsPlanning(false);
+              setNavigationPhase("outdoor");
+              setUiState("IDLE");
+            }}
           />
         )}
 
@@ -704,7 +748,7 @@ function HomeContent() {
         )}
 
         {/* Info Panel / Bottom Sheet */}
-        {selectedLandmark && !isSelectingStart && (
+        {selectedLandmark && !isSelectingStart && (uiState !== "NAVIGATION_ACTIVE" || navigationPhase === "indoor") && (
           <InfoPanel
             landmark={selectedLandmark}
             startLabel={startLabel}
@@ -737,6 +781,7 @@ function HomeContent() {
             onStartNavigation={(coord) => {
               // Don't override destination - keep the road junction for optimal routing
               // destination and markerLocation are already set from preview mode
+              setNavigationPhase("outdoor");
               setIsGuidanceActive(true);
               setIsDemoMode(false);
               setSelectedLandmark(null);
@@ -744,6 +789,7 @@ function HomeContent() {
             }}
             onStartDemo={() => {
               console.log("🚀 onStartDemo triggered in Page.tsx");
+              setNavigationPhase("outdoor");
               setIsGuidanceActive(true);
               setIsDemoMode(true);
               setSelectedLandmark(null);
@@ -752,6 +798,7 @@ function HomeContent() {
             simulationMode={simulationMode}
             entrance={selectedEntrance}
             theme={theme}
+            navigationPhase={navigationPhase}
           />
 
         )}
@@ -827,6 +874,7 @@ function HomeContent() {
 
 
         {/* Map Category Chips / Right Side Action Buttons */}
+              setIsPaused(false);
         {!isGuidanceActive && !isTourMode && !isTourSimulation && !selectedLandmark && (
           <QuickActions
             activeCategory={activeCategory}
@@ -840,4 +888,15 @@ function HomeContent() {
       </main>
     </div>
   );
+}
+
+// Helper component for auto-ending navigation without breaking hook rules in the main component
+function AutoEndTimer({ onComplete }: { onComplete: () => void }) {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onComplete();
+    }, 3500); // Wait 3.5s so voice message finishes
+    return () => clearTimeout(timer);
+  }, [onComplete]);
+  return null;
 }
