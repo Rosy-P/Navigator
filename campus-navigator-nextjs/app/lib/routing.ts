@@ -1,7 +1,7 @@
 export type Node = {
     id: string;
     coord: [number, number];
-    neighbors: { id: string; cost: number }[];
+    neighbors: { id: string; cost: number; category?: string }[];
 };
 
 /**
@@ -24,47 +24,133 @@ export function distance(a: [number, number], b: [number, number]): number {
 
 /**
  * Builds a graph from a GeoJSON FeatureCollection containing LineStrings.
+ * Supports merging main paths with shortcuts and snapping shortcut endpoints.
  */
-export function buildGraph(geojson: any): Map<string, Node> {
+export function buildGraph(mainGeojson: any, shortcutGeojson?: any): Map<string, Node> {
     const graph = new Map<string, Node>();
+    let mainSegments = 0;
+    let shortcutSegments = 0;
 
-    geojson.features.forEach((feature: any) => {
-        if (feature.geometry.type !== "LineString") return;
+    // Helper to get normalized ID (7 decimal places ~1.1cm precision)
+    const getCoordId = (c: [number, number]) => `${Math.round(c[0] * 1e7)},${Math.round(c[1] * 1e7)}`;
 
-        const coords = feature.geometry.coordinates;
-
-        for (let i = 0; i < coords.length - 1; i++) {
-            const a = coords[i] as [number, number];
-            const b = coords[i + 1] as [number, number];
-
-            // Normalize coordinates to 7 decimal places to handle precision issues
-            const idA = `${a[0].toFixed(7)},${a[1].toFixed(7)}`;
-            const idB = `${b[0].toFixed(7)},${b[1].toFixed(7)}`;
-
-            if (!graph.has(idA)) {
-                graph.set(idA, { id: idA, coord: a, neighbors: [] });
-            }
-            if (!graph.has(idB)) {
-                graph.set(idB, { id: idB, coord: b, neighbors: [] });
-            }
-
-            const cost = distance(a, b);
-
-            graph.get(idA)!.neighbors.push({ id: idB, cost });
-            graph.get(idB)!.neighbors.push({ id: idA, cost });
+    // Resolution: Interpolate long segments to improve snapping accuracy
+    const MAX_SEG_LEN = 2.0; // 2m resolution for millimeter-precision snapping
+    const interpolateSegment = (start: [number, number], end: [number, number]): [number, number][] => {
+        const d = distance(start, end);
+        if (d <= MAX_SEG_LEN) return [start, end];
+        const steps = Math.ceil(d / MAX_SEG_LEN);
+        const pts: [number, number][] = [start];
+        for (let j = 1; j < steps; j++) {
+            const r = j / steps;
+            pts.push([start[0] + (end[0] - start[0]) * r, start[1] + (end[1] - start[1]) * r]);
         }
-    }); // Close forEach
+        pts.push(end);
+        return pts;
+    };
 
-    console.log(`🏗️ Graph Built: ${graph.size} nodes from ${geojson.features.length} features.`);
+    // PHASE 1: Process Main Paths (Paths + Connectors)
+    if (mainGeojson && mainGeojson.features) {
+        mainGeojson.features.forEach((feature: any) => {
+            if (feature.geometry.type !== "LineString") return;
+            const rawCoords = feature.geometry.coordinates;
+            const category = feature.properties?.category;
+
+            for (let i = 0; i < rawCoords.length - 1; i++) {
+                const segPoints = interpolateSegment(rawCoords[i], rawCoords[i+1]);
+                for (let j = 0; j < segPoints.length - 1; j++) {
+                    const a = segPoints[j];
+                    const b = segPoints[j+1];
+                    const idA = getCoordId(a);
+                    const idB = getCoordId(b);
+
+                    if (!graph.has(idA)) graph.set(idA, { id: idA, coord: a, neighbors: [] });
+                    if (!graph.has(idB)) graph.set(idB, { id: idB, coord: b, neighbors: [] });
+
+                    const cost = distance(a, b);
+                    if (!graph.get(idA)!.neighbors.some(n => n.id === idB)) {
+                        graph.get(idA)!.neighbors.push({ id: idB, cost, category });
+                        graph.get(idB)!.neighbors.push({ id: idA, cost, category });
+                        mainSegments++;
+                    }
+                }
+            }
+        });
+    }
+
+    const mainNodes = new Set(graph.keys());
+
+    // PHASE 2: Process Shortcuts with Snapping and Interpolation
+    if (shortcutGeojson && shortcutGeojson.features) {
+        shortcutGeojson.features.forEach((feature: any) => {
+            if (feature.geometry.type !== "LineString") return;
+            const originalCoords = [...feature.geometry.coordinates];
+            const category = feature.properties?.category || "shortcut";
+
+            // Snapping for shortcut endpoints
+            const SNAP_THRESHOLD = 5.0; // meters
+            
+            // Start endpoint snapping
+            const idStart = getCoordId(originalCoords[0]);
+            if (!mainNodes.has(idStart)) {
+                let nearestMain: string | null = null;
+                let minDist = SNAP_THRESHOLD;
+                for (const mainId of mainNodes) {
+                    const d = distance(originalCoords[0], graph.get(mainId)!.coord);
+                    if (d < minDist) { minDist = d; nearestMain = mainId; }
+                }
+                if (nearestMain) originalCoords[0] = graph.get(nearestMain)!.coord;
+            }
+
+            // End endpoint snapping
+            const lastIdx = originalCoords.length - 1;
+            const idEnd = getCoordId(originalCoords[lastIdx]);
+            if (!mainNodes.has(idEnd)) {
+                let nearestMain: string | null = null;
+                let minDist = SNAP_THRESHOLD;
+                for (const mainId of mainNodes) {
+                    const d = distance(originalCoords[lastIdx], graph.get(mainId)!.coord);
+                    if (d < minDist) { minDist = d; nearestMain = mainId; }
+                }
+                if (nearestMain) originalCoords[lastIdx] = graph.get(nearestMain)!.coord;
+            }
+
+            // Process segments with interpolation
+            for (let i = 0; i < originalCoords.length - 1; i++) {
+                const segPoints = interpolateSegment(originalCoords[i], originalCoords[i+1]);
+                for (let j = 0; j < segPoints.length - 1; j++) {
+                    const a = segPoints[j];
+                    const b = segPoints[j+1];
+                    const idA = getCoordId(a);
+                    const idB = getCoordId(b);
+
+                    if (!graph.has(idA)) graph.set(idA, { id: idA, coord: a, neighbors: [] });
+                    if (!graph.has(idB)) graph.set(idB, { id: idB, coord: b, neighbors: [] });
+
+                    const cost = distance(a, b);
+                    if (!graph.get(idA)!.neighbors.some(n => n.id === idB)) {
+                        graph.get(idA)!.neighbors.push({ id: idB, cost, category });
+                        graph.get(idB)!.neighbors.push({ id: idA, cost, category });
+                        shortcutSegments++;
+                    }
+                }
+            }
+        });
+    }
+
+    console.log(`🏗️ Graph Built: ${graph.size} nodes.`);
+    console.log(`📊 Total Main Path segments: ${mainSegments}`);
+    console.log(`📊 Total Shortcut segments: ${shortcutSegments}`);
+    console.log(`📊 Total Graph Nodes: ${graph.size}`);
 
     // --- GAP REPAIR PHASE ---
     // connect nodes that are very close (e.g. broken paths) but not connected
-    const GAP_REPAIR_DIST = 8.0; // meters
+    const GAP_REPAIR_DIST = 1.0; // 1m threshold to prevent corner-cutting while fixing data gaps
     let gapsRepaired = 0;
     const nodes = Array.from(graph.values());
 
     // Spatial Indexing (Simple Grid) to avoid O(N^2)
-    // 0.001 degrees is roughly 111 meters. Perfect for 8m buckets.
+    // 0.001 degrees is roughly 111 meters. Perfect for buckets.
     const grid = new Map<string, Node[]>();
     const getGridKey = (c: [number, number]) => `${Math.floor(c[0] * 1000)},${Math.floor(c[1] * 1000)}`;
 
@@ -107,9 +193,8 @@ export function buildGraph(geojson: any): Map<string, Node> {
         console.log(`🧵 Repaired ${gapsRepaired} gaps / split paths (dist < ${GAP_REPAIR_DIST}m).`);
     }
 
-    // --- Component Analysis and Bridging ---
+    // --- Component Analysis (For Logging Only) ---
     const getComponents = (currentGraph: Map<string, Node>) => {
-
         const visited = new Set<string>();
         const componentList: string[][] = [];
         for (const startId of currentGraph.keys()) {
@@ -136,95 +221,13 @@ export function buildGraph(geojson: any): Map<string, Node> {
         return componentList;
     };
 
-    let iteration = 0;
-    let currentComponents = getComponents(graph);
-    console.log(`🌐 Initially: ${currentComponents.length} disjoint networks.`);
-
-    const BRIDGE_MAX_DIST = 100.0; // 100m max gap bridging to catch sparse campus data
-
-    while (currentComponents.length > 1 && iteration < 100) {
-        iteration++;
-        // Sort components by size (smallest first)
-        currentComponents.sort((a, b) => a.length - b.length);
-        const smallest = currentComponents[0];
-
-        let bestBridge: { a: string, b: string, dist: number } | null = null;
-        let minDist = BRIDGE_MAX_DIST;
-
-        // Try to bridge the smallest component to MUST find a node in ANY other component
-        for (const idA of smallest) {
-            const nodeA = graph.get(idA)!;
-
-            // Check against nodes in all other components
-            for (let i = 1; i < currentComponents.length; i++) {
-                for (const idB of currentComponents[i]) {
-                    const nodeB = graph.get(idB)!;
-                    const d = distance(nodeA.coord, nodeB.coord);
-                    if (d < minDist) {
-                        minDist = d;
-                        bestBridge = { a: idA, b: idB, dist: d };
-                    }
-                }
-            }
-        }
-
-        if (bestBridge) {
-            const nodeA = graph.get(bestBridge.a)!;
-            const nodeB = graph.get(bestBridge.b)!;
-            nodeA.neighbors.push({ id: nodeB.id, cost: bestBridge.dist });
-            nodeB.neighbors.push({ id: nodeA.id, cost: bestBridge.dist });
-            console.log(`🌉 Bridge [${iteration}]: ${nodeA.id} <-> ${nodeB.id} (${bestBridge.dist.toFixed(2)}m)`);
-            currentComponents = getComponents(graph);
-        } else {
-            console.warn(`⚠️ Could not bridge further. ${currentComponents.length} components remain.`);
-            break;
-        }
-    }
-
-    // --- FINAL AGGRESSIVE PASS: Connect ALL remaining components ---
-    if (currentComponents.length > 1) {
-        console.log(`🔧 Aggressive bridging: Connecting ${currentComponents.length} remaining components...`);
-
-        while (currentComponents.length > 1) {
-            currentComponents.sort((a, b) => a.length - b.length);
-            const smallest = currentComponents[0];
-
-            // Find the absolute nearest node in ANY other component (no distance limit)
-            let bestBridge: { a: string, b: string, dist: number } | null = null;
-            let minDist = Infinity;
-
-            for (const idA of smallest) {
-                const nodeA = graph.get(idA)!;
-
-                for (let i = 1; i < currentComponents.length; i++) {
-                    for (const idB of currentComponents[i]) {
-                        const nodeB = graph.get(idB)!;
-                        const d = distance(nodeA.coord, nodeB.coord);
-                        if (d < minDist) {
-                            minDist = d;
-                            bestBridge = { a: idA, b: idB, dist: d };
-                        }
-                    }
-                }
-            }
-
-            if (bestBridge) {
-                const nodeA = graph.get(bestBridge.a)!;
-                const nodeB = graph.get(bestBridge.b)!;
-                nodeA.neighbors.push({ id: nodeB.id, cost: bestBridge.dist });
-                nodeB.neighbors.push({ id: nodeA.id, cost: bestBridge.dist });
-                console.log(`🔗 Aggressive bridge: ${nodeA.id} <-> ${nodeB.id} (${bestBridge.dist.toFixed(2)}m)`);
-                currentComponents = getComponents(graph);
-            } else {
-                console.error(`❌ FATAL: Cannot find any nodes to bridge!`);
-                break;
-            }
-        }
-    }
-
-    console.log(`✅ Final Graph Analysis: ${currentComponents.length} component(s) remaining.`);
+    const finalComponents = getComponents(graph);
+    console.log(`🌐 Final Graph Analysis: ${finalComponents.length} component(s) identified.`);
+    console.log(`📊 Total nodes: ${graph.size}`);
     return graph;
 }
+
+const SHORTCUT_COST_MULTIPLIER = 1.2; // Prefer main roads unless shortcut is >20% shorter
 
 /**
  * Finds the nearest node in the graph to a given coordinate.
@@ -382,7 +385,7 @@ export function getManeuver(b1: number, b2: number): string {
 function simplifyPath(
     nodePath: string[],
     graph: Map<string, Node>,
-    angleThreshold: number = 170 // degrees - nodes within this angle are considered collinear
+    angleThreshold: number = 160 // degrees - nodes within this angle are considered collinear (was 170)
 ): string[] {
     if (nodePath.length <= 2) return nodePath;
 

@@ -7,9 +7,11 @@ import { useAdmin } from "../layout";
 import EventCard from "./EventCard";
 import EventModal from "./EventModal";
 import { Event } from "./types";
+import { useAuth } from "@/app/components/AuthOverlay";
 
 export default function EventsPage() {
     const { searchTerm } = useAdmin();
+    const { csrfToken } = useAuth();
     const [events, setEvents] = useState<Event[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -18,7 +20,7 @@ export default function EventsPage() {
     const fetchEvents = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await fetch("http://localhost:80/campus-navigator-backend/get-events.php", {
+            const res = await fetch("http://localhost:8080/campus-navigator-backend/get-events.php", {
                 credentials: "include"
             });
             const data = await res.json();
@@ -50,10 +52,13 @@ export default function EventsPage() {
         if (!confirm("Are you sure you want to delete this event? This action cannot be undone.")) return;
 
         try {
-            const res = await fetch("http://localhost:80/campus-navigator-backend/delete-event.php", {
+            const res = await fetch("http://localhost:8080/campus-navigator-backend/delete-event.php", {
                 method: "POST",
                 credentials: "include",
-                headers: { "Content-Type": "application/json" },
+                headers: { 
+                    "Content-Type": "application/json",
+                    "X-CSRF-Token": csrfToken || ""
+                },
                 body: JSON.stringify({ id }),
             });
             const data = await res.json();
@@ -72,9 +77,12 @@ export default function EventsPage() {
         if (!confirm("Are you sure you want to delete all events created more than 30 days ago?")) return;
 
         try {
-            const res = await fetch("http://localhost:80/campus-navigator-backend/cleanup-events.php", {
+            const res = await fetch("http://localhost:8080/campus-navigator-backend/cleanup-events.php", {
                 method: "POST",
                 credentials: "include",
+                headers: {
+                    "X-CSRF-Token": csrfToken || ""
+                }
             });
             const data = await res.json();
             if (data.status === "success") {

@@ -11,7 +11,6 @@ interface QuickActionsProps {
 }
 
 const CATEGORIES = [
-    { id: "Classroom", label: "Classrooms", icon: BookOpen },
     { id: "Department", label: "Departments", icon: Building2 },
     { id: "Academic", label: "Academic", icon: Building2 },
     { id: "Lab", label: "Labs", icon: Microscope },

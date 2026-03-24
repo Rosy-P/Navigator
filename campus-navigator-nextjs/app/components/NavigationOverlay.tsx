@@ -51,36 +51,9 @@ export default function NavigationOverlay({
 
     return (
         <div className="absolute inset-0 pointer-events-none z-[100] flex flex-col justify-between p-4 font-sans">
-            {/* Top Direction Panel */}
-            <div className="w-full max-w-[360px] mx-auto pointer-events-auto animate-in slide-in-from-top-5 duration-500">
-                {isClassroomArrival ? (
-                    /* CLASSROOM GUIDANCE MODE UI */
-                    <div className="bg-white border text-center border-slate-200 rounded-[28px] shadow-[0_20px_50px_rgba(0,0,0,0.15)] overflow-hidden p-6 relative">
-                        {/* Decorative Top Accent */}
-                        <div className="absolute top-0 left-0 right-0 h-1.5 bg-orange-500" />
-                        
-                        <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                            <Navigation className="text-orange-600" size={24} fill="currentColor" />
-                        </div>
-                        
-                        <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-none mb-1">
-                            {destination.name}
-                        </h1>
-                        <p className="text-[13px] font-black text-slate-400 uppercase tracking-widest mb-4">
-                            {destination.buildingName} • {destination.floor}
-                        </p>
-
-                        <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-left">
-                            <p className="text-[13px] font-bold text-slate-700 leading-relaxed">
-                                You have reached <span className="text-orange-600">{destination.buildingName}</span>. Proceed inside to <span className="text-orange-600">{destination.floor}</span>.
-                            </p>
-                            <p className="text-[11px] font-bold text-slate-500 mt-2">
-                                Rooms are within range {destination.rangeStart}–{destination.rangeEnd}.
-                            </p>
-                        </div>
-                    </div>
-                ) : (
-                    /* STANDARD NAVIGATION UI */
+            {/* Top Direction Panel - Hidden in indoor phase to prevent redundancy with InfoPanel */}
+            {navigationPhase !== "indoor" && (
+                <div className="w-full max-w-[360px] mx-auto pointer-events-auto animate-in slide-in-from-top-5 duration-500">
                     <div className="bg-black border border-white/10 rounded-[24px] shadow-[0_15px_40px_rgba(0,0,0,0.5)] overflow-hidden">
                         <div className="flex items-center p-2 gap-3">
                             {/* Icon Container - Scaled Down */}
@@ -101,11 +74,9 @@ export default function NavigationOverlay({
                                 <h2 className="text-white text-[16px] font-bold tracking-tight leading-tight">
                                     {navigationPhase === "completed" 
                                         ? "You have arrived at your destination" 
-                                        : navigationPhase === "indoor"
-                                            ? `You have reached ${entrance ? entrance.name : `${destination?.buildingName} Entrance`}`
-                                            : (destination?.type === "room" 
-                                                ? `Navigating to ${entrance ? entrance.name : `${destination.buildingName} Entrance`}` 
-                                                : `${instruction} in ${distance}`)}
+                                        : (destination?.type === "room" 
+                                            ? `Navigating to ${entrance ? entrance.name : `${destination.buildingName} Entrance`}` 
+                                            : `${instruction} in ${distance}`)}
                                 </h2>
                             </div>
 
@@ -118,8 +89,8 @@ export default function NavigationOverlay({
                             )}
                         </div>
                     </div>
-                )}
-            </div>
+                </div>
+            )}
 
             {/* Bottom Controls Panel - Ultra Compact Pill */}
             {navigationPhase === "outdoor" && (

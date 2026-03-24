@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { X, Save, Calendar, Clock, MapPin, Type, AlignLeft, Loader2 } from "lucide-react";
 import { Event } from "./types";
+import { useAuth } from "@/app/components/AuthOverlay";
 
 interface Props {
     isOpen: boolean;
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export default function EventModal({ isOpen, onClose, selectedEvent, onSuccess }: Props) {
+    const { csrfToken } = useAuth();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoadingLandmarks, setIsLoadingLandmarks] = useState(true);
     const [landmarks, setLandmarks] = useState<any[]>([]);
@@ -96,10 +98,13 @@ export default function EventModal({ isOpen, onClose, selectedEvent, onSuccess }
         console.log("Submitting Event:", body); // Debug log
 
         try {
-            const res = await fetch(`http://localhost:80/campus-navigator-backend/${endpoint}`, {
+            const res = await fetch(`http://localhost:8080/campus-navigator-backend/${endpoint}`, {
                 method: "POST",
                 credentials: "include",
-                headers: { "Content-Type": "application/json" },
+                headers: { 
+                    "Content-Type": "application/json",
+                    "X-CSRF-Token": csrfToken || ""
+                },
                 body: JSON.stringify(body),
             });
 

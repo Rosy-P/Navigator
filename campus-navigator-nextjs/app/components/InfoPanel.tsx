@@ -1,7 +1,8 @@
 "use client";
 
-import { X, Navigation, Play, Bookmark, Info, ChevronLeft, MapPin, Target, Send, Zap } from "lucide-react";
+import { X, Navigation, Play, Bookmark, Info, ChevronLeft, MapPin, Target, Send, Zap, Check, AlertCircle, Loader2 } from "lucide-react";
 import Image from "next/image";
+import { useState } from "react";
 
 interface Landmark {
     id?: string;
@@ -64,7 +65,49 @@ export default function InfoPanel({
     theme = "light",
     navigationPhase = "outdoor"
 }: InfoPanelProps) {
+    const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error" | "exists">("idle");
+    const [errorMessage, setErrorMessage] = useState("");
+
     if (!destination) return null;
+
+    const handleSave = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (saveStatus === "saving" || saveStatus === "saved" || saveStatus === "exists") return;
+
+        setSaveStatus("saving");
+        setErrorMessage("");
+
+        try {
+            const response = await fetch("http://localhost:8080/campus-navigator-backend/save_location.php", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    name: destination.name,
+                    block: destination.buildingName || destination.block || "",
+                    floor: destination.floor || "",
+                    latitude: destination.lat,
+                    longitude: destination.lng
+                }),
+            });
+
+            const result = await response.json();
+
+            if (result.status === "success") {
+                setSaveStatus("saved");
+            } else if (result.message === "Location already saved") {
+                setSaveStatus("exists");
+            } else {
+                setSaveStatus("error");
+                setErrorMessage(result.message || "Failed to save location");
+            }
+        } catch (error) {
+            console.error("Save error:", error);
+            setSaveStatus("error");
+            setErrorMessage("Network error. Please check if backend is running.");
+        }
+    };
 
     // Map internal state names to CSS height classes for mobile
     const hClasses = {
@@ -92,9 +135,9 @@ export default function InfoPanel({
         return undefined;
     };
 
-    const displayImage = getImageUrl(destination.images) || "https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=800&q=80";
+    const displayImage = getImageUrl(destination.images) || "/images/main building.webp";
 
-    const secondaryImage = getImageUrl(Array.isArray(destination.images) ? destination.images[1] : undefined) || "https://images.unsplash.com/photo-1541339907198-e08756eaa539?auto=format&fit=crop&w=800&q=80";
+    const secondaryImage = getImageUrl(Array.isArray(destination.images) ? destination.images[1] : undefined) || "/images/maingate.webp";
 
     return (
         <div
@@ -138,10 +181,10 @@ export default function InfoPanel({
 
                     <div className="bg-slate-50 border border-slate-100 rounded-[20px] p-5 w-full text-left">
                         <p className="text-[14px] font-bold text-slate-700 leading-relaxed mb-1">
-                            You have reached <span className="text-orange-600">{destination.buildingName}</span>. Proceed inside to <span className="text-orange-600">{destination.floor}</span>.
+                            Proceed inside to <span className="text-orange-600">{destination.floor || "the designated floor"}</span>.
                         </p>
                         <p className="text-[12px] font-bold text-slate-500">
-                            Rooms are within range {destination.rangeStart}–{destination.rangeEnd}.
+                            Rooms are located within <span className="text-orange-600">{destination.rangeStart}–{destination.rangeEnd}</span>.
                         </p>
                     </div>
 
@@ -209,23 +252,45 @@ export default function InfoPanel({
                                 )}
                             </div>
 
-
-                            {/* Action Buttons Row */}                             <div className="flex justify-around mb-5 2xl:mb-7 border-b border-slate-50 pb-5 2xl:pb-7">
+                             {/* Action Buttons Row - Modern Rectangular Style */}
+                             <div className="grid grid-cols-2 gap-3 mb-5 2xl:mb-7 border-b border-slate-50 pb-5 2xl:pb-7">
                                 <ActionButton
-                                    icon={<Navigation size={16} className="fill-current 2xl:w-4 2xl:h-4" />}
+                                    icon={<Navigation size={18} className="fill-current" />}
                                     label="Navigate"
                                     onClick={() => onSetPlanning(true)}
+                                    variant="neutral"
                                 />
                                 <ActionButton
-                                    icon={<Play size={16} className="fill-current 2xl:w-4 2xl:h-4" />}
-                                    label="Start"
-                                    onClick={() => onStartNavigation([destination.lng, destination.lat])}
-                                />
-                                <ActionButton
-                                    icon={<Bookmark size={16} className="2xl:w-4 2xl:h-4" />}
-                                    label="Save"
+                                    icon={
+                                        saveStatus === "saving" ? <Loader2 size={18} className="animate-spin" /> :
+                                        saveStatus === "saved" ? <Check size={18} strokeWidth={3} /> :
+                                        saveStatus === "exists" ? <Bookmark size={18} fill="currentColor" /> :
+                                        saveStatus === "error" ? <AlertCircle size={18} /> :
+                                        <Bookmark size={18} strokeWidth={2.5} />
+                                    }
+                                    label={
+                                        saveStatus === "saving" ? "Saving..." :
+                                        saveStatus === "saved" ? "Saved" :
+                                        saveStatus === "exists" ? "Saved" :
+                                        saveStatus === "error" ? "Retry" :
+                                        "Save"
+                                    }
+                                    onClick={handleSave}
+                                    disabled={saveStatus === "saving" || saveStatus === "saved" || saveStatus === "exists"}
+                                    variant={
+                                        saveStatus === "saved" ? "success" :
+                                        saveStatus === "exists" ? "info" :
+                                        saveStatus === "error" ? "danger" :
+                                        "primary"
+                                    }
                                 />
                             </div>
+
+                            {saveStatus === "error" && (
+                                <p className="text-[10px] text-red-500 font-bold mb-4 text-center animate-pulse">
+                                    {errorMessage}
+                                </p>
+                            )}
 
                             {/* Navigation Target (Entrance) Info - Hide if we already arrived and aren't in indoor mode because we replaced it entirely above */}
                             {entrance && navigationPhase === "outdoor" && (
@@ -422,16 +487,43 @@ export default function InfoPanel({
     );
 }
 
-function ActionButton({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick?: () => void }) {
+function ActionButton({ 
+    icon, 
+    label, 
+    onClick, 
+    disabled, 
+    variant = "neutral" 
+}: { 
+    icon: React.ReactNode; 
+    label: string; 
+    onClick?: (e: React.MouseEvent) => void; 
+    disabled?: boolean;
+    variant?: "neutral" | "primary" | "success" | "info" | "danger"
+}) {
+    const variants = {
+        neutral: "bg-slate-50 text-[#111827] border-slate-200 hover:bg-slate-100",
+        primary: "bg-orange-500 text-white border-transparent hover:bg-orange-600 shadow-lg shadow-orange-500/20",
+        success: "bg-green-500 text-white border-transparent cursor-default",
+        info: "bg-blue-500 text-white border-transparent cursor-default",
+        danger: "bg-red-500 text-white border-transparent hover:bg-red-600"
+    };
+
     return (
         <button
             onClick={onClick}
-            className="flex flex-col items-center gap-1.5 group active:scale-95 transition-transform"
+            disabled={disabled}
+            className={`
+                flex items-center justify-center gap-2 h-12 2xl:h-14 px-4 rounded-xl border font-bold transition-all duration-300 active:scale-95
+                ${variants[variant]}
+                ${disabled && (variant === 'success' || variant === 'info') ? 'opacity-100' : disabled ? 'opacity-50 cursor-not-allowed' : ''}
+            `}
         >
-            <div className="w-9 h-9 2xl:w-10 2xl:h-10 rounded-full border border-slate-50 flex items-center justify-center text-[#111827] bg-slate-50 group-hover:bg-[#fb923c] group-hover:text-white group-hover:border-transparent transition-all shadow-sm">
+            <div className="flex-shrink-0">
                 {icon}
             </div>
-            <span className="text-[9px] 2xl:text-[10px] font-black text-[#111827] uppercase tracking-tighter opacity-70 group-hover:opacity-100 group-hover:text-[#fb923c] transition-all">{label}</span>
+            <span className="text-[13px] 2xl:text-sm font-black uppercase tracking-tight">
+                {label}
+            </span>
         </button>
     );
 }

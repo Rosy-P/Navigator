@@ -17,7 +17,7 @@
             "phone": "+91 44 2239 0675",
             "website": "https://mcc.edu.in/academics",
             "images": [
-                "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=600&q=80"
+                "/images/classroom.webp"
             ],
             "category": "Academic",
             "voice": {
@@ -37,7 +37,7 @@
             "phone": "+91 44 2239 6789",
             "website": "https://mcc.edu.in/cs-dept",
             "images": [
-                "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=600&q=80"
+                "/images/corridor.webp"
             ],
             "category": "Lab",
             "voice": {
@@ -59,7 +59,7 @@
             "phone": "+91 44 2239 1234",
             "website": "https://mcc.edu.in/departments/cs",
             "images": [
-                "https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=600&q=80"
+                "/images/chemistry lab.jpg"
             ],
             "category": "Academic",
             "voice": {
@@ -79,7 +79,7 @@
             "phone": "+91 44 2239 4567",
             "website": "https://mcc.edu.in/departments/commerce",
             "images": [
-                "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=600&q=80"
+                "/images/main building.webp"
             ],
             "category": "Academic",
             "voice": {
@@ -102,7 +102,7 @@
             "phone": "+91 44 2239 0001",
             "website": "https://mcc.edu.in",
             "images": [
-                "https://images.unsplash.com/photo-1590059523275-58a36c568f6a?auto=format&fit=crop&w=600&q=80"
+                "/images/maingate.webp"
             ],
             "category": "Entrance",
             "voice": {
@@ -123,7 +123,7 @@
             "phone": "+91 44 2239 9999",
             "website": "https://mcc.edu.in/library",
             "images": [
-                "https://images.unsplash.com/photo-1507842217121-9e9f28dec969?auto=format&fit=crop&w=600&q=80"
+                "/images/library.webp"
             ],
             "category": "Academic",
             "voice": {
@@ -144,7 +144,7 @@
             "phone": "N/A",
             "website": "https://mcc.edu.in",
             "images": [
-                "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=600&q=80"
+                "/images/selaiyur hall.png"
             ],
             "category": "Hostel",
             "voice": {
@@ -165,7 +165,7 @@
             "phone": "1800 425 4445",
             "website": "https://iob.in",
             "images": [
-                "https://images.unsplash.com/photo-1601597111158-2fceff292cdc?auto=format&fit=crop&w=600&q=80"
+                "/images/students center.webp"
             ],
             "category": "Service",
             "voice": {
@@ -185,7 +185,7 @@
             "phone": "N/A",
             "website": "https://mcc.edu.in/sports",
             "images": [
-                "https://images.unsplash.com/photo-1599058945522-28d584b6f0ff?auto=format&fit=crop&w=600&q=80"
+                "/images/corridor.webp"
             ],
             "category": "Sports",
             "voice": {
@@ -205,7 +205,7 @@
             "phone": "+91 44 2239 3333",
             "website": "https://mcc.edu.in/media",
             "images": [
-                "https://images.unsplash.com/photo-1599058945522-28d584b6f0ff?auto=format&fit=crop&w=600&q=80"
+                "/images/center for media studies.jpg"
             ],
             "category": "Academic",
             "voice": {
@@ -225,7 +225,7 @@
             "phone": "N/A",
             "website": "https://mcc.edu.in/library",
             "images": [
-                "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?auto=format&fit=crop&w=600&q=80"
+                "/images/library.webp"
             ],
             "category": "Academic",
             "voice": {
@@ -245,7 +245,7 @@
             "phone": "N/A",
             "website": "https://mcc.edu.in/arts",
             "images": [
-                "https://images.unsplash.com/photo-1518998053901-5348d3969105?auto=format&fit=crop&w=600&q=80"
+                "/images/center for media studies.jpg"
             ],
             "category": "Arts",
             "voice": {
@@ -264,7 +264,7 @@
             "phone": "N/A",
             "website": "https://mcc.edu.in",
             "images": [
-                "https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?auto=format&fit=crop&w=600&q=80"
+                "/images/botany tank.jpg"
             ],
             "category": "Landmark",
             "voice": {
@@ -284,7 +284,7 @@
             "phone": "+91 44 2239 8888",
             "website": "https://mcc.edu.in/anderson",
             "images": [
-                "https://images.unsplash.com/photo-1497294815431-9365093b7331?auto=format&fit=crop&w=600&q=80"
+                "/images/anderson hall.jpg"
             ],
             "category": "Academic",
             "voice": {
@@ -303,7 +303,7 @@
             "phone": "N/A",
             "website": "https://mcc.edu.in",
             "images": [
-                "https://images.unsplash.com/photo-1541339907198-e08756eaa539?auto=format&fit=crop&w=600&q=80"
+                "/images/main building.webp"
             ],
             "category": "Academic",
             "voice": {
@@ -322,7 +322,7 @@
             "phone": "N/A",
             "website": "https://mcc.edu.in",
             "images": [
-                "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=600&q=80"
+                "/images/anderson hall.jpg"
             ],
             "category": "Academic",
             "voice": {
@@ -342,7 +342,7 @@
             "phone": "N/A",
             "website": "https://mcc.edu.in",
             "images": [
-                "https://images.unsplash.com/photo-1523580494863-6f3031224c94?auto=format&fit=crop&w=600&q=80"
+                "/images/main building.webp"
             ],
             "category": "Landmark",
             "voice": {
@@ -363,7 +363,7 @@
             "phone": "N/A",
             "website": "https://mcc.edu.in",
             "images": [
-                "https://images.unsplash.com/photo-1548625361-195fe0182a7f?auto=format&fit=crop&w=600&q=80"
+                "/images/bell tower.jpg"
             ],
             "category": "Religious",
             "voice": {
@@ -374,7 +374,7 @@
         {
             "website": "https://mcc.edu.in",
             "images": [
-                "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=600&q=80"
+                "/images/selaiyur hall.png"
             ],
             "category": "Hostel",
             "id": "heber_hall",
@@ -398,7 +398,7 @@
             "phone": "N/A",
             "website": "https://mcc.edu.in",
             "images": [
-                "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=600&q=80"
+                "/images/chemistry lab.jpg"
             ],
             "category": "Medical",
             "voice": {
@@ -417,7 +417,7 @@
             "phone": "N/A",
             "website": "https://mcc.edu.in",
             "images": [
-                "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=600&q=80"
+                "/images/botany tank.jpg"
             ],
             "category": "Landmark",
             "voice": {
@@ -436,7 +436,7 @@
             "phone": "N/A",
             "website": "https://mcc.edu.in",
             "images": [
-                "https://images.unsplash.com/photo-1523580494863-6f3031224c94?auto=format&fit=crop&w=600&q=80"
+                "/images/college union society.jpg"
             ],
             "category": "Student Center",
             "voice": {
@@ -455,7 +455,7 @@
             "phone": "N/A",
             "website": "https://mcc.edu.in",
             "images": [
-                "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=600&q=80"
+                "/images/college union society.jpg"
             ],
             "category": "Canteen",
             "voice": {
@@ -475,7 +475,7 @@
             "phone": "N/A",
             "website": "https://mcc.edu.in",
             "images": [
-                "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=600&q=80"
+                "/images/botany tank.jpg"
             ],
             "category": "Landmark",
             "voice": {
@@ -494,7 +494,7 @@
             "phone": "N/A",
             "website": "https://mcc.edu.in",
             "images": [
-                "https://images.unsplash.com/photo-1599586120429-48281b6f0ece?auto=format&fit=crop&w=600&q=80"
+                "/images/main building.webp"
             ],
             "category": "Sports",
             "voice": {
@@ -513,7 +513,7 @@
             "phone": "N/A",
             "website": "https://mcc.edu.in",
             "images": [
-                "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=600&q=80"
+                "/images/selaiyur hall.png"
             ],
             "category": "Hostel",
             "voice": {
@@ -533,7 +533,7 @@
             "phone": "N/A",
             "website": "https://mcc.edu.in",
             "images": [
-                "https://images.unsplash.com/photo-1590059523275-58a36c568f6a?auto=format&fit=crop&w=600&q=80"
+                "/images/maingate.webp"
             ],
             "category": "Entrance",
             "voice": {
@@ -552,7 +552,7 @@
             "phone": "+91 44 2239 0005",
             "website": "https://mcc.edu.in/health",
             "images": [
-                "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=600&q=80"
+                "/images/chemistry lab.jpg"
             ],
             "category": "Medical",
             "voice": {
@@ -571,7 +571,7 @@
             "phone": "N/A",
             "website": "https://mcc.edu.in/farm",
             "images": [
-                "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=600&q=80"
+                "/images/botany tank.jpg"
             ],
             "category": "Landmark",
             "voice": {
@@ -590,7 +590,7 @@
             "phone": "N/A",
             "website": "https://mcc.edu.in",
             "images": [
-                "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=600&q=80"
+                "/images/botany tank.jpg"
             ],
             "category": "Landmark",
             "voice": {
@@ -609,7 +609,7 @@
             "phone": "+91 44 2239 1111",
             "website": "https://mcc.edu.in/guesthouse",
             "images": [
-                "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=600&q=80"
+                "/images/anderson hall.jpg"
             ],
             "category": "Service",
             "voice": {
@@ -628,7 +628,7 @@
             "phone": "N/A",
             "website": "https://mcc.edu.in/sports",
             "images": [
-                "https://images.unsplash.com/photo-1541252260730-0412e8e2108e?auto=format&fit=crop&w=600&q=80"
+                "/images/main building.webp"
             ],
             "category": "Sports",
             "voice": {
@@ -638,9 +638,12 @@
         {
             "id": "martin_hall",
             "name": "Martin Hall",
-            "lat": 12.918,
-            "lng": 80.128,
+            "lat": 12.920221266244127,
+            "lng": 80.11883431193974,
             "floor": "ground",
+            "images": [
+                "/images/selaiyur hall.png"
+            ],
             "category": "Hostel",
             "voice": {
                 "tour": "Established in 1968, Martin Hall was the first women’s hall on campus. Known for Vatika, Galarompics, and a strong sense of community, its residents are proudly called Martinians."
@@ -649,9 +652,12 @@
         {
             "id": "margaret_hall",
             "name": "Margaret Hall",
-            "lat": 12.92429,
-            "lng": 80.12643,
+            "lat": 12.919346285193512,
+            "lng": 80.11930984327296,
             "floor": "ground",
+            "images": [
+                "/images/selaiyur hall.png"
+            ],
             "category": "Hostel",
             "voice": {
                 "tour": "Margaret Hall, founded in 2009, is a women’s hall named after Margaret Locher Anderson. With blocks named after flowers, it promotes creativity, leadership, and cultural expression among its residents, called Margaritas."
@@ -660,12 +666,102 @@
         {
             "id": "barnes_hall",
             "name": "Barnes Hall",
-            "lat": 12.92316,
-            "lng": 80.12812,
+            "lat": 12.920129510074489,
+            "lng": 80.11821843746213,
             "floor": "ground",
             "category": "Hostel",
+            "images": [
+                "/images/barnes hall.jpg"
+            ],
             "voice": {
                 "tour": "Barnes Hall, established in 2016, is the newest women’s hall on campus. With the motto “Shine Your Light”, it emphasizes empowerment, sustainability, and modern living facilities."
+            }
+        },
+        {
+            "id": "basketball_ground",
+            "name": "Basketball ground",
+            "lat": 12.917697208710067,
+            "lng": 80.12321845816103,
+            "floor": "ground",
+            "rating": 4.5,
+            "reviews": 18,
+            "address": "South Campus, Near Stadium",
+            "category": "Sports",
+            "voice": {
+                "tour": "This is the Basketball ground of MCC, where students practice and play inter-hall matches."
+            }
+        },
+        {
+            "id": "principals_residence",
+            "name": "Principal's residence",
+            "lat": 12.920332248213725,
+            "lng": 80.12121815247713,
+            "floor": "ground",
+            "rating": 4.8,
+            "reviews": 12,
+            "address": "Opposite Main Building, MCC",
+            "category": "Landmark",
+            "voice": {
+                "tour": "This is the official residence of the Principal of Madras Christian College."
+            }
+        },
+        {
+            "id": "bell_tower",
+            "name": "Bell Tower",
+            "lat": 12.920524233762649,
+            "lng": 80.12206296022401,
+            "floor": "ground",
+            "rating": 4.7,
+            "reviews": 34,
+            "address": "Near Quadrangle, MCC",
+            "category": "Landmark",
+            "images": [
+                "/images/bell tower.jpg"
+            ],
+            "voice": {
+                "tour": "The iconic Bell Tower of MCC has served as a central landmark for generations of students."
+            }
+        },
+        {
+            "id": "stationary_shop",
+            "name": "Stationary shop",
+            "lat": 12.920417005238875,
+            "lng": 80.12232661782127,
+            "floor": "ground",
+            "rating": 4.3,
+            "reviews": 85,
+            "address": "Near Union Society, MCC",
+            "category": "Service",
+            "voice": {
+                "tour": "The college stationary shop provides essential academic supplies and services for students and faculty."
+            }
+        },
+        {
+            "id": "macnicol_lounge",
+            "name": "Macnicol Lounge For women",
+            "lat": 12.920767761075155,
+            "lng": 80.12238845799243,
+            "floor": "ground",
+            "rating": 4.6,
+            "reviews": 42,
+            "address": "Near Main Building, MCC",
+            "category": "Facility",
+            "voice": {
+                "tour": "Named after Margaret Macnicol, this lounge provides a comfortable space for women students on campus."
+            }
+        },
+        {
+            "id": "badminton_court",
+            "name": "Indoor Badminton Court",
+            "lat": 12.917585518450338,
+            "lng": 80.12066278886402,
+            "floor": "ground",
+            "rating": 4.7,
+            "reviews": 25,
+            "address": "South Campus, Near Stadium",
+            "category": "Sports",
+            "voice": {
+                "tour": "The Indoor Badminton Court is a popular spot for sports enthusiasts to train and compete."
             }
         }
     ]

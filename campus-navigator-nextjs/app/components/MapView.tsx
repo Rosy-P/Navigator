@@ -138,6 +138,8 @@ export default function MapView({
   const isSelectingStartRef = useRef(isSelectingStart);
   const onLocationSelectedRef = useRef(onLocationSelected);
   const onSelectLandmarkRef = useRef(onSelectLandmark);
+  const selectedLandmarkRef = useRef(selectedLandmark);
+  const navigationPhaseRef = useRef(navigationPhase);
 
   // Persistent Simulation State Refs
   const simIndexRef = useRef<number>(0);
@@ -145,10 +147,26 @@ export default function MapView({
   const simSegmentDistRef = useRef<number>(0);
   const simSegmentDurationRef = useRef<number>(0);
   const currentUserLocationRef = useRef<[number, number]>(defaultLocation);
+  const hasArrivedRef = useRef(false);
+  const [isMapLocked, setIsMapLocked] = useState(true);
+
+  // Reset arrival flag when guidance starts or destination changes
+  useEffect(() => {
+    hasArrivedRef.current = false;
+    if (isGuidanceActive) setIsMapLocked(true);
+  }, [isGuidanceActive, destination]);
 
   useEffect(() => {
     onSelectLandmarkRef.current = onSelectLandmark;
   }, [onSelectLandmark]);
+
+  useEffect(() => {
+    selectedLandmarkRef.current = selectedLandmark;
+  }, [selectedLandmark]);
+
+  useEffect(() => {
+    navigationPhaseRef.current = navigationPhase;
+  }, [navigationPhase]);
 
   useEffect(() => {
     isSelectingStartRef.current = isSelectingStart;
@@ -230,6 +248,10 @@ export default function MapView({
     });
 
     mapInstance.current = map;
+
+    map.on("dragstart", () => {
+      setIsMapLocked(false);
+    });
 
     const loadResources = async () => {
       try {
@@ -380,17 +402,7 @@ export default function MapView({
           source: "buildings",
           paint: {
             "fill-color": ["coalesce", ["get", "color"], "#3b82f6"],
-            "fill-opacity": [
-              "interpolate",
-              ["linear"],
-              ["zoom"],
-              15,
-              0.1,
-              16,
-              0.2,
-              18,
-              0.3
-            ],
+            "fill-opacity": 0, // REQUIREMENT: Leave to normal map mode by default
           },
         });
 
@@ -401,7 +413,7 @@ export default function MapView({
           paint: {
             "line-color": ["coalesce", ["get", "color"], "#2563eb"],
             "line-width": ["interpolate", ["linear"], ["zoom"], 15, 1, 18, 3],
-            "line-opacity": 0.8,
+            "line-opacity": 0, // REQUIREMENT: Leave to normal map mode by default
           },
         });
 
@@ -454,12 +466,45 @@ export default function MapView({
           }
         });
 
-        // 3. Unified Walk Network
-        const networkRes = await fetch("/data/final/mcc-walk-network.geojson");
-        const networkData = await networkRes.json();
-        graphRef.current = buildGraph(networkData);
+        // Entrance Highlight Source & Layer
+        map.addSource("entrance-highlight", {
+          type: "geojson",
+          data: { type: "FeatureCollection", features: [] },
+        });
+
+        map.addLayer({
+          id: "entrance-highlight-layer",
+          type: "symbol",
+          source: "entrance-highlight",
+          layout: {
+            "text-field": "🎯",
+            "text-size": 24,
+            "text-allow-overlap": true,
+            "text-ignore-placement": true,
+          },
+        });
+
+        // 3. Unified Walk Network (Detailed Base + Shortcuts)
+        const [walkNetworkRes, shortcutsRes] = await Promise.all([
+          fetch("/data/final/mcc-walk-network.geojson"),
+          fetch("/data/raw/mcc-shortcuts.geojson")
+        ]);
+        const walkNetworkData = await walkNetworkRes.json();
+        const shortcutsData = await shortcutsRes.json();
+        
+        // Build graph using the full network + new shortcuts
+        graphRef.current = buildGraph(walkNetworkData, shortcutsData);
         setIsGraphReady(true);
-        map.addSource("mcc-paths", { type: "geojson", data: networkData });
+
+        // Merge for rendering to ensure everything is visible
+        const mergedData = {
+          type: "FeatureCollection",
+          features: [
+            ...walkNetworkData.features, 
+            ...shortcutsData.features
+          ]
+        };
+        map.addSource("mcc-paths", { type: "geojson", data: mergedData as any });
 
         map.addLayer({
           id: "paths-main",
@@ -613,16 +658,27 @@ export default function MapView({
     // 2. Building Markers Visibility & Logic
     const buildingSource = map.getSource("buildings") as maplibregl.GeoJSONSource;
     if (buildingSource && buildings.length) {
-      // In polygon mode, the source is already loaded with GeoJSON in loadResources
-      // But if we want to sync it with properties from props:
+      // Filter buildings based on category
       const features = buildings.map((b) => {
-        // If 'b' is a GeoJSON Feature, use it, else try to find the feature by ID
         if (b.type === "Feature") return b;
         return null;
-      }).filter(Boolean);
+      }).filter(Boolean).filter((f: any) => {
+        if (!activeCategory) return true;
+        
+        const props = f.properties || f;
+        const buildingId = props.id || f.id;
+        
+        if (activeCategory === "Hostel") return false;
+        if (activeCategory === "Academic" || activeCategory === "Department") return true;
+        if (activeCategory === "Lab") return props.block === "science" || buildingId.includes("science") || buildingId.includes("botany") || buildingId.includes("zoology");
+        
+        return false;
+      });
       
       if (features.length > 0) {
         buildingSource.setData({ type: "FeatureCollection", features } as any);
+      } else {
+        buildingSource.setData({ type: "FeatureCollection", features: [] } as any);
       }
     }
 
@@ -637,11 +693,14 @@ export default function MapView({
     }
 
     if (selectedLandmark) {
+      const map = mapInstance.current!;
       const highlightSource = map.getSource("building-highlight") as maplibregl.GeoJSONSource;
-      let buildingId = selectedLandmark.type === "building" ? selectedLandmark.id : selectedLandmark.buildingId;
+      const entranceSource = map.getSource("entrance-highlight") as maplibregl.GeoJSONSource;
+      
+      const isEligibleForBuildingHighlight = selectedLandmark.type === "building" || selectedLandmark.type === "room";
+      let buildingId = isEligibleForBuildingHighlight ? (selectedLandmark.type === "building" ? selectedLandmark.id : selectedLandmark.buildingId) : null;
       
       if (buildingId && highlightSource) {
-        // Find the feature in the buildings GeoJSON
         const buildingFeature = buildings.find(b => (b.id === buildingId || b.properties?.id === buildingId));
         if (buildingFeature) {
           highlightSource.setData({
@@ -664,27 +723,47 @@ export default function MapView({
                 glowAnimFrameRef.current = requestAnimationFrame(animateGlow);
             };
             glowAnimFrameRef.current = requestAnimationFrame(animateGlow);
+
+            // HIGHLIGHT ENTRANCE
+            if (entranceSource && entrances.length) {
+              const buildingEntrances = entrances.filter(e => e.buildingId === buildingId);
+              if (buildingEntrances.length) {
+                // For simplicity, showing all entrances or the nearest one. 
+                // Using the specific entrance if already selected, else just show all relevant to the building
+                const features = buildingEntrances.map(e => ({
+                  type: "Feature",
+                  geometry: { type: "Point", coordinates: [e.lng, e.lat] },
+                  properties: { name: e.name }
+                }));
+                entranceSource.setData({ type: "FeatureCollection", features } as any);
+              }
+            }
+          } else {
+            // Clear entrance if it's just a building
+            if (entranceSource) entranceSource.setData({ type: "FeatureCollection", features: [] } as any);
           }
 
-          // Calculate center for zooming
-          const coords = buildingFeature.geometry?.coordinates[0];
-          const center: [number, number] = coords ? [
-            coords.reduce((acc: number, curr: number[]) => acc + curr[0], 0) / coords.length,
-            coords.reduce((acc: number, curr: number[]) => acc + curr[1], 0) / coords.length
-          ] : [buildingFeature.lng, buildingFeature.lat];
+          if (!isGuidanceActive) {
+            const coords = buildingFeature.geometry?.coordinates[0];
+            const center: [number, number] = coords ? [
+              coords.reduce((acc: number, curr: number[]) => acc + curr[0], 0) / coords.length,
+              coords.reduce((acc: number, curr: number[]) => acc + curr[1], 0) / coords.length
+            ] : [buildingFeature.lng, buildingFeature.lat];
 
-          // If room search triggered this, we might want to zoom slightly more
-          const zoomLevel = selectedLandmark.type === "room" ? 18.5 : 17.5;
-          map.easeTo({
-            center: center,
-            zoom: zoomLevel,
-            duration: 1500
-          });
+            const zoomLevel = selectedLandmark.type === "room" ? 19.5 : 18.5;
+            map.easeTo({ center: center, zoom: zoomLevel, duration: 1500 });
+          }
         }
-      } else if (highlightSource) {
-        // Clear highlight if not a building/room
-        highlightSource.setData({ type: "FeatureCollection", features: [] } as any);
+      } else {
+        if (highlightSource) highlightSource.setData({ type: "FeatureCollection", features: [] } as any);
+        if (entranceSource) entranceSource.setData({ type: "FeatureCollection", features: [] } as any);
       }
+    } else {
+        const map = mapInstance.current;
+        const highlightSource = map?.getSource("building-highlight") as maplibregl.GeoJSONSource;
+        const entranceSource = map?.getSource("entrance-highlight") as maplibregl.GeoJSONSource;
+        if (highlightSource) highlightSource.setData({ type: "FeatureCollection", features: [] } as any);
+        if (entranceSource) entranceSource.setData({ type: "FeatureCollection", features: [] } as any);
     }
 
     return () => {
@@ -724,7 +803,7 @@ export default function MapView({
 
         console.log(`📍 Nearest entrance to building ${selectedLandmark.buildingId} is ${nearest.name}`);
         targetDest = [nearest.lng, nearest.lat];
-        targetZoom = 18.5; // Zoom in closer for rooms
+        targetZoom = 19.5; // Zoom in closer for rooms
 
         // SYNC ENTRANCE TO PARENT
         if (onEntranceSelected) {
@@ -732,7 +811,7 @@ export default function MapView({
         }
       }
     } else if (destType === "building") {
-      targetZoom = 17.5;
+      targetZoom = 18.5;
     }
 
     map.easeTo({
@@ -784,10 +863,12 @@ export default function MapView({
         destMarkerRef.current = null;
       }
 
-      // Reset start marker position and style
+      // Reset start marker style, but keep position if we just arrived
       if (startMarkerRef.current) {
-        const defaultLocation: [number, number] = [80.120584, 12.923163];
-        startMarkerRef.current.setLngLat(startLocation || defaultLocation);
+        if (!navEnded && !simEnded) {
+            const defaultLocation: [number, number] = [80.120584, 12.923163];
+            startMarkerRef.current.setLngLat(startLocation || defaultLocation);
+        }
         startMarkerRef.current.setRotation(0);
         startMarkerRef.current.getElement().classList.remove("navigating");
       }
@@ -835,8 +916,7 @@ export default function MapView({
       return;
     }
 
-    // CRITICAL: Reset simulation state when starting new animation
-    simIndexRef.current = 0;
+    // Reset start time to trigger re-sampling on resume/speed change
     simStartTimeRef.current = null;
     simSegmentDistRef.current = 0;
     simSegmentDurationRef.current = 0;
@@ -860,6 +940,12 @@ export default function MapView({
 
       const elapsed = time - simStartTimeRef.current;
       let t = Math.min(elapsed / simSegmentDurationRef.current, 1);
+
+      // REQUIREMENT: If indoor, lock to the very end of the path
+      if (navigationPhaseRef.current === "indoor") {
+          t = 1.0; 
+          simIndexRef.current = path.length - 2;
+      }
 
       if (isPaused) {
         simStartTimeRef.current = time - t * simSegmentDurationRef.current;
@@ -930,7 +1016,7 @@ export default function MapView({
           center: currentPos,
           bearing: smoothedBearingRef.current,
           pitch: cameraModeRef.current === "TURN" ? 45 : 60,
-          zoom: 18.5,
+          zoom: 20.0,
           offset: [offsetX, offsetY],
           duration: 350,
           easing: (t) => t * (2 - t),
@@ -942,21 +1028,26 @@ export default function MapView({
       }
 
       const cSrc = map.getSource("route-covered") as maplibregl.GeoJSONSource;
-      if (cSrc) {
-        const covered = [...path.slice(0, simIndexRef.current + 1), currentPos];
-        cSrc.setData({
-          type: "Feature",
-          geometry: { type: "LineString", coordinates: covered },
-        } as any);
-      }
-
       const rSrc = map.getSource("route") as maplibregl.GeoJSONSource;
-      if (rSrc) {
-        const remaining = [currentPos, ...path.slice(simIndexRef.current + 1)];
-        rSrc.setData({
-          type: "Feature",
-          geometry: { type: "LineString", coordinates: remaining },
-        } as any);
+
+      if (navigationPhaseRef.current === "indoor" || navigationPhaseRef.current === "completed") {
+        if (cSrc) cSrc.setData({ type: "FeatureCollection", features: [] });
+        if (rSrc) rSrc.setData({ type: "FeatureCollection", features: [] });
+      } else {
+        if (cSrc) {
+          const covered = [...path.slice(0, simIndexRef.current + 1), currentPos];
+          cSrc.setData({
+            type: "Feature",
+            geometry: { type: "LineString", coordinates: covered },
+          } as any);
+        }
+        if (rSrc) {
+          const remaining = [currentPos, ...path.slice(simIndexRef.current + 1)];
+          rSrc.setData({
+            type: "Feature",
+            geometry: { type: "LineString", coordinates: remaining },
+          } as any);
+        }
       }
 
       let instruction = "Continue straight";
@@ -990,8 +1081,10 @@ export default function MapView({
           distToManeuver = lookaheadDist;
         }
       } else if (simIndexRef.current === path.length - 2) {
-        if (t > 0.95) {
-          instruction = "You have arrived";
+        if (t > 0.95 || navigationPhase === "indoor") {
+          instruction = selectedLandmarkRef.current?.type === "room" 
+            ? `You have reached ${selectedLandmarkRef.current?.buildingName}`
+            : "You have arrived";
           distToManeuver = 0;
           targetManeuverCoord = path[path.length - 1];
         } else {
@@ -1006,28 +1099,16 @@ export default function MapView({
       const distToFinal = distance(currentPos, path[path.length - 1]);
       const arrivalThreshold = 15; // meters
 
-      if (distToFinal < arrivalThreshold && navigationPhase === "outdoor" && onPhaseChange) {
-        if (selectedLandmark?.type === "room") {
-            console.log("🏫 Indoor phase triggered");
+      // REQUIREMENT: Trigger arrival only when very close to the end point in demo
+      const isLastSegment = path && simIndexRef.current === path.length - 2;
+      const reachedEnd = isLastSegment && t > 0.98;
+
+      if (reachedEnd && navigationPhaseRef.current === "outdoor" && onPhaseChange) {
+        if (selectedLandmarkRef.current?.type === "room") {
             onPhaseChange("indoor");
         } else {
-            console.log("✅ Navigation completed triggered");
             onPhaseChange("completed");
         }
-      }
-      
-      // Stop moving the camera logic if we're done or indoor
-      if (navigationPhase === "completed") {
-         // Freeze simulation entirely
-         return;
-      }
-      
-      // If we are in indoor phase, we stop checking for maneuvers, but we want the user
-      // to still be able to see their dot moving (or demo moving slowly). 
-      // But we prevent the simulation index from advancing past the entrance.
-      if (navigationPhase === "indoor" && t >= 0.95 && simIndexRef.current >= path.length - 2) {
-          // Keep dot at entrance, do not finish the demo loop completely yet
-          t = 0.95;
       }
 
       const distText =
@@ -1088,8 +1169,49 @@ export default function MapView({
     simulationSpeed,
     isTourSimulation,
     isPathReady,
-    navigationPhase, // Add phase to dep array so animation loop can react to it
+    // navigationPhase - Removed from deps to prevent simulation reset on arrival
   ]);
+
+  // ===============================
+  // REAL GPS Arrival Monitor
+  // ===============================
+  // Triggers phase changes (outdoor -> indoor/completed) based on real GPS proximity
+  useEffect(() => {
+    if (!isGuidanceActive || isDemoMode || !destination || !onPhaseChange || navigationPhase === 'completed' || hasArrivedRef.current) {
+      return;
+    }
+
+    const path = currentRouteRef.current;
+    if (!path || path.length < 2) return;
+
+    // Use actual GPS start location or default
+    const currentPos = startLocation || defaultLocation;
+    const finalTarget = path[path.length - 1]; 
+    const distToFinal = distance(currentPos, finalTarget);
+    
+    // REQUIREMENT: High-Reliability GPS Threshold (20m)
+    const ARRIVAL_THRESHOLD = 20; 
+
+    if (distToFinal <= ARRIVAL_THRESHOLD && navigationPhase === 'outdoor') {
+      console.log(`📍 [Real GPS] Arrival Detected: ${distToFinal.toFixed(1)}m. Switching phases.`);
+      hasArrivedRef.current = true;
+      
+      if (selectedLandmark?.type === "room") {
+        onPhaseChange("indoor");
+      } else {
+        onPhaseChange("completed");
+      }
+    }
+
+    // Auto-center during navigation if locked
+    if (isGuidanceActive && !isDemoMode && isMapLocked && mapInstance.current) {
+      mapInstance.current.easeTo({
+        center: currentPos,
+        duration: 1000,
+        essential: true
+      });
+    }
+  }, [startLocation, isGuidanceActive, isDemoMode, destination, navigationPhase, selectedLandmark, onPhaseChange, isMapLocked]);
 
   // Phase-Based Layer Visibility & Behavior
   useEffect(() => {
@@ -1097,28 +1219,18 @@ export default function MapView({
     const map = mapInstance.current;
 
     if (navigationPhase === "completed" || navigationPhase === "indoor") {
-        // Fade out or hide route lines
-        if (map.getLayer("route-line")) {
-            map.setPaintProperty("route-line", "line-opacity", 0.2); 
-            // Or use visibility none if preferred, but fading is smoother. Let's do opacity.
-        }
-        if (map.getLayer("route-covered")) {
-            map.setPaintProperty("route-covered", "line-opacity", 0.2);
-        }
-    } else {
-        // Restore opacity if we start a new query outdoors
-        if (map.getLayer("route-line")) {
-            map.setPaintProperty("route-line", "line-opacity", 1);
-        }
-        if (map.getLayer("route-covered")) {
-            map.setPaintProperty("route-covered", "line-opacity", 0.7);
-        }
+        // REQUIREMENT: Stop route rendering (remove polyline)
+        const rSrc = map.getSource("route") as maplibregl.GeoJSONSource;
+        if (rSrc) rSrc.setData({ type: "FeatureCollection", features: [] });
+        const cSrc = map.getSource("route-covered") as maplibregl.GeoJSONSource;
+        if (cSrc) cSrc.setData({ type: "FeatureCollection", features: [] });
     }
   }, [navigationPhase]);
 
   // Manual Recenter
   useEffect(() => {
     if (recenterCount > 0 && mapInstance.current && startMarkerRef.current) {
+      setIsMapLocked(true); // Re-engage auto-lock on manual recenter
       mapInstance.current.easeTo({
         center: startMarkerRef.current.getLngLat(),
         zoom: 18,
@@ -1364,6 +1476,15 @@ export default function MapView({
         if (cSrc) cSrc.setData({ type: "FeatureCollection", features: [] });
 
         setIsPathReady(false);
+      }
+
+      // CRITICAL: Remove destination marker when BOTH destination and markerLocation are cleared
+      if (!destination && !markerLocation) {
+        if (destMarkerRef.current) {
+          destMarkerRef.current.remove();
+          destMarkerRef.current = null;
+          console.log("🔴 Destination marker removed (props cleared)");
+        }
       }
 
       return;

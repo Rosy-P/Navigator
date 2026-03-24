@@ -17,6 +17,7 @@ import { useMediaQuery } from "./hooks/use-media-query";
 import { useSearchParams, useRouter } from 'next/navigation';
 import { SpeechService } from "./lib/speech/SpeechService";
 import { useSimulation } from "./context/SimulationContext";
+import { useGeolocation } from "./hooks/useGeolocation";
 
 
 type UIState = "IDLE" | "SEARCHING" | "PLACE_SELECTED" | "NAVIGATION_ACTIVE";
@@ -72,6 +73,26 @@ function HomeContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const hasProcessedUrlParams = useRef(false);
+
+  // GPS Tracking State
+  const [isTracking, setIsTracking] = useState(false);
+  const { coords: gpsCoords, error: gpsError } = useGeolocation(isTracking);
+
+  // Sync startLocation with GPS coords
+  useEffect(() => {
+    if (isTracking && gpsCoords) {
+      setStartLocation(gpsCoords);
+      setStartLabel("My Location (Live)");
+      setOriginType("gps");
+    }
+  }, [isTracking, gpsCoords]);
+
+  // Stop tracking when navigation ends or planning cancels
+  useEffect(() => {
+    if (!isGuidanceActive && !isPlanning && uiState !== "PLACE_SELECTED") {
+      setIsTracking(false);
+    }
+  }, [isGuidanceActive, isPlanning, uiState]);
 
   // Simulation Mode Feature Flag
   const { simulationMode } = useSimulation();
@@ -235,10 +256,8 @@ function HomeContent() {
 
   const handleGetGPSLocation = () => {
     requireAuth(() => {
-      const mainGate: [number, number] = [80.120584, 12.923163];
-      setStartLocation(mainGate);
-      setStartLabel("Main Gate (My Location)");
-      setOriginType("gps");
+      setIsTracking(true);
+      // No immediate setStartLocation here, useEffect will handle it once GPS fixes
     });
   };
 
@@ -340,9 +359,20 @@ function HomeContent() {
     setIsGuidanceActive(false);
     setIsDemoMode(false);
     setUiState("PLACE_SELECTED");
-    setSheetState("HALF");
+    if (landmark.type === "room") {
+      setSheetState("PEEK");
+    } else {
+      setSheetState("HALF");
+    }
     setIsTourMode(false); // Exclusivity
   }, [user, requireAuth, markerLocation, startLocation, connectors]);
+
+  // Auto-expand InfoPanel on indoor phase
+  useEffect(() => {
+    if (navigationPhase === "indoor" && selectedLandmark?.type === "room") {
+      setSheetState("HALF");
+    }
+  }, [navigationPhase, selectedLandmark]);
 
   // Handle Query Parameters for Auto-Navigation
   useEffect(() => {
@@ -677,7 +707,7 @@ function HomeContent() {
               setIsGuidanceActive(false);
               setIsDemoMode(false);
               setDestination(undefined);
-              // Keep markerLocation so marker stays at landmark position
+              setMarkerLocation(undefined); // Clear marker for fresh start
               setRouteInfo(null);
               setIsPaused(false);
               setIsSidebarCollapsed(false);
@@ -784,7 +814,7 @@ function HomeContent() {
               setNavigationPhase("outdoor");
               setIsGuidanceActive(true);
               setIsDemoMode(false);
-              setSelectedLandmark(null);
+              // Maintain selectedLandmark to keep highlight active
               setUiState("NAVIGATION_ACTIVE");
             }}
             onStartDemo={() => {
@@ -792,7 +822,7 @@ function HomeContent() {
               setNavigationPhase("outdoor");
               setIsGuidanceActive(true);
               setIsDemoMode(true);
-              setSelectedLandmark(null);
+              // Maintain selectedLandmark to keep highlight active
               setUiState("NAVIGATION_ACTIVE");
             }}
             simulationMode={simulationMode}
