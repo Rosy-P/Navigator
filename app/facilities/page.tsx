@@ -186,7 +186,7 @@ const FacilityDetailsPopup = ({ facility, onClose }: { facility: Facility; onClo
 };
 
 export default function FacilitiesPage() {
-    const { user, showAuthOverlay, logout, isLoading } = useAuth();
+    const { user, showAuthOverlay, requireAuth, logout, isLoading } = useAuth();
     const isMobile = useMediaQuery("(max-width: 768px)");
 
     // State
@@ -318,7 +318,12 @@ export default function FacilitiesPage() {
                 isCollapsed={isSidebarCollapsed}
                 isMobileOpen={isMobileMenuOpen}
                 onCloseMobile={() => setIsMobileMenuOpen(false)}
-                onOpenSettings={() => { }}
+                onOpenSettings={() => requireAuth(() => router.push('/?open=settings'))}
+                onOpenSavedPlaces={() => requireAuth(() => router.push('/?open=saved'))}
+                onOpenEvents={() => requireAuth(() => router.push('/?open=events'))}
+                onOpenEmergency={() => router.push('/emergency')}
+                onOpenFacilities={() => router.push('/facilities')}
+                onSelectLocations={() => router.push('/')}
                 forceActiveLabel="Facilities"
                 user={user}
                 onOpenAuth={showAuthOverlay}

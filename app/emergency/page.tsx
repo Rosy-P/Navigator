@@ -154,7 +154,7 @@ const NavigationButton = ({ point, theme, onClick }: { point: typeof NAVIGATION_
 // --- Main Page ---
 
 export default function EmergencyPage() {
-    const { user, showAuthOverlay, logout, isLoading } = useAuth();
+    const { user, showAuthOverlay, requireAuth, logout, isLoading } = useAuth();
     const isMobile = useMediaQuery("(max-width: 768px)");
     const router = useRouter();
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -188,7 +188,12 @@ export default function EmergencyPage() {
                 isCollapsed={isSidebarCollapsed}
                 isMobileOpen={isMobileMenuOpen}
                 onCloseMobile={() => setIsMobileMenuOpen(false)}
-                onOpenSettings={() => { }}
+                onOpenSettings={() => requireAuth(() => router.push('/?open=settings'))}
+                onOpenSavedPlaces={() => requireAuth(() => router.push('/?open=saved'))}
+                onOpenEvents={() => requireAuth(() => router.push('/?open=events'))}
+                onOpenEmergency={() => router.push('/emergency')}
+                onOpenFacilities={() => router.push('/facilities')}
+                onSelectLocations={() => router.push('/')}
                 forceActiveLabel="Emergency"
                 user={user}
                 onOpenAuth={showAuthOverlay}

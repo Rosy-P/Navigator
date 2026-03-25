@@ -2,7 +2,7 @@
 
 import { X, Navigation, Play, Bookmark, Info, ChevronLeft, MapPin, Target, Send, Zap, Check, AlertCircle, Loader2 } from "lucide-react";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface Landmark {
     id?: string;
@@ -43,6 +43,8 @@ interface InfoPanelProps {
     simulationMode?: boolean;
     theme?: "light" | "dark";
     navigationPhase?: "outdoor" | "indoor" | "completed";
+    savedLocations?: any[];
+    onSavedStatusChange?: () => void;
 }
 
 export default function InfoPanel({
@@ -63,10 +65,29 @@ export default function InfoPanel({
     onStartDemo,
     simulationMode = false,
     theme = "light",
-    navigationPhase = "outdoor"
+    navigationPhase = "outdoor",
+    savedLocations = [],
+    onSavedStatusChange
 }: InfoPanelProps) {
     const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error" | "exists">("idle");
     const [errorMessage, setErrorMessage] = useState("");
+
+    // Sync saveStatus with savedLocations list
+    useEffect(() => {
+        if (!destination) return;
+        
+        const isAlreadySaved = savedLocations.some(loc => 
+            loc.name === destination.name && 
+            Math.abs(parseFloat(loc.latitude) - destination.lat) < 0.0001 && 
+            Math.abs(parseFloat(loc.longitude) - destination.lng) < 0.0001
+        );
+
+        if (isAlreadySaved) {
+            setSaveStatus("exists");
+        } else {
+            setSaveStatus("idle");
+        }
+    }, [destination, savedLocations]);
 
     if (!destination) return null;
 
@@ -98,8 +119,10 @@ export default function InfoPanel({
 
             if (result.status === "success") {
                 setSaveStatus("saved");
+                if (onSavedStatusChange) onSavedStatusChange();
             } else if (result.message === "Location already saved") {
                 setSaveStatus("exists");
+                if (onSavedStatusChange) onSavedStatusChange();
             } else {
                 setSaveStatus("error");
                 setErrorMessage(result.message || "Failed to save location");

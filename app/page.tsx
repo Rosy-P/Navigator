@@ -72,6 +72,7 @@ function HomeContent() {
   const [selectedEntrance, setSelectedEntrance] = useState<any | null>(null);
   const [navigationSource, setNavigationSource] = useState<"facilities" | "events" | null>(null);
   const [isSavedPlacesOpen, setIsSavedPlacesOpen] = useState(false);
+  const [savedLocations, setSavedLocations] = useState<any[]>([]);
   const searchParams = useSearchParams();
   const router = useRouter();
   const hasProcessedUrlParams = useRef(false);
@@ -144,6 +145,32 @@ function HomeContent() {
       locationAccuracy: true
     });
   }, []);
+
+  const fetchSavedLocations = useCallback(async () => {
+    if (!user) {
+      setSavedLocations([]);
+      return;
+    }
+    try {
+      const res = await fetch("http://localhost:80/campus-navigator-backend/get_saved_locations.php", {
+        credentials: "include"
+      });
+      const data = await res.json();
+      if (data.status === "success") {
+        setSavedLocations(data.data);
+      }
+    } catch (err) {
+      console.error("Error fetching saved locations:", err);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      fetchSavedLocations();
+    } else {
+      setSavedLocations([]);
+    }
+  }, [user, fetchSavedLocations]);
 
   // Fetch initial data (Landmarks, Buildings, Entrances)
   useEffect(() => {
@@ -425,6 +452,24 @@ function HomeContent() {
       }
     }
   }, [allLandmarks, searchParams, handleSelectLandmark]);
+  
+  // Handle Panel query params
+  useEffect(() => {
+    const open = searchParams.get('open');
+    if (open === 'saved') {
+      setIsSavedPlacesOpen(true);
+      setIsEventsOpen(false);
+      setShowSettings(false);
+    } else if (open === 'events') {
+      setIsEventsOpen(true);
+      setIsSavedPlacesOpen(false);
+      setShowSettings(false);
+    } else if (open === 'settings') {
+      setShowSettings(true);
+      setIsSavedPlacesOpen(false);
+      setIsEventsOpen(false);
+    }
+  }, [searchParams]);
 
   // Handle navigation from other pages via sessionStorage
   useEffect(() => {
@@ -522,8 +567,16 @@ function HomeContent() {
         isMobileOpen={isMobileMenuOpen}
         isDisabled={uiState === "NAVIGATION_ACTIVE" || isEventsOpen}
         onCloseMobile={() => setIsMobileMenuOpen(false)}
-        onOpenSettings={() => requireAuth(() => setShowSettings(true))}
-        onOpenSavedPlaces={() => requireAuth(() => setIsSavedPlacesOpen(true))}
+        onOpenSettings={() => requireAuth(() => {
+          setShowSettings(true);
+          setIsSavedPlacesOpen(false);
+          setIsEventsOpen(false);
+        })}
+        onOpenSavedPlaces={() => requireAuth(() => {
+          setIsSavedPlacesOpen(true);
+          setIsEventsOpen(false);
+          setShowSettings(false);
+        })}
         onOpenEvents={() => requireAuth(() => {
           setIsEventsOpen(true);
           // If in Tour Mode, disable it and reset UI
@@ -537,7 +590,7 @@ function HomeContent() {
         })}
         onOpenFacilities={() => requireAuth(() => router.push('/facilities'))}
         onOpenEmergency={() => requireAuth(() => router.push('/emergency'))}
-        forceActiveLabel={showSettings ? "Settings" : (isEventsOpen ? "Events" : (isTourMode ? "Tour Mode" : (selectedLandmark ? "Locations" : undefined)))}
+        forceActiveLabel={showSettings ? "Settings" : (isSavedPlacesOpen ? "Saved Places" : (isEventsOpen ? "Events" : (isTourMode ? "Tour Mode" : (selectedLandmark ? "Locations" : undefined))))}
         user={user}
         isTourMode={isTourMode}
         onToggleTourMode={() => {
@@ -777,7 +830,9 @@ function HomeContent() {
                     setIsTracking(true);
                 });
                 setIsPlanning(true);
+                setIsSavedPlacesOpen(false); // Close panel on navigate
             }}
+            onRefresh={fetchSavedLocations}
         />
 
         {/* Route Info Card */}
@@ -861,6 +916,8 @@ function HomeContent() {
             entrance={selectedEntrance}
             theme={theme}
             navigationPhase={navigationPhase}
+            savedLocations={savedLocations}
+            onSavedStatusChange={fetchSavedLocations}
           />
 
         )}

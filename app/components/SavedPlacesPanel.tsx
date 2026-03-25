@@ -20,10 +20,11 @@ interface SavedPlacesPanelProps {
     isOpen: boolean;
     onClose: () => void;
     onNavigate: (lng: number, lat: number) => void;
+    onRefresh?: () => void;
     theme?: "light" | "dark";
 }
 
-export default function SavedPlacesPanel({ isOpen, onClose, onNavigate, theme = "light" }: SavedPlacesPanelProps) {
+export default function SavedPlacesPanel({ isOpen, onClose, onNavigate, onRefresh, theme = "light" }: SavedPlacesPanelProps) {
     const { user, requireAuth } = useAuth();
     const [locations, setLocations] = useState<SavedLocation[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -76,6 +77,7 @@ export default function SavedPlacesPanel({ isOpen, onClose, onNavigate, theme = 
             
             if (data.status === "success") {
                 setLocations(prev => prev.filter(loc => loc.id !== id));
+                if (onRefresh) onRefresh();
             } else {
                 console.error(data.message || "Failed to remove location");
             }
