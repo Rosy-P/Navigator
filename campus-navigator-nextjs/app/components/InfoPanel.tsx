@@ -78,7 +78,7 @@ export default function InfoPanel({
         setErrorMessage("");
 
         try {
-            const response = await fetch("http://localhost:8080/campus-navigator-backend/save_location.php", {
+            const response = await fetch("http://localhost:80/campus-navigator-backend/save_location.php", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

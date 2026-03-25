@@ -1,0 +1,768 @@
+{
+    "campusCenter": [
+        12.9175,
+        80.1378
+    ],
+    "totalLandmarks": 46,
+    "classrooms": [
+        {
+            "name": "A-Block Room 101",
+            "lat": 12.9181,
+            "lng": 80.1385,
+            "floor": "1",
+            "rating": 4.2,
+            "reviews": 14,
+            "address": "A-Block, Main Campus, MCC",
+            "hours": "08:30 - 16:30",
+            "phone": "+91 44 2239 0675",
+            "website": "https://mcc.edu.in/academics",
+            "images": [
+                "/images/classroom.webp"
+            ],
+            "category": "Academic",
+            "voice": {
+                "navigation": "Walk towards A-Block Room 101.",
+                "tour": "A-Block Room 101 is a key academic space in the Main Campus."
+            }
+        },
+        {
+            "name": "CS Lab 201",
+            "lat": 12.9186,
+            "lng": 80.1396,
+            "floor": "2",
+            "rating": 4.5,
+            "reviews": 32,
+            "address": "Computer Science Block, MCC",
+            "hours": "09:00 - 17:00",
+            "phone": "+91 44 2239 6789",
+            "website": "https://mcc.edu.in/cs-dept",
+            "images": [
+                "/images/corridor.webp"
+            ],
+            "category": "Lab",
+            "voice": {
+                "navigation": "Continue straight to reach CS Lab 201.",
+                "tour": "CS Lab 201 is equipped for modern computing and student projects."
+            }
+        }
+    ],
+    "departments": [
+        {
+            "name": "Computer Science Dept",
+            "lat": 12.9185,
+            "lng": 80.1395,
+            "floor": "ground",
+            "rating": 4.7,
+            "reviews": 85,
+            "address": "Main Science Block, MCC",
+            "hours": "08:00 - 18:00",
+            "phone": "+91 44 2239 1234",
+            "website": "https://mcc.edu.in/departments/cs",
+            "images": [
+                "/images/chemistry lab.jpg"
+            ],
+            "category": "Academic",
+            "voice": {
+                "navigation": "The Computer Science Department is ahead on your right.",
+                "tour": "This is the Computer Science Department, a hub for innovation and technology studies at MCC."
+            }
+        },
+        {
+            "name": "Commerce Block",
+            "lat": 12.9228986,
+            "lng": 80.1196958,
+            "floor": "2",
+            "rating": 4.4,
+            "reviews": 60,
+            "address": "Commerce Block, New Wing, MCC",
+            "hours": "08:30 - 16:30",
+            "phone": "+91 44 2239 4567",
+            "website": "https://mcc.edu.in/departments/commerce",
+            "images": [
+                "/images/main building.webp"
+            ],
+            "category": "Academic",
+            "voice": {
+                "navigation": "Head towards the Commerce Block.",
+                "tour": "The Commerce Block represents the modern academic spirit of the college. It's one of the busiest hubs on campus, fostering future leaders in business and economics."
+            }
+        }
+    ],
+    "facilities": [
+        {
+            "id": "main_gate",
+            "name": "Main Gate",
+            "lat": 12.923163,
+            "lng": 80.120584,
+            "floor": "ground",
+            "rating": 4.1,
+            "reviews": 210,
+            "address": "Tambaram Main Road, MCC Entrance",
+            "hours": "Open 24 Hours",
+            "phone": "+91 44 2239 0001",
+            "website": "https://mcc.edu.in",
+            "images": [
+                "/images/maingate.webp"
+            ],
+            "category": "Entrance",
+            "voice": {
+                "navigation": "Start your journey at the Main Gate.",
+                "tour": "The Main Gate of MCC is more than just an entrance. It symbolizes the transition from the bustling Tambaram town into the serene, 365-acre scrub jungle campus that has been our home since 1937."
+            }
+        },
+        {
+            "id": "library",
+            "name": "Library",
+            "lat": 12.9182,
+            "lng": 80.1390,
+            "floor": "ground",
+            "rating": 4.8,
+            "reviews": 340,
+            "address": "Central Campus, MCC",
+            "hours": "08:00 - 20:00",
+            "phone": "+91 44 2239 9999",
+            "website": "https://mcc.edu.in/library",
+            "images": [
+                "/images/library.webp"
+            ],
+            "category": "Academic",
+            "voice": {
+                "navigation": "Walk past the Library building.",
+                "tour": "The Central Library houses a vast collection of academic resources and has been a cornerstone of student research for decades."
+            }
+        },
+        {
+            "id": "thomas_hall",
+            "name": "Thomas Hall",
+            "lat": 12.9221401,
+            "lng": 80.1199855,
+            "floor": "ground",
+            "rating": 4.3,
+            "reviews": 45,
+            "address": "Near Hostels, MCC",
+            "hours": "06:00 - 22:00",
+            "phone": "N/A",
+            "website": "https://mcc.edu.in",
+            "images": [
+                "/images/selaiyur hall.png"
+            ],
+            "category": "Hostel",
+            "voice": {
+                "navigation": "Turn left near St. Thomas’s Hall.",
+                "tour": "St. Thomas’s Hall, established in 1937, is named after St. Thomas who brought Christianity to India. Known for its strong student-led governance and rich cultural life, the hall’s motto is “For God and Country.”"
+            }
+        },
+        {
+            "id": "iob_atm",
+            "name": "IOB ATM",
+            "lat": 12.92168,
+            "lng": 80.12053,
+            "floor": "ground",
+            "rating": 3.8,
+            "reviews": 12,
+            "address": "Near Student Center",
+            "hours": "Open 24 Hours",
+            "phone": "1800 425 4445",
+            "website": "https://iob.in",
+            "images": [
+                "/images/students center.webp"
+            ],
+            "category": "Service",
+            "voice": {
+                "navigation": "The IOB ATM is near the Student Center.",
+                "tour": "The Indian Overseas Bank ATM provides essential banking services for the campus community."
+            }
+        },
+        {
+            "name": "Boxing Ring",
+            "lat": 12.920936,
+            "lng": 80.121124,
+            "floor": "ground",
+            "rating": 4.6,
+            "reviews": 28,
+            "address": "Sports Complex, MCC",
+            "hours": "06:00 - 09:00, 16:00 - 19:00",
+            "phone": "N/A",
+            "website": "https://mcc.edu.in/sports",
+            "images": [
+                "/images/corridor.webp"
+            ],
+            "category": "Sports",
+            "voice": {
+                "navigation": "Continue towards the Boxing Ring.",
+                "tour": "The Boxing Ring, in front of the Principal's Quarters, doubles as an outdoor stage with green space in the front for a sizable audience, primarily used for student gatherings."
+            }
+        },
+        {
+            "name": "Center for Media Studies",
+            "lat": 12.920227,
+            "lng": 80.120561,
+            "floor": "ground",
+            "rating": 4.4,
+            "reviews": 56,
+            "address": "Media Block, MCC",
+            "hours": "09:00 - 17:00",
+            "phone": "+91 44 2239 3333",
+            "website": "https://mcc.edu.in/media",
+            "images": [
+                "/images/center for media studies.jpg"
+            ],
+            "category": "Academic",
+            "voice": {
+                "navigation": "The Center for Media Studies is on your left.",
+                "tour": "The Center for Media Studies is where creativity meets communication, training the next generation of journalists and filmmakers."
+            }
+        },
+        {
+            "name": "Miller Memorial Library",
+            "lat": 12.920080,
+            "lng": 80.120353,
+            "floor": "ground",
+            "rating": 4.5,
+            "reviews": 92,
+            "address": "Old Campus Area",
+            "hours": "08:30 - 18:30",
+            "phone": "N/A",
+            "website": "https://mcc.edu.in/library",
+            "images": [
+                "/images/library.webp"
+            ],
+            "category": "Academic",
+            "voice": {
+                "navigation": "The Miller Memorial Library is located in the old campus area.",
+                "tour": "Miller Memorial Library preserves the history of Madras Christian College through its extensive archives and rare manuscripts."
+            }
+        },
+        {
+            "name": "Macphails Arts Center",
+            "lat": 12.919368,
+            "lng": 80.121757,
+            "floor": "ground",
+            "rating": 4.2,
+            "reviews": 34,
+            "address": "Arts Block, MCC",
+            "hours": "09:00 - 16:00",
+            "phone": "N/A",
+            "website": "https://mcc.edu.in/arts",
+            "images": [
+                "/images/center for media studies.jpg"
+            ],
+            "category": "Arts",
+            "voice": {
+                "tour": "The Fine Arts Centre is named after J.R. Macphail."
+            }
+        },
+        {
+            "name": "MCC Stone Bench",
+            "lat": 12.921065,
+            "lng": 80.120926,
+            "floor": "ground",
+            "rating": 4.9,
+            "reviews": 450,
+            "address": "The Woods, MCC Campus",
+            "hours": "Open 24 Hours",
+            "phone": "N/A",
+            "website": "https://mcc.edu.in",
+            "images": [
+                "/images/botany tank.jpg"
+            ],
+            "category": "Landmark",
+            "voice": {
+                "navigation": "Look for the iconic Stone Bench nearby.",
+                "tour": "The MCC Stone Bench is a legendary meeting spot for generations of students, nestled in the heart of our campus woods."
+            }
+        },
+        {
+            "name": "Anderson Hall",
+            "lat": 12.921221,
+            "lng": 80.122281,
+            "floor": "2",
+            "rating": 4.5,
+            "reviews": 110,
+            "address": "Main Quadrangle",
+            "hours": "08:00 - 18:00",
+            "phone": "+91 44 2239 8888",
+            "website": "https://mcc.edu.in/anderson",
+            "images": [
+                "/images/anderson hall.jpg"
+            ],
+            "category": "Academic",
+            "voice": {
+                "tour": "Anderson Hall is one of the oldest academic buildings in MCC. It is often used for major student gatherings and cultural events."
+            }
+        },
+        {
+            "name": "Institute for Advanced Christian Studies",
+            "lat": 12.91087,
+            "lng": 80.121098,
+            "floor": "ground",
+            "rating": 4.5,
+            "reviews": 12,
+            "address": "MCC Campus, Tambaram",
+            "hours": "09:00 - 17:00",
+            "phone": "N/A",
+            "website": "https://mcc.edu.in",
+            "images": [
+                "/images/main building.webp"
+            ],
+            "category": "Academic",
+            "voice": {
+                "tour": "This is the Institute for Advanced Christian Studies."
+            }
+        },
+        {
+            "name": "MCC School of Continuing Education",
+            "lat": 12.919464,
+            "lng": 80.120293,
+            "floor": "ground",
+            "rating": 4.3,
+            "reviews": 8,
+            "address": "MCC Campus, Tambaram",
+            "hours": "09:00 - 17:00",
+            "phone": "N/A",
+            "website": "https://mcc.edu.in",
+            "images": [
+                "/images/anderson hall.jpg"
+            ],
+            "category": "Academic",
+            "voice": {
+                "navigation": "Walk towards the School of Continuing Education.",
+                "tour": "The MCC School of Continuing Education offers professional certificates and diploma courses for both students and the public."
+            }
+        },
+        {
+            "name": "Quadrangle MCC",
+            "lat": 12.921766,
+            "lng": 80.122117,
+            "floor": "ground",
+            "rating": 4.8,
+            "reviews": 120,
+            "address": "Center of Campus, MCC",
+            "hours": "Open 24 Hours",
+            "phone": "N/A",
+            "website": "https://mcc.edu.in",
+            "images": [
+                "/images/main building.webp"
+            ],
+            "category": "Landmark",
+            "voice": {
+                "navigation": "You are approaching the Quadrangle.",
+                "tour": "The quadrangle or diamond directly in front of the main building is the largest outdoor public space, used primarily for large student gatherings, such as the shows hosted during the annual Deepwoods intercollegiate cultural festival."
+            }
+        },
+        {
+            "id": "bishop_heber_chapel",
+            "name": "Bishop Heber Chapel",
+            "lat": 12.9187664,
+            "lng": 80.1237943,
+            "floor": "ground",
+            "rating": 4.9,
+            "reviews": 75,
+            "address": "MCC Campus, Tambaram",
+            "hours": "06:00 - 20:00",
+            "phone": "N/A",
+            "website": "https://mcc.edu.in",
+            "images": [
+                "/images/bell tower.jpg"
+            ],
+            "category": "Religious",
+            "voice": {
+                "navigation": "Enter the grounds of Bishop Heber Chapel.",
+                "tour": "The Bishop Heber Chapel is a defining landmark of the hall, featuring Scottish-imported tiles and a hand-carved altar. It hosts regular services and symbolizes the deep spiritual roots of the hall."
+            }
+        },
+        {
+            "website": "https://mcc.edu.in",
+            "images": [
+                "/images/selaiyur hall.png"
+            ],
+            "category": "Hostel",
+            "id": "heber_hall",
+            "name": "Heber Hall",
+            "lat": 12.9195085,
+            "lng": 80.1237728,
+            "voice": {
+                "navigation": "Head towards Heber Hall.",
+                "tour": "Bishop Heber Hall traces its roots to 1762 and was established on the MCC campus in 1937. Famous for its chapel, literary legacy, and rock culture through the Octavia fest, it is one of the most iconic halls on campus."
+            }
+        },
+        {
+            "name": "MCC Campus Clinic",
+            "lat": 12.9207435,
+            "lng": 80.1227650,
+            "floor": "ground",
+            "rating": 4.2,
+            "reviews": 25,
+            "address": "MCC Campus, Tambaram",
+            "hours": "08:00 - 20:00",
+            "phone": "N/A",
+            "website": "https://mcc.edu.in",
+            "images": [
+                "/images/chemistry lab.jpg"
+            ],
+            "category": "Medical",
+            "voice": {
+                "tour": "This is the MCC Campus Clinic."
+            }
+        },
+        {
+            "name": "Zoology tank",
+            "lat": 12.9203990,
+            "lng": 80.1231177,
+            "floor": "ground",
+            "rating": 4.1,
+            "reviews": 15,
+            "address": "Science Block, MCC",
+            "hours": "N/A",
+            "phone": "N/A",
+            "website": "https://mcc.edu.in",
+            "images": [
+                "/images/botany tank.jpg"
+            ],
+            "category": "Landmark",
+            "voice": {
+                "tour": "This is the Zoology tank."
+            }
+        },
+        {
+            "name": "College Union society",
+            "lat": 12.9203866,
+            "lng": 80.1277314,
+            "floor": "ground",
+            "rating": 4.6,
+            "reviews": 88,
+            "address": "Near Main Quad, MCC",
+            "hours": "09:00 - 18:00",
+            "phone": "N/A",
+            "website": "https://mcc.edu.in",
+            "images": [
+                "/images/college union society.jpg"
+            ],
+            "category": "Student Center",
+            "voice": {
+                "tour": "This is the College Union society."
+            }
+        },
+        {
+            "name": "MCC Cafeteria",
+            "lat": 12.92034,
+            "lng": 80.12273,
+            "floor": "ground",
+            "rating": 4.2,
+            "reviews": 150,
+            "address": "Near Union Society, MCC",
+            "hours": "08:00 - 18:00",
+            "phone": "N/A",
+            "website": "https://mcc.edu.in",
+            "images": [
+                "/images/college union society.jpg"
+            ],
+            "category": "Canteen",
+            "voice": {
+                "navigation": "Take a break at the MCC Cafeteria.",
+                "tour": "The cafeteria and gutters are the spots students congregate during breaks or free hours. The gutters are popular hangouts for intellectual conversation and often the birthplace of artistic or culturally significant initiatives by students."
+            }
+        },
+        {
+            "name": "Botany Tank",
+            "lat": 12.9205631,
+            "lng": 80.1209786,
+            "floor": "ground",
+            "rating": 4.0,
+            "reviews": 10,
+            "address": "Botany Department, MCC",
+            "hours": "N/A",
+            "phone": "N/A",
+            "website": "https://mcc.edu.in",
+            "images": [
+                "/images/botany tank.jpg"
+            ],
+            "category": "Landmark",
+            "voice": {
+                "tour": "This is the Botany Tank."
+            }
+        },
+        {
+            "name": "MCC Pavilion",
+            "lat": 12.91694,
+            "lng": 80.12156,
+            "floor": "ground",
+            "rating": 4.4,
+            "reviews": 32,
+            "address": "Sports Ground, MCC",
+            "hours": "N/A",
+            "phone": "N/A",
+            "website": "https://mcc.edu.in",
+            "images": [
+                "/images/main building.webp"
+            ],
+            "category": "Sports",
+            "voice": {
+                "tour": "The Madras Christian College campus has several sports fields and facilities, including cricket, association football, tennis, basketball, boxing, and others. The cricket pavilion is named after the former physical director of the college, C.A. Abraham. These sports fields are used by the student community, especially during the inter-hall sports."
+            }
+        },
+        {
+            "name": "Selaiyur Hall",
+            "lat": 12.92138,
+            "lng": 80.12421,
+            "floor": "ground",
+            "rating": 4.5,
+            "reviews": 65,
+            "address": "MCC Campus, Tambaram",
+            "hours": "N/A",
+            "phone": "N/A",
+            "website": "https://mcc.edu.in",
+            "images": [
+                "/images/selaiyur hall.png"
+            ],
+            "category": "Hostel",
+            "voice": {
+                "navigation": "Reach Selaiyur Hall.",
+                "tour": "Founded in 1937, Selaiyur Hall is the oldest hall on campus and is named after the Selaiyur forest reserve. It is known for its strong traditions, vibrant cultural festivals like Moonshadow, and the motto “Esse Quam Videri”—to be rather than to seem."
+            }
+        },
+        {
+            "name": "MCC Gate 2",
+            "lat": 12.92295,
+            "lng": 80.12393,
+            "floor": "ground",
+            "rating": 4.0,
+            "reviews": 15,
+            "address": "East Tambaram, MCC Entrance 2",
+            "hours": "Open 24 Hours",
+            "phone": "N/A",
+            "website": "https://mcc.edu.in",
+            "images": [
+                "/images/maingate.webp"
+            ],
+            "category": "Entrance",
+            "voice": {
+                "tour": "This is the MCC Gate 2."
+            }
+        },
+        {
+            "name": "MCC Main Hospital",
+            "lat": 12.91724,
+            "lng": 80.12539,
+            "floor": "ground",
+            "rating": 4.3,
+            "reviews": 32,
+            "address": "MCC Campus, Medical Wing",
+            "hours": "Open 24 Hours",
+            "phone": "+91 44 2239 0005",
+            "website": "https://mcc.edu.in/health",
+            "images": [
+                "/images/chemistry lab.jpg"
+            ],
+            "category": "Medical",
+            "voice": {
+                "tour": "This is the MCC Main Hospital."
+            }
+        },
+        {
+            "name": "MCC Farm",
+            "lat": 12.91562,
+            "lng": 80.12586,
+            "floor": "ground",
+            "rating": 4.5,
+            "reviews": 22,
+            "address": "MCC Campus, South Side",
+            "hours": "07:00 - 17:00",
+            "phone": "N/A",
+            "website": "https://mcc.edu.in/farm",
+            "images": [
+                "/images/botany tank.jpg"
+            ],
+            "category": "Landmark",
+            "voice": {
+                "tour": "This is the MCC Farm."
+            }
+        },
+        {
+            "name": "MCC Lake",
+            "lat": 12.91572,
+            "lng": 80.11732,
+            "floor": "ground",
+            "rating": 4.7,
+            "reviews": 55,
+            "address": "MCC Campus, West Side",
+            "hours": "Open 24 Hours",
+            "phone": "N/A",
+            "website": "https://mcc.edu.in",
+            "images": [
+                "/images/botany tank.jpg"
+            ],
+            "category": "Landmark",
+            "voice": {
+                "tour": "This is the MCC Lake."
+            }
+        },
+        {
+            "name": "MCC International Guest House",
+            "lat": 12.91873,
+            "lng": 80.11978,
+            "floor": "ground",
+            "rating": 4.6,
+            "reviews": 18,
+            "address": "Near Main Gate, MCC",
+            "hours": "Open 24 Hours",
+            "phone": "+91 44 2239 1111",
+            "website": "https://mcc.edu.in/guesthouse",
+            "images": [
+                "/images/anderson hall.jpg"
+            ],
+            "category": "Service",
+            "voice": {
+                "tour": "This modern building, designed by a Swedish architect to western standards, is situated in the midst of a densely wooded area near the athletic fields. Wild deer grazing outside the dining room is not an uncommon sight."
+            }
+        },
+        {
+            "name": "MCC Indoor Stadium",
+            "lat": 12.91691,
+            "lng": 80.11940,
+            "floor": "ground",
+            "rating": 4.4,
+            "reviews": 42,
+            "address": "South Campus, MCC",
+            "hours": "06:00 - 21:00",
+            "phone": "N/A",
+            "website": "https://mcc.edu.in/sports",
+            "images": [
+                "/images/main building.webp"
+            ],
+            "category": "Sports",
+            "voice": {
+                "tour": "This is the MCC Indoor Stadium."
+            }
+        },
+        {
+            "id": "martin_hall",
+            "name": "Martin Hall",
+            "lat": 12.920221266244127,
+            "lng": 80.11883431193974,
+            "floor": "ground",
+            "images": [
+                "/images/selaiyur hall.png"
+            ],
+            "category": "Hostel",
+            "voice": {
+                "tour": "Established in 1968, Martin Hall was the first women’s hall on campus. Known for Vatika, Galarompics, and a strong sense of community, its residents are proudly called Martinians."
+            }
+        },
+        {
+            "id": "margaret_hall",
+            "name": "Margaret Hall",
+            "lat": 12.919346285193512,
+            "lng": 80.11930984327296,
+            "floor": "ground",
+            "images": [
+                "/images/selaiyur hall.png"
+            ],
+            "category": "Hostel",
+            "voice": {
+                "tour": "Margaret Hall, founded in 2009, is a women’s hall named after Margaret Locher Anderson. With blocks named after flowers, it promotes creativity, leadership, and cultural expression among its residents, called Margaritas."
+            }
+        },
+        {
+            "id": "barnes_hall",
+            "name": "Barnes Hall",
+            "lat": 12.920129510074489,
+            "lng": 80.11821843746213,
+            "floor": "ground",
+            "category": "Hostel",
+            "images": [
+                "/images/barnes hall.jpg"
+            ],
+            "voice": {
+                "tour": "Barnes Hall, established in 2016, is the newest women’s hall on campus. With the motto “Shine Your Light”, it emphasizes empowerment, sustainability, and modern living facilities."
+            }
+        },
+        {
+            "id": "basketball_ground",
+            "name": "Basketball ground",
+            "lat": 12.917697208710067,
+            "lng": 80.12321845816103,
+            "floor": "ground",
+            "rating": 4.5,
+            "reviews": 18,
+            "address": "South Campus, Near Stadium",
+            "category": "Sports",
+            "voice": {
+                "tour": "This is the Basketball ground of MCC, where students practice and play inter-hall matches."
+            }
+        },
+        {
+            "id": "principals_residence",
+            "name": "Principal's residence",
+            "lat": 12.920332248213725,
+            "lng": 80.12121815247713,
+            "floor": "ground",
+            "rating": 4.8,
+            "reviews": 12,
+            "address": "Opposite Main Building, MCC",
+            "category": "Landmark",
+            "voice": {
+                "tour": "This is the official residence of the Principal of Madras Christian College."
+            }
+        },
+        {
+            "id": "bell_tower",
+            "name": "Bell Tower",
+            "lat": 12.920524233762649,
+            "lng": 80.12206296022401,
+            "floor": "ground",
+            "rating": 4.7,
+            "reviews": 34,
+            "address": "Near Quadrangle, MCC",
+            "category": "Landmark",
+            "images": [
+                "/images/bell tower.jpg"
+            ],
+            "voice": {
+                "tour": "The iconic Bell Tower of MCC has served as a central landmark for generations of students."
+            }
+        },
+        {
+            "id": "stationary_shop",
+            "name": "Stationary shop",
+            "lat": 12.920417005238875,
+            "lng": 80.12232661782127,
+            "floor": "ground",
+            "rating": 4.3,
+            "reviews": 85,
+            "address": "Near Union Society, MCC",
+            "category": "Service",
+            "voice": {
+                "tour": "The college stationary shop provides essential academic supplies and services for students and faculty."
+            }
+        },
+        {
+            "id": "macnicol_lounge",
+            "name": "Macnicol Lounge For women",
+            "lat": 12.920767761075155,
+            "lng": 80.12238845799243,
+            "floor": "ground",
+            "rating": 4.6,
+            "reviews": 42,
+            "address": "Near Main Building, MCC",
+            "category": "Facility",
+            "voice": {
+                "tour": "Named after Margaret Macnicol, this lounge provides a comfortable space for women students on campus."
+            }
+        },
+        {
+            "id": "badminton_court",
+            "name": "Indoor Badminton Court",
+            "lat": 12.917585518450338,
+            "lng": 80.12066278886402,
+            "floor": "ground",
+            "rating": 4.7,
+            "reviews": 25,
+            "address": "South Campus, Near Stadium",
+            "category": "Sports",
+            "voice": {
+                "tour": "The Indoor Badminton Court is a popular spot for sports enthusiasts to train and compete."
+            }
+        }
+    ]
+}
