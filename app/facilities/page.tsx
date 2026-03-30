@@ -18,31 +18,18 @@ import {
     Phone,
     Building,
     X,
-    AlertCircle
+    AlertCircle,
+    Plus,
+    Edit2,
+    Trash2
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { useAuth } from '../components/AuthOverlay';
 import { useMediaQuery } from '../hooks/use-media-query';
 import { useRouter } from 'next/navigation';
 
-// --- Types ---
-interface Facility {
-    id: string;
-    name: string;
-    category: string;
-    description: string;
-    status: 'Open' | 'Closed' | 'Crowded';
-    occupancy: number;
-    distance: string;
-    rating: number;
-    image: string;
-    latitude: number;
-    longitude: number;
-    hours?: string;
-    phone?: string;
-    website?: string;
-    address?: string;
-}
+import { Facility } from '../admin/facilities/types';
+import { FacilityAdminModal } from '../admin/facilities/FacilityModal';
 
 const CATEGORIES = [
     { id: 'All', label: 'All', icon: <Filter size={18} /> },
@@ -85,8 +72,15 @@ const StatusBadge = ({ status }: { status: Facility['status'] }) => {
         Crowded: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
     };
 
+    const dotColor = {
+        Open: 'bg-emerald-500',
+        Closed: 'bg-rose-500',
+        Crowded: 'bg-amber-500',
+    };
+
     return (
-        <span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${styles[status]}`}>
+        <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border ${styles[status]}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${dotColor[status]} animate-pulse`} />
             {status}
         </span>
     );
@@ -155,27 +149,17 @@ const FacilityDetailsPopup = ({ facility, onClose }: { facility: Facility; onClo
                             </div>
                         )}
 
-                        {facility.address && (
-                            <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100/50">
-                                <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600 shadow-sm">
-                                    <Building size={16} />
-                                </div>
-                                <div className="min-w-0">
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">Location</p>
-                                    <p className="text-[12px] font-bold text-slate-700 leading-snug">{facility.address}</p>
-                                </div>
-                            </div>
-                        )}
+
                     </div>
 
-                    {(FACILITY_ABOUT[facility.name] || facility.description) && (
+                    {facility.description && (
                         <div className="mb-4">
                             <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-2 flex items-center gap-2">
                                 <span className="w-4 h-0.5 bg-orange-600/30 rounded-full"></span>
                                 About this place
                             </p>
                             <p className="text-[13px] text-slate-600 leading-relaxed font-medium bg-slate-50/50 p-4 rounded-2xl border border-dashed border-slate-200">
-                                {FACILITY_ABOUT[facility.name] || facility.description}
+                                {facility.description}
                             </p>
                         </div>
                     )}
@@ -185,13 +169,12 @@ const FacilityDetailsPopup = ({ facility, onClose }: { facility: Facility; onClo
     );
 };
 
-export default function FacilitiesPage() {
-    const { user, showAuthOverlay, requireAuth, logout, isLoading } = useAuth();
-    const isMobile = useMediaQuery("(max-width: 768px)");
+// Removed FacilityAdminModal (Moved to ../admin/facilities/FacilityModal)
 
-    // State
+export function FacilitiesModule({ isAdmin = false }: { isAdmin?: boolean }) {
+    const { user, requireAuth, showAuthOverlay, logout, isLoading: isAuthLoading } = useAuth();
     const [facilities, setFacilities] = useState<Facility[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [isDataLoading, setIsDataLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [searchQuery, setSearchQuery] = useState('');
@@ -200,7 +183,51 @@ export default function FacilitiesPage() {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [activePopupId, setActivePopupId] = useState<string | null>(null);
+    const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+    const [ratingLoading, setRatingLoading] = useState<string | null>(null);
+    const [pendingRating, setPendingRating] = useState<string | null>(null);
+
+    // Admin CRUD state
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [editingFacility, setEditingFacility] = useState<Facility | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    
     const router = useRouter();
+
+    // Load pending rating from localStorage
+    useEffect(() => {
+        const saved = localStorage.getItem('pendingFacilityRating');
+        if (saved) setPendingRating(saved);
+    }, []);
+
+    // Haversine distance formula
+    const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+        const R = 6371e3; // metres
+        const φ1 = lat1 * Math.PI / 180;
+        const φ2 = lat2 * Math.PI / 180;
+        const Δφ = (lat2 - lat1) * Math.PI / 180;
+        const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+        const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return R * c; // in metres
+    };
+
+    // Get user location
+    useEffect(() => {
+        if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition((position) => {
+                setUserLocation({
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                });
+            }, (err) => console.log("Geolocation error:", err));
+        }
+    }, []);
 
     // Debounce Search
     const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -209,16 +236,40 @@ export default function FacilitiesPage() {
         return () => clearTimeout(timer);
     }, [searchQuery]);
 
-    // Fetch Data
+    // Category keyword mapping: filter ID → keywords to match against name or category
+    const CATEGORY_KEYWORDS: Record<string, string[]> = {
+        Labs:      ['lab'],
+        Food:      ['food', 'cafeteria', 'canteen', 'cafe', 'dining'],
+        Health:    ['health', 'clinic', 'medical', 'counseling'],
+        Sports:    ['sports', 'stadium', 'playground', 'ground', 'gym'],
+        Spiritual: ['spiritual', 'chapel', 'prayer'],
+        Creative:  ['creative', 'art', 'music', 'studio'],
+        Services:  ['services', 'library', 'admin', 'office'],
+    };
+
+    // Client-side filtered facilities
+    const filteredFacilities = useMemo(() => {
+        return facilities.filter((f) => {
+            let matchesCategory = selectedCategory === 'All';
+            if (!matchesCategory) {
+                const keywords = CATEGORY_KEYWORDS[selectedCategory] || [selectedCategory.toLowerCase()];
+                const nameLC = f.name.toLowerCase();
+                const catLC = f.category.toLowerCase();
+                matchesCategory = keywords.some(k => nameLC.includes(k) || catLC.includes(k));
+            }
+            const matchesSearch = !debouncedSearch || f.name.toLowerCase().includes(debouncedSearch.toLowerCase()) || f.description.toLowerCase().includes(debouncedSearch.toLowerCase());
+            const matchesOpen = !openNow || f.status === 'Open';
+            return matchesCategory && matchesSearch && matchesOpen;
+        });
+    }, [facilities, selectedCategory, debouncedSearch, openNow]);
+
+    // Fetch Data — always fetch all, client-side filter handles category/search/openNow
     const fetchFacilities = useCallback(async () => {
         try {
-            setLoading(true);
-            const params = new URLSearchParams();
-            if (selectedCategory !== 'All') params.append('category', selectedCategory);
-            if (openNow) params.append('open', 'true');
-            if (debouncedSearch) params.append('search', debouncedSearch);
+            setIsDataLoading(true);
+            setError(null);
 
-            const response = await fetch(`http://localhost:80/campus-navigator-backend/getfacilities.php?${params.toString()}`);
+            const response = await fetch(`http://localhost:8080/campus-navigator-backend/getfacilities.php`);
             if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
 
             const data = await response.json();
@@ -259,20 +310,23 @@ export default function FacilitiesPage() {
                     description: f.description,
                     status: status,
                     occupancy: parseInt(f.occupancy) || 0,
-                    distance: f.distance || 'Proximate',
-                    rating: parseFloat(f.rating) || 4.5,
+                    distance: null, // Calculated client-side
+                    rating: parseFloat(f.rating) || 0,
+                    total_ratings: parseInt(f.total_ratings) || 0,
                     image: localImageMap[f.name] || f.image,
                     latitude: parseFloat(f.latitude),
                     longitude: parseFloat(f.longitude),
                     hours: f.hours,
-                    phone: f.phone,
-                    website: f.website,
-                    address: f.address
+                    phone: f.phone
                 };
             });
 
-            if (formattedData.length > 0) {
-                setFacilities(formattedData);
+            // Exclude specific facilities
+            const EXCLUDED_FACILITIES = ['Main Gate', 'Healthy Cafeteria'];
+            const filtered = formattedData.filter((f: Facility) => !EXCLUDED_FACILITIES.includes(f.name));
+
+            if (filtered.length > 0 || rawData.length > 0) {
+                setFacilities(filtered);
                 setError(null);
             } else if (!error && rawData.length === 0) {
                 setFacilities([]);
@@ -280,9 +334,9 @@ export default function FacilitiesPage() {
         } catch (err: any) {
             setError(err.message);
         } finally {
-            setLoading(false);
+            setIsDataLoading(false);
         }
-    }, [selectedCategory, openNow, debouncedSearch]);
+    }, [error]);
 
     useEffect(() => {
         fetchFacilities();
@@ -298,10 +352,92 @@ export default function FacilitiesPage() {
             buildingId: undefined 
         };
         sessionStorage.setItem('pendingNavDestination', JSON.stringify(destination));
+        localStorage.setItem('pendingFacilityRating', f.id);
+        setPendingRating(f.id);
         router.push('/');
     };
 
-    if (isLoading) {
+    const handleRateFacility = async (facilityId: string, rating: number) => {
+        if (!user) {
+            requireAuth(() => {});
+            return;
+        }
+
+        setRatingLoading(facilityId);
+        try {
+            const response = await fetch('http://localhost:8080/campus-navigator-backend/submitRating.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ facility_id: facilityId, rating })
+            });
+
+            const data = await response.json();
+            if (data.status === 'success') {
+                localStorage.removeItem('pendingFacilityRating');
+                setPendingRating(null);
+                fetchFacilities();
+            } else {
+                alert(data.message || "Failed to submit rating.");
+            }
+        } catch (err) {
+            console.error("Rating error:", err);
+        } finally {
+            setRatingLoading(null);
+        }
+    };
+
+    const getFacilityDistance = (f: Facility) => {
+        if (!userLocation) return null;
+        const d = calculateDistance(userLocation.lat, userLocation.lng, f.latitude, f.longitude);
+        return d;
+    };
+
+    const handleAddFacility = async (data: any) => {
+        try {
+            const res = await fetch('http://localhost:8080/campus-navigator-backend/addFacility.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+            if (result.status === 'success') {
+                setIsAddModalOpen(false);
+                fetchFacilities();
+            } else alert(result.message);
+        } catch (e) { console.error(e); }
+    };
+
+    const handleUpdateFacility = async (data: any) => {
+        try {
+            const res = await fetch('http://localhost:8080/campus-navigator-backend/updateFacility.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+            if (result.status === 'success') {
+                setIsEditModalOpen(false);
+                setEditingFacility(null);
+                fetchFacilities();
+            } else alert(result.message);
+        } catch (e) { console.error(e); }
+    };
+
+    const handleDeleteFacility = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this facility?')) return;
+        try {
+            const res = await fetch('http://localhost:8080/campus-navigator-backend/deleteFacility.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id })
+            });
+            const result = await res.json();
+            if (result.status === 'success') fetchFacilities();
+            else alert(result.message);
+        } catch (e) { console.error(e); }
+    };
+
+    if (isDataLoading) {
         return (
             <div className="h-screen w-screen flex items-center justify-center bg-slate-50">
                 <div className="flex flex-col items-center gap-4">
@@ -383,6 +519,15 @@ export default function FacilitiesPage() {
                             ))}
                         </div>
 
+                        {isAdmin && (
+                            <button 
+                                onClick={() => setIsAddModalOpen(true)}
+                                className="flex items-center gap-2 px-6 bg-orange-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-orange-700 shadow-lg shadow-orange-500/20 transition-all active:scale-95 py-3 md:py-0"
+                            >
+                                <Plus size={18} /> Add Facility
+                            </button>
+                        )}
+
                         <div className="flex items-center gap-3 px-4 py-2 bg-slate-50 rounded-2xl border border-slate-100">
                             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Open Now</span>
                             <button
@@ -396,7 +541,7 @@ export default function FacilitiesPage() {
                 </div>
 
                 <div className="max-w-[1920px] mx-auto px-4 md:px-8 pb-12 w-full">
-                    {loading ? (
+                    {isDataLoading ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
                             {[1, 2, 3, 4, 5, 6, 7, 8].map(i => <SkeletonCard key={i} />)}
                         </div>
@@ -407,7 +552,7 @@ export default function FacilitiesPage() {
                             <p className="text-rose-600 mb-6">{error}</p>
                             <button onClick={fetchFacilities} className="px-6 py-2 bg-rose-600 text-white rounded-xl font-bold">Try Again</button>
                         </div>
-                    ) : facilities.length === 0 ? (
+                    ) : filteredFacilities.length === 0 ? (
                         <div className="flex flex-col items-center justify-center p-12 bg-slate-50 rounded-[32px] border border-slate-100 text-center">
                             <Search className="text-slate-300 mb-4" size={48} />
                             <h3 className="text-xl font-bold text-slate-900">No facilities found</h3>
@@ -415,7 +560,7 @@ export default function FacilitiesPage() {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                            {Array.isArray(facilities) && facilities.map((facility) => (
+                            {filteredFacilities.map((facility) => (
                                 <div
                                     key={facility.id}
                                     onMouseEnter={() => setHoveredFacility(facility.id)}
@@ -426,17 +571,49 @@ export default function FacilitiesPage() {
                                         <img src={facility.image} alt={facility.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                                         <div className="absolute top-4 right-4 flex gap-2">
                                             <StatusBadge status={facility.status} />
+                                            {isAdmin && (
+                                                <div className="flex gap-1">
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); setEditingFacility(facility); setIsEditModalOpen(true); }}
+                                                        className="w-8 h-8 bg-white/90 backdrop-blur rounded-lg flex items-center justify-center text-blue-600 hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                                                    >
+                                                        <Edit2 size={14} />
+                                                    </button>
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); handleDeleteFacility(facility.id); }}
+                                                        className="w-8 h-8 bg-white/90 backdrop-blur rounded-lg flex items-center justify-center text-red-600 hover:bg-red-600 hover:text-white transition-all shadow-sm"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
-                                        <div className="absolute bottom-4 left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/20 backdrop-blur-md text-white text-[11px] font-bold border border-white/10">
-                                            <MapPin size={12} /> {facility.distance}
-                                        </div>
+                                        {(() => {
+                                            const dist = getFacilityDistance(facility);
+                                            if (dist === null) return null;
+                                            const isNearby = dist < 200;
+                                            return (
+                                                <div className={`absolute bottom-4 left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md text-white text-[11px] font-bold border transition-all ${isNearby ? 'bg-emerald-500/40 border-emerald-400/30' : 'bg-black/20 border-white/10'}`}>
+                                                    <MapPin size={12} className={isNearby ? 'text-emerald-300' : 'text-white'} /> 
+                                                    {dist > 1000 ? `${(dist / 1000).toFixed(1)}km` : `${Math.round(dist)}m`}
+                                                    <span className={`ml-1 px-1.5 py-0.5 rounded-md text-[8px] uppercase tracking-tighter ${isNearby ? 'bg-emerald-500 text-white' : (dist < 1000 ? 'bg-blue-500 text-white' : 'bg-white/20 text-white/80')}`}>
+                                                        {isNearby ? 'Nearby' : (dist < 1000 ? 'Close' : 'Far')}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
 
                                     <div className="p-5 flex flex-col flex-1">
                                         <div className="flex items-start justify-between mb-2 gap-2">
                                             <h3 className="text-lg font-bold text-slate-900 group-hover:text-orange-600 transition-colors uppercase leading-tight line-clamp-2">{facility.name}</h3>
-                                            <div className="flex-shrink-0 flex items-center gap-1 text-amber-500 font-bold text-xs bg-amber-50 px-2 py-1 rounded-lg">
-                                                <Star size={12} fill="currentColor" /> {facility.rating}
+                                            <div className="flex flex-col items-end gap-1">
+                                                <div className="flex items-center gap-1 text-amber-500 font-bold text-xs bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-100/50 shadow-sm">
+                                                    <Star size={12} fill="currentColor" /> {facility.rating > 0 ? facility.rating : 'New'}
+                                                </div>
+                                                <span className="text-[9px] font-bold text-slate-400 truncate max-w-[80px]">
+                                                    {facility.total_ratings} {facility.total_ratings === 1 ? 'Review' : 'Reviews'}
+                                                </span>
                                             </div>
                                         </div>
                                         <p className="text-slate-500 text-xs leading-relaxed mb-4 line-clamp-2 flex-1">{facility.description}</p>
@@ -459,6 +636,31 @@ export default function FacilitiesPage() {
                                                     <Navigation size={16} /> <span className="text-[9px] font-bold uppercase">Navigate</span>
                                                 </button>
                                             </div>
+                                            
+                                            {pendingRating === facility.id && (
+                                                <div className="p-4 bg-orange-50 rounded-2xl border border-orange-100 animate-in slide-in-from-top-2 duration-300">
+                                                    <div className="flex items-center justify-between mb-3">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-ping" />
+                                                            <span className="text-[11px] font-black text-orange-600 uppercase tracking-widest">Rate your visit</span>
+                                                        </div>
+                                                        {ratingLoading === facility.id && <div className="w-3 h-3 border-2 border-orange-500/20 border-t-orange-500 rounded-full animate-spin" />}
+                                                    </div>
+                                                    <div className="flex justify-between px-2">
+                                                        {[1, 2, 3, 4, 5].map((star) => (
+                                                            <button
+                                                                key={star}
+                                                                onClick={() => handleRateFacility(facility.id, star)}
+                                                                disabled={ratingLoading !== null}
+                                                                className="text-slate-300 hover:text-orange-500 transition-all transform hover:scale-125 disabled:opacity-50"
+                                                            >
+                                                                <Star size={22} fill={facility.rating >= star ? "#f97316" : "none"} className={facility.rating >= star ? "text-orange-500" : ""} />
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                    <p className="text-[9px] font-bold text-slate-400 mt-3 text-center italic">Optional: Help others by sharing your experience!</p>
+                                                </div>
+                                            )}
                                         </div>
 
                                         {/* Details Pop-up */}
@@ -475,6 +677,19 @@ export default function FacilitiesPage() {
                     )}
                 </div>
 
+                <FacilityAdminModal 
+                    isOpen={isAddModalOpen} 
+                    onClose={() => setIsAddModalOpen(false)} 
+                    onSave={handleAddFacility} 
+                />
+                
+                <FacilityAdminModal 
+                    isOpen={isEditModalOpen} 
+                    onClose={() => { setIsEditModalOpen(false); setEditingFacility(null); }} 
+                    facility={editingFacility}
+                    onSave={handleUpdateFacility} 
+                />
+
                 <style jsx global>{`
                     .scrollbar-hide::-webkit-scrollbar { display: none; }
                     .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
@@ -486,4 +701,8 @@ export default function FacilitiesPage() {
             </main>
         </div>
     );
+}
+
+export default function FacilitiesPage() {
+    return <FacilitiesModule isAdmin={false} />;
 }

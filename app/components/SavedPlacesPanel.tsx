@@ -44,7 +44,7 @@ export default function SavedPlacesPanel({ isOpen, onClose, onNavigate, onRefres
             setIsLoading(true);
             setError(null);
             try {
-                const res = await fetch("http://localhost:80/campus-navigator-backend/get_saved_locations.php", {
+                const res = await fetch("http://localhost:8080/campus-navigator-backend/get_saved_locations.php", {
                     credentials: "include"
                 });
                 const data = await res.json();
@@ -67,7 +67,7 @@ export default function SavedPlacesPanel({ isOpen, onClose, onNavigate, onRefres
         if (!user) return;
         
         try {
-            const res = await fetch("http://localhost:80/campus-navigator-backend/remove_saved_location.php", {
+            const res = await fetch("http://localhost:8080/campus-navigator-backend/remove_saved_location.php", {
                 method: "POST",
                 credentials: "include",
                 headers: { "Content-Type": "application/json" },
@@ -163,7 +163,9 @@ export default function SavedPlacesPanel({ isOpen, onClose, onNavigate, onRefres
                                     <div className="flex items-center justify-between pt-4 border-t border-slate-50/50">
                                         <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400/80">
                                             <Clock size={12} strokeWidth={2.5} />
-                                            <span className="tabular-nums">{new Date(loc.created_at).toLocaleDateString()}</span>
+                                            <span className="tabular-nums">
+                                                {loc.created_at ? new Date(loc.created_at).toLocaleDateString() : "Recently"}
+                                            </span>
                                         </div>
                                         <div className="flex gap-2">
                                             <button

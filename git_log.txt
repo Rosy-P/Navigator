@@ -1,0 +1,188 @@
+commit 29840a23e670db778201f44873d54cc27cb4ee8f
+Author: Rosy-P <roserosy1811@gmail.com>
+Date:   Wed Mar 25 17:52:27 2026 +0530
+
+    commited
+
+M	app/components/InfoPanel.tsx
+M	app/components/SavedPlacesPanel.tsx
+M	app/emergency/page.tsx
+M	app/facilities/page.tsx
+M	app/page.tsx
+
+commit 94534252e7aa8dd19f9110df40f574d8e8cc3aa9
+Author: Rosy-P <roserosy1811@gmail.com>
+Date:   Wed Mar 25 16:23:45 2026 +0530
+
+    commited
+
+A	.gitignore
+A	README.md
+A	antigravity_dev_out.txt
+A	app/admin/components/AdminComponents.tsx
+A	app/admin/events/EventCard.tsx
+A	app/admin/events/EventModal.tsx
+A	app/admin/events/page.tsx
+A	app/admin/events/types.ts
+A	app/admin/layout.tsx
+A	app/admin/page.tsx
+A	app/admin/settings/page.tsx
+A	app/admin/users/UserDrawer.tsx
+A	app/admin/users/page.tsx
+A	app/components/AppInitializer.tsx
+A	app/components/AuthOverlay.tsx
+A	app/components/InfoPanel.tsx
+A	app/components/MapControls.tsx
+A	app/components/MapView.tsx
+A	app/components/NavigationOverlay.tsx
+A	app/components/QuickActions.tsx
+A	app/components/SavedPlacesPanel.tsx
+A	app/components/SearchPanel.tsx
+A	app/components/SettingsOverlay.tsx
+A	app/components/Sidebar.tsx
+A	app/components/SplashScreen.tsx
+A	app/components/SubtitlePanel.tsx
+A	app/components/events/EventCard.tsx
+A	app/components/events/EventsPanel.tsx
+A	app/components/events/types.ts
+A	app/context/SimulationContext.tsx
+A	app/emergency/page.tsx
+A	app/facilities/page.tsx
+A	app/favicon.ico
+A	app/globals.css
+A	app/hooks/use-media-query.ts
+A	app/hooks/useGeolocation.ts
+A	app/hooks/useVoiceNavigation.ts
+A	app/layout.tsx
+A	app/lib/navigation/GuidanceSynthesizer.ts
+A	app/lib/navigation/LandmarkNavigator.ts
+A	app/lib/routing.ts
+A	app/lib/speech/SpeechService.ts
+A	app/page.tsx
+A	build_err.txt
+A	build_err_2.txt
+A	build_out.txt
+A	build_out_2.txt
+A	build_results.txt
+A	build_results_2.txt
+A	build_success_err.txt
+A	build_success_out.txt
+M	campus-navigator-nextjs/app/admin/events/EventModal.tsx
+M	campus-navigator-nextjs/app/admin/events/page.tsx
+M	campus-navigator-nextjs/app/admin/layout.tsx
+M	campus-navigator-nextjs/app/admin/settings/page.tsx
+M	campus-navigator-nextjs/app/admin/users/UserDrawer.tsx
+M	campus-navigator-nextjs/app/components/AuthOverlay.tsx
+M	campus-navigator-nextjs/app/components/InfoPanel.tsx
+M	campus-navigator-nextjs/app/components/events/EventsPanel.tsx
+M	campus-navigator-nextjs/app/facilities/page.tsx
+A	dev_err.txt
+A	dev_out.txt
+A	err.txt
+A	eslint.config.mjs
+A	implementation_plan.md
+A	install_err.txt
+A	install_out.txt
+A	lint_results.txt
+A	lint_results_2.txt
+A	lint_results_utf8.txt
+A	next.config.ts
+A	out.txt
+A	package-lock.json
+A	package.json
+A	postcss.config.mjs
+A	public/data/buildings.geojson
+A	public/data/entrances.json
+A	public/data/final/mcc-connectors.final.geojson
+A	public/data/final/mcc-walk-network.geojson
+A	public/data/final/mcc-walk-network.qmd
+A	public/data/generated/mcc-connectors.auto.geojson
+A	public/data/raw/mcc-boundary.geojson
+A	public/data/raw/mcc-landmarks.json
+A	public/data/raw/mcc-paths.geojson
+A	public/data/raw/mcc-secondary-locations.json
+A	public/data/raw/mcc-secondary.json
+A	public/data/raw/mcc-shortcuts.geojson
+A	public/data/rooms.json
+A	public/file.svg
+A	public/globe.svg
+A	public/images/QSC.webp
+A	public/images/anderson hall.jpg
+A	public/images/barnes hall.jpg
+A	public/images/bell tower.jpg
+A	public/images/botany tank.jpg
+A	public/images/center for media studies.jpg
+A	public/images/chemistry lab.jpg
+A	public/images/classroom.webp
+A	public/images/college union society.jpg
+A	public/images/corridor.webp
+A	public/images/facilities/botany lab.png
+A	public/images/facilities/cafeteria.png
+A	public/images/facilities/chapel.png
+A	public/images/facilities/clinic.png
+A	public/images/facilities/compurt lab.png
+A	public/images/facilities/library.png
+A	public/images/facilities/zoology lab.png
+A	public/images/library.webp
+A	public/images/main building.webp
+A	public/images/maingate.webp
+A	public/images/mrf.webp
+A	public/images/selaiyur hall.png
+A	public/images/students center.webp
+A	public/next.svg
+A	public/thumbnails/dark.png
+A	public/thumbnails/satellite.png
+A	public/thumbnails/voyager.png
+A	public/vercel.svg
+A	public/window.svg
+A	run_merge.bat
+A	scripts/generate-connectors.mjs
+A	scripts/generate-rooms.js
+A	scripts/merge-network.mjs
+A	scripts/process-secondary-data.js
+A	scripts/test-routing.mjs
+A	tailwind.config.js
+A	temp_facilities.json
+A	temp_facilities_utf8.json
+A	tsconfig.json
+
+commit 7dfb938b5b95e5ab9b8a2ec2c3a19b5dbfa24b5b
+Author: Rosy <roserosy1811@gmail.com>
+Date:   Tue Mar 24 09:23:44 2026 +0530
+
+    commited
+
+M	campus-navigator-nextjs/app/admin/events/EventModal.tsx
+M	campus-navigator-nextjs/app/admin/events/page.tsx
+M	campus-navigator-nextjs/app/admin/layout.tsx
+M	campus-navigator-nextjs/app/admin/settings/page.tsx
+M	campus-navigator-nextjs/app/admin/users/UserDrawer.tsx
+M	campus-navigator-nextjs/app/components/AuthOverlay.tsx
+M	campus-navigator-nextjs/app/components/InfoPanel.tsx
+M	campus-navigator-nextjs/app/components/MapView.tsx
+M	campus-navigator-nextjs/app/components/NavigationOverlay.tsx
+M	campus-navigator-nextjs/app/components/QuickActions.tsx
+M	campus-navigator-nextjs/app/components/events/EventsPanel.tsx
+M	campus-navigator-nextjs/app/facilities/page.tsx
+A	campus-navigator-nextjs/app/hooks/useGeolocation.ts
+M	campus-navigator-nextjs/app/lib/routing.ts
+M	campus-navigator-nextjs/app/page.tsx
+M	campus-navigator-nextjs/public/data/raw/mcc-landmarks.json
+M	campus-navigator-nextjs/public/data/raw/mcc-paths.geojson
+A	campus-navigator-nextjs/public/data/raw/mcc-shortcuts.geojson
+A	campus-navigator-nextjs/public/images/QSC.webp
+A	campus-navigator-nextjs/public/images/anderson hall.jpg
+A	campus-navigator-nextjs/public/images/barnes hall.jpg
+A	campus-navigator-nextjs/public/images/bell tower.jpg
+A	campus-navigator-nextjs/public/images/botany tank.jpg
+A	campus-navigator-nextjs/public/images/center for media studies.jpg
+A	campus-navigator-nextjs/public/images/chemistry lab.jpg
+A	campus-navigator-nextjs/public/images/classroom.webp
+A	campus-navigator-nextjs/public/images/college union society.jpg
+A	campus-navigator-nextjs/public/images/corridor.webp
+A	campus-navigator-nextjs/public/images/library.webp
+A	campus-navigator-nextjs/public/images/main building.webp
+A	campus-navigator-nextjs/public/images/maingate.webp
+A	campus-navigator-nextjs/public/images/mrf.webp
+A	campus-navigator-nextjs/public/images/selaiyur hall.png
+A	campus-navigator-nextjs/public/images/students center.webp

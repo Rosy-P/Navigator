@@ -1,0 +1,35 @@
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   app/admin/events/EventModal.tsx
+	modified:   app/admin/events/page.tsx
+	modified:   app/admin/layout.tsx
+	modified:   app/admin/settings/page.tsx
+	modified:   app/admin/users/UserDrawer.tsx
+	modified:   app/components/AuthOverlay.tsx
+	modified:   app/components/InfoPanel.tsx
+	modified:   app/components/MapView.tsx
+	modified:   app/components/SavedPlacesPanel.tsx
+	modified:   app/components/SearchPanel.tsx
+	modified:   app/components/events/EventsPanel.tsx
+	modified:   app/facilities/page.tsx
+	modified:   app/hooks/use-media-query.ts
+	modified:   app/page.tsx
+	modified:   campus-navigator-nextjs/app/admin/events/EventModal.tsx
+	modified:   campus-navigator-nextjs/app/admin/events/page.tsx
+	modified:   campus-navigator-nextjs/app/admin/layout.tsx
+	modified:   campus-navigator-nextjs/app/admin/settings/page.tsx
+	modified:   campus-navigator-nextjs/app/admin/users/UserDrawer.tsx
+	modified:   campus-navigator-nextjs/app/components/AuthOverlay.tsx
+	modified:   campus-navigator-nextjs/app/components/InfoPanel.tsx
+	modified:   campus-navigator-nextjs/app/components/events/EventsPanel.tsx
+	modified:   campus-navigator-nextjs/app/facilities/page.tsx
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	git_status.txt
+
+no changes added to commit (use "git add" and/or "git commit -a")

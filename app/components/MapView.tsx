@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import {
@@ -16,6 +16,25 @@ import {
 import { useVoiceNavigation } from "../hooks/useVoiceNavigation";
 import { Landmark } from "../lib/navigation/GuidanceSynthesizer";
 import { SpeechService } from "@/app/lib/speech/SpeechService";
+
+export interface Building {
+  id: string;
+  name: string;
+  type: "building";
+  lng: number;
+  lat: number;
+  color?: string;
+  properties?: any;
+  geometry?: any;
+}
+
+export interface Entrance {
+  id: string;
+  name: string;
+  buildingId: string;
+  lng: number;
+  lat: number;
+}
 
 interface MapViewProps {
   startLocation?: [number, number];
@@ -40,7 +59,7 @@ interface MapViewProps {
     distanceToNext: string,
   ) => void;
   onRouteCalculated?: (distance: number) => void;
-  onSelectLandmark?: (landmark: any, isFromMap?: boolean) => void;
+  onSelectLandmark?: (landmark: Landmark | Building, isFromMap?: boolean) => void;
   isPaused?: boolean;
   recenterCount?: number;
   isMobile?: boolean;
@@ -49,10 +68,10 @@ interface MapViewProps {
   onToggleSubtitles?: () => void;
   activeCategory?: string | null;
   simulationMode?: boolean;
-  buildings?: any[];
-  entrances?: any[];
-  selectedLandmark?: any;
-  onEntranceSelected?: (entrance: any) => void;
+  buildings?: (Building | any)[];
+  entrances?: Entrance[];
+  selectedLandmark?: Landmark | Building | any;
+  onEntranceSelected?: (entrance: Entrance) => void;
   navigationPhase?: "outdoor" | "indoor" | "completed";
   onPhaseChange?: (phase: "outdoor" | "indoor" | "completed") => void;
 }
@@ -69,7 +88,15 @@ const GRAND_TOUR_PATH: [number, number][] = [
   [80.12421, 12.92138], // Selaiyur Hall
 ];
 
-export default function MapView({
+export interface MapViewHandle {
+  zoomIn: () => void;
+  zoomOut: () => void;
+  rotateLeft: () => void;
+  rotateRight: () => void;
+  resetNorth: () => void;
+}
+
+const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({
   startLocation,
   destination,
   pendingLocation,
@@ -102,7 +129,7 @@ export default function MapView({
   onEntranceSelected,
   navigationPhase = "outdoor",
   onPhaseChange,
-}: MapViewProps) {
+}: MapViewProps, ref: React.Ref<MapViewHandle>) {
   console.log("🗺️ MapView Rendering:", { isDemoMode, isGuidanceActive, isTourSimulation, startLocation, navigationPhase });
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<maplibregl.Map | null>(null);
@@ -150,7 +177,25 @@ export default function MapView({
   const hasArrivedRef = useRef(false);
   const [isMapLocked, setIsMapLocked] = useState(true);
 
-  // Reset arrival flag when guidance starts or destination changes
+  // Expose map control methods via ref
+  useImperativeHandle(ref, () => ({
+    zoomIn: () => { mapInstance.current?.zoomIn({ duration: 300 }); },
+    zoomOut: () => { mapInstance.current?.zoomOut({ duration: 300 }); },
+    rotateLeft: () => {
+      const map = mapInstance.current;
+      if (map) map.easeTo({ bearing: map.getBearing() - 45, duration: 300 });
+    },
+    rotateRight: () => {
+      const map = mapInstance.current;
+      if (map) map.easeTo({ bearing: map.getBearing() + 45, duration: 300 });
+    },
+    resetNorth: () => {
+      const map = mapInstance.current;
+      if (map) map.easeTo({ bearing: 0, pitch: 0, duration: 500 });
+    },
+  }));
+
+
   useEffect(() => {
     hasArrivedRef.current = false;
     if (isGuidanceActive) setIsMapLocked(true);
@@ -613,7 +658,7 @@ export default function MapView({
             ];
             if (onSelectLandmarkRef.current) {
               onSelectLandmarkRef.current(
-                { ...feature.properties, lng: coord[0], lat: coord[1] },
+                { ...feature.properties, lng: coord[0], lat: coord[1] } as any,
                 true,
               );
             }
@@ -1858,4 +1903,7 @@ export default function MapView({
       )}
     </div>
   );
-}
+});
+
+MapView.displayName = "MapView";
+export default MapView;

@@ -6,7 +6,6 @@ interface SearchPanelProps {
     searchQuery: string;
     setSearchQuery: (query: string) => void;
     filteredResults: any[];
-    setFilteredResults: (results: any[]) => void;
     isSearchFocused: boolean;
     setIsSearchFocused: (focused: boolean) => void;
     selectedIndex: number;
@@ -21,7 +20,6 @@ export default function SearchPanel({
     searchQuery,
     setSearchQuery,
     filteredResults,
-    setFilteredResults,
     isSearchFocused,
     setIsSearchFocused,
     selectedIndex,
@@ -71,7 +69,6 @@ export default function SearchPanel({
                                 if (selectedIndex >= 0 && filteredResults[selectedIndex]) {
                                     onSelectLandmark(filteredResults[selectedIndex]);
                                     setSearchQuery("");
-                                    setFilteredResults([]);
                                 }
                             } else if (e.key === "Escape") {
                                 setIsSearchFocused(false);
@@ -85,7 +82,6 @@ export default function SearchPanel({
                             onClick={(e) => {
                                 e.stopPropagation();
                                 setSearchQuery("");
-                                setFilteredResults([]);
                                 setIsSearchFocused(false);
                                 setUiState("IDLE");
                             }}
@@ -128,7 +124,6 @@ export default function SearchPanel({
                                         e.preventDefault();
                                         onSelectLandmark(result);
                                         setSearchQuery("");
-                                        setFilteredResults([]);
                                         setIsSearchFocused(false);
                                         setUiState("PLACE_SELECTED");
                                     }}

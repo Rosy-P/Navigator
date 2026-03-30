@@ -3,30 +3,16 @@
 import { X, Navigation, Play, Bookmark, Info, ChevronLeft, MapPin, Target, Send, Zap, Check, AlertCircle, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { useState, useEffect } from "react";
+import { Landmark } from "../lib/navigation/GuidanceSynthesizer";
+import { Building, Entrance } from "./MapView";
+import { Room } from "../page";
 
-interface Landmark {
-    id?: string;
-    name: string;
-    category?: string;
-    images?: string | string[];
-    lng: number;
-    lat: number;
-    description?: string;
-    hours?: string;
-    phone?: string;
-    website?: string;
-    address?: string;
-    // Classroom specific
-    block?: string;
-    roomNumber?: string;
-    floor?: string;
-    isSecondary?: boolean;
-}
+// Using Landmark from GuidanceSynthesizer.ts
 
 interface InfoPanelProps {
-    landmark: any; // Using any for flexibility during migration, but ideally based on DestinationType
-    destination?: any; 
-    entrance?: any;
+    landmark: Landmark | Building | Room | any;
+    destination?: Landmark | Building | Room | any; 
+    entrance?: Entrance | any;
     startLabel?: string;
     isPlanning: boolean;
     isNavigationActive?: boolean;
@@ -99,7 +85,7 @@ export default function InfoPanel({
         setErrorMessage("");
 
         try {
-            const response = await fetch("http://localhost:80/campus-navigator-backend/save_location.php", {
+            const response = await fetch("http://localhost:8080/campus-navigator-backend/save_location.php", {
                 method: "POST",
                 credentials: "include",
                 headers: {

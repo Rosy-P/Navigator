@@ -12,7 +12,8 @@ import {
     Loader2,
     Calendar,
     Settings,
-    Bell
+    Bell,
+    Map
 } from "lucide-react";
 import { SidebarItem } from "./components/AdminComponents";
 import { useAuth } from "../components/AuthOverlay";
@@ -55,7 +56,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         const checkAdmin = async () => {
             try {
                 const res = await fetch(
-                    "http://localhost:80/campus-navigator-backend/check-admin.php",
+                    "http://localhost:8080/campus-navigator-backend/check-admin.php",
                     { credentials: "include" }
                 );
 
@@ -95,7 +96,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const fetchUsers = async () => {
         try {
             const res = await fetch(
-                "http://localhost:80/campus-navigator-backend/get-users.php",
+                "http://localhost:8080/campus-navigator-backend/get-users.php",
                 { credentials: "include" }
             );
             const data = await res.json();
@@ -110,7 +111,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const fetchEvents = async () => {
         try {
             const res = await fetch(
-                "http://localhost:80/campus-navigator-backend/get-events.php",
+                "http://localhost:8080/campus-navigator-backend/get-events.php",
                 { credentials: "include" }
             );
             const data = await res.json();
@@ -130,7 +131,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     const handleLogout = async () => {
         try {
-            await fetch("http://localhost:80/campus-navigator-backend/logout.php", {
+            await fetch("http://localhost:8080/campus-navigator-backend/logout.php", {
                 method: "POST",
                 credentials: "include"
             });
@@ -171,6 +172,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         <SidebarItem icon={<LayoutGrid size={20} />} label="Dashboard" href="/admin" />
                         <SidebarItem icon={<Users size={20} />} label="User Info" href="/admin/users" />
                         <SidebarItem icon={<Calendar size={20} />} label="Events" href="/admin/events" />
+                        <SidebarItem icon={<Map size={20} />} label="Facilities" href="/admin/facilities" />
                         <SidebarItem icon={<Settings size={20} />} label="System Settings" href="/admin/settings" />
                     </nav>
 

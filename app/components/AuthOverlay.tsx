@@ -3,6 +3,7 @@
 import { useState, useEffect, createContext, useContext, ReactNode } from "react";
 import { X, User, Mail, Lock, ArrowRight, Loader2, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 
 // --- Types ---
@@ -63,7 +64,7 @@ export default function AuthProvider({ children, theme = 'light' }: AuthProvider
     useEffect(() => {
         const checkSession = async () => {
             try {
-                const res = await fetch("http://localhost:80/campus-navigator-backend/check-auth.php", {
+                const res = await fetch("http://localhost:8080/campus-navigator-backend/check-auth.php", {
                     credentials: "include"
                 });
                 const data = await res.json();
@@ -89,7 +90,7 @@ export default function AuthProvider({ children, theme = 'light' }: AuthProvider
 
     const login = async (formData: any) => {
         try {
-            const res = await fetch("http://localhost:80/campus-navigator-backend/login.php", {
+            const res = await fetch("http://localhost:8080/campus-navigator-backend/login.php", {
                 method: "POST",
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),
@@ -127,7 +128,7 @@ export default function AuthProvider({ children, theme = 'light' }: AuthProvider
 
     const logout = async () => {
         try {
-            await fetch("http://localhost:80/campus-navigator-backend/logout.php", {
+            await fetch("http://localhost:8080/campus-navigator-backend/logout.php", {
                 method: "POST",
                 credentials: "include"
             });
@@ -206,7 +207,7 @@ function AuthOverlayUI({ theme, onClose, modeProp }: { theme: 'light' | 'dark', 
                     throw new Error("Passwords do not match.");
                 }
 
-                const res = await fetch("http://localhost:80/campus-navigator-backend/register.php", {
+                const res = await fetch("http://localhost:8080/campus-navigator-backend/register.php", {
                     method: "POST",
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -378,6 +379,17 @@ function AuthOverlayUI({ theme, onClose, modeProp }: { theme: 'light' | 'dark', 
                                     className="flex-1 bg-transparent border-none outline-none ml-3 font-semibold placeholder:font-normal"
                                 />
                             </div>
+                            {mode === 'signin' && (
+                                <div className="flex justify-end mt-2">
+                                    <Link 
+                                        href="/forgot-password" 
+                                        onClick={onClose}
+                                        className={`text-[11px] font-bold tracking-tight hover:text-orange-600 hover:underline transition-all outline-none focus:text-orange-600 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}
+                                    >
+                                        Forgot Password?
+                                    </Link>
+                                </div>
+                            )}
                         </div>
 
                         {mode === 'signup' && (

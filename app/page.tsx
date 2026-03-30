@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
-import { Search, Building2, MapPin, Menu, X, Mic, Navigation, Home, Map as MapIcon, Microscope, UtensilsCrossed, Zap } from "lucide-react";
+import { useState, useCallback, useEffect, useRef, Suspense } from "react";
+import { Search, Home, Microscope, UtensilsCrossed, Zap } from "lucide-react";
 import Sidebar from "./components/Sidebar";
-import MapView from "./components/MapView";
+import MapView, { Building, Entrance, MapViewHandle } from "./components/MapView";
 import MapControls from "./components/MapControls";
 import InfoPanel from "./components/InfoPanel";
 import SettingsOverlay from "./components/SettingsOverlay";
@@ -19,15 +19,44 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { SpeechService } from "./lib/speech/SpeechService";
 import { useSimulation } from "./context/SimulationContext";
 import { useGeolocation } from "./hooks/useGeolocation";
+import { Landmark } from "./lib/navigation/GuidanceSynthesizer";
+import { useMemo } from "react";
 
 
 type UIState = "IDLE" | "SEARCHING" | "PLACE_SELECTED" | "NAVIGATION_ACTIVE";
 type SheetState = "PEEK" | "HALF" | "FULL";
 type NavigationPhase = "outdoor" | "indoor" | "completed";
 
+// --- Types ---
+export interface Room {
+  id: string;
+  name: string;
+  type: "room";
+  category: "Classroom";
+  buildingId: string;
+  buildingName: string;
+  floor: number | string;
+  rangeStart: number;
+  rangeEnd: number;
+  prefix?: string;
+}
+
+
+
 // --- Wrapper Component ---
 export default function HomePage() {
-  return <HomeContent />;
+  return (
+    <Suspense fallback={
+      <div className="h-screen w-screen flex items-center justify-center bg-[#0f172a] text-white">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+          <p className="font-bold tracking-widest uppercase text-sm">Initializing Map...</p>
+        </div>
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
+  );
 }
 
 function HomeContent() {
@@ -55,7 +84,7 @@ function HomeContent() {
   const [isVirtualTourRunning, setIsVirtualTourRunning] = useState(false);
   const [destination, setDestination] = useState<[number, number] | undefined>();
   const [routeInfo, setRouteInfo] = useState<{ distance: number; time: number } | null>(null);
-  const [selectedLandmark, setSelectedLandmark] = useState<any>(null);
+  const [selectedLandmark, setSelectedLandmark] = useState<Landmark | Building | Room | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [pendingPickerLocation, setPendingPickerLocation] = useState<[number, number] | undefined>();
   const [originType, setOriginType] = useState<"gps" | "manual" | null>(null);
@@ -76,6 +105,7 @@ function HomeContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const hasProcessedUrlParams = useRef(false);
+  const mapViewRef = useRef<MapViewHandle | null>(null);
 
   // GPS Tracking State
   const [isTracking, setIsTracking] = useState(false);
@@ -103,10 +133,9 @@ function HomeContent() {
   // Search State
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [filteredResults, setFilteredResults] = useState<any[]>([]);
-  const [allLandmarks, setAllLandmarks] = useState<any[]>([]);
-  const [buildings, setBuildings] = useState<any[]>([]);
-  const [entrances, setEntrances] = useState<any[]>([]);
+  const [allLandmarks, setAllLandmarks] = useState<Landmark[]>([]);
+  const [buildings, setBuildings] = useState<Building[]>([]);
+  const [entrances, setEntrances] = useState<Entrance[]>([]);
   const [rooms, setRooms] = useState<any[]>([]);
   const [isRoomsLoaded, setIsRoomsLoaded] = useState(false);
   const [connectors, setConnectors] = useState<any[]>([]);
@@ -128,11 +157,57 @@ function HomeContent() {
     mapStyle: "voyager",
     simulationSpeed: "normal",
     appearance: "light",
-    notifications: true,
+    notifications: false, // Default to false until enabled
     locationAccuracy: true
   });
 
+  // Load settings from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('mcc-navigator-settings');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setSettings(prev => ({ ...prev, ...parsed }));
+      } catch (e) {
+        console.error("Failed to parse settings", e);
+      }
+    }
+  }, []);
+
+  // Save settings on update
+  useEffect(() => {
+    localStorage.setItem('mcc-navigator-settings', JSON.stringify(settings));
+  }, [settings]);
+
+  // Handle Service Worker and Notifications
+  useEffect(() => {
+    if ('serviceWorker' in navigator && settings.notifications) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(reg => console.log('SW: Registered', reg))
+          .catch(err => console.error('SW: Registration failed', err));
+      });
+    }
+  }, [settings.notifications]);
+
   const handleUpdateSetting = useCallback((key: string, value: any) => {
+    // If enabling notifications, request permission
+    if (key === 'notifications' && value === true) {
+      if ('Notification' in window) {
+        Notification.requestPermission().then(permission => {
+          if (permission === 'granted') {
+            setSettings(prev => ({ ...prev, notifications: true }));
+          } else {
+            alert("Please allow notification permission in your browser to enable this feature.");
+            setSettings(prev => ({ ...prev, notifications: false }));
+          }
+        });
+        return;
+      } else {
+        alert("Push notifications are not supported in this browser.");
+        return;
+      }
+    }
     setSettings(prev => ({ ...prev, [key]: value }));
   }, []);
 
@@ -152,7 +227,7 @@ function HomeContent() {
       return;
     }
     try {
-      const res = await fetch("http://localhost:80/campus-navigator-backend/get_saved_locations.php", {
+      const res = await fetch("http://localhost:8080/campus-navigator-backend/get_saved_locations.php", {
         credentials: "include"
       });
       const data = await res.json();
@@ -231,11 +306,9 @@ function HomeContent() {
   }, [isSearchFocused, isRoomsLoaded]);
 
   // Filter landmarks logic
-  useEffect(() => {
+  const filteredResults = useMemo(() => {
     if (searchQuery.trim().length < 2) {
-      setFilteredResults([]);
-      setSelectedIndex(-1);
-      return;
+      return [];
     }
     const query = searchQuery.toLowerCase().trim();
     
@@ -250,7 +323,7 @@ function HomeContent() {
       if (block) {
         matchedRooms.push({
           id: `room-${prefix}${number}`,
-          name: `${prefix}${number}`, // we will override label in search panel
+          name: `${prefix}${number}`,
           type: "room",
           category: "Classroom",
           buildingId: block.buildingId,
@@ -266,12 +339,15 @@ function HomeContent() {
       l.name.toLowerCase().includes(query) ||
       (l.category && l.category.toLowerCase().includes(query)) ||
       (l.buildingName && l.buildingName.toLowerCase().includes(query)) ||
-      (l.room && l.room.toLowerCase().includes(query))
+      (l.room && (l as any).room.toLowerCase().includes(query))
     ).slice(0, 10);
     
-    setFilteredResults([...matchedRooms, ...filtered].slice(0, 10));
-    setSelectedIndex(-1);
+    return [...matchedRooms, ...filtered].slice(0, 10);
   }, [searchQuery, allLandmarks, rooms]);
+
+  useEffect(() => {
+    setSelectedIndex(-1);
+  }, [searchQuery]);
 
   useEffect(() => {
     if (isSearchFocused && filteredResults.length > 0) {
@@ -677,7 +753,6 @@ function HomeContent() {
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}
                 filteredResults={filteredResults}
-                setFilteredResults={setFilteredResults}
                 isSearchFocused={isSearchFocused}
                 setIsSearchFocused={(focused) => {
                   if (focused) {
@@ -699,6 +774,7 @@ function HomeContent() {
         {/* The Map */}
         <div className="absolute inset-0 z-0">
           <MapView
+            ref={mapViewRef}
             startLocation={startLocation}
             destination={destination}
             markerLocation={markerLocation}
@@ -963,7 +1039,13 @@ function HomeContent() {
               ? (isMobile ? "bottom-[52vh] right-4" : "bottom-8 right-[340px]")
               : "bottom-8 right-8"}
           `}>
-            <MapControls onZoomIn={() => { }} onZoomOut={() => { }} />
+            <MapControls
+              onZoomIn={() => mapViewRef.current?.zoomIn()}
+              onZoomOut={() => mapViewRef.current?.zoomOut()}
+              onRotateLeft={() => mapViewRef.current?.rotateLeft()}
+              onRotateRight={() => mapViewRef.current?.rotateRight()}
+              onResetNorth={() => mapViewRef.current?.resetNorth()}
+            />
           </div>
         )}
 

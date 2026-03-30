@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Building2, Microscope, Home, BookOpen, GraduationCap } from "lucide-react";
+import { Building2, Microscope, Home } from "lucide-react";
 
 interface QuickActionsProps {
     activeCategory: string | null;
