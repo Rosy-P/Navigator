@@ -4192,6 +4192,17 @@
         ],
         "type": "LineString"
       }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "shortcut_science_diagonal", "type": "shortcut" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [ 80.1204836, 12.9210287 ],
+          [ 80.1226708, 12.9211785 ]
+        ]
+      }
     }
   ]
-}
+}

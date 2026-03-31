@@ -790,7 +790,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({
             }]
           } as any);
           
-          if (selectedLandmark.type === "room") {
+          if (selectedLandmark.type === "room" || selectedLandmark.type === "building") {
             let startTime = performance.now();
             const animateGlow = (timestamp: number) => {
                 const elapsed = timestamp - startTime;
@@ -804,7 +804,8 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({
 
             // HIGHLIGHT ENTRANCE
             if (entranceSource && entrances.length) {
-              const buildingEntrances = entrances.filter(e => e.buildingId === buildingId);
+              const bId = selectedLandmark.type === "building" ? selectedLandmark.id : selectedLandmark.buildingId;
+              const buildingEntrances = entrances.filter(e => e.buildingId === bId);
               if (buildingEntrances.length) {
                 // For simplicity, showing all entrances or the nearest one. 
                 // Using the specific entrance if already selected, else just show all relevant to the building
@@ -816,9 +817,6 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({
                 entranceSource.setData({ type: "FeatureCollection", features } as any);
               }
             }
-          } else {
-            // Clear entrance if it's just a building
-            if (entranceSource) entranceSource.setData({ type: "FeatureCollection", features: [] } as any);
           }
 
           if (!isGuidanceActive) {
@@ -862,8 +860,9 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({
     // Handle Optional Coordinates & Type-Specific Logic
     const destType = selectedLandmark?.type || "landmark";
 
-    if (destType === "room" && entrances.length) {
-      const buildingEntrances = entrances.filter(e => e.buildingId === selectedLandmark.buildingId);
+    if ((destType === "room" || destType === "building") && entrances.length) {
+      const bId = destType === "building" ? selectedLandmark.id : selectedLandmark.buildingId;
+      const buildingEntrances = entrances.filter(e => e.buildingId === bId);
       if (buildingEntrances.length) {
         // Calculate nearest entrance to user location (startLocation or map center if unknown)
         const origin: [number, number] = startLocation || currentUserLocationRef.current || [80.120584, 12.923163];
@@ -879,17 +878,15 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({
           }
         });
 
-        console.log(`📍 Nearest entrance to building ${selectedLandmark.buildingId} is ${nearest.name}`);
+        console.log(`📍 Nearest entrance to building ${bId} is ${nearest.name}`);
         targetDest = [nearest.lng, nearest.lat];
-        targetZoom = 19.5; // Zoom in closer for rooms
+        targetZoom = destType === "room" ? 19.5 : 18.5; // Zoom in closer for rooms
 
         // SYNC ENTRANCE TO PARENT
         if (onEntranceSelected) {
           onEntranceSelected(nearest);
         }
       }
-    } else if (destType === "building") {
-      targetZoom = 18.5;
     }
 
     if (!Array.isArray(targetDest) || targetDest.length !== 2 || isNaN(targetDest[0]) || isNaN(targetDest[1])) {
@@ -1414,8 +1411,9 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({
     const effectiveStart: [number, number] = startLocation || defaultLocation;
 
     let navigationTargetCoordinate = destination;
-    if (selectedLandmark?.type === "room" && entrances.length > 0) {
-      const buildingEntrances = entrances.filter(e => e.buildingId === selectedLandmark.buildingId);
+    if ((selectedLandmark?.type === "room" || selectedLandmark?.type === "building") && entrances.length > 0) {
+      const bId = selectedLandmark.type === "building" ? selectedLandmark.id : selectedLandmark.buildingId;
+      const buildingEntrances = entrances.filter(e => e.buildingId === bId);
       if (buildingEntrances.length > 0) {
         let nearest = buildingEntrances[0];
         let minDist = distance(effectiveStart, [nearest.lng, nearest.lat]);
@@ -1427,7 +1425,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({
           }
         });
         navigationTargetCoordinate = [nearest.lng, nearest.lat];
-        console.log(`🧭 [Demo] Rerouted target to nearest entrance: ${nearest.name}`);
+        console.log(`🧭 [Demo] Rerouted target to nearest entrance for ${bId}: ${nearest.name}`);
         if (onEntranceSelected) onEntranceSelected(nearest);
       }
     }
@@ -1585,8 +1583,9 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({
 
     let navigationTargetCoordinate = destination;
 
-    if (selectedLandmark?.type === "room" && entrances.length > 0) {
-      const buildingEntrances = entrances.filter(e => e.buildingId === selectedLandmark.buildingId);
+    if ((selectedLandmark?.type === "room" || selectedLandmark?.type === "building") && entrances.length > 0) {
+      const bId = selectedLandmark.type === "building" ? selectedLandmark.id : selectedLandmark.buildingId;
+      const buildingEntrances = entrances.filter(e => e.buildingId === bId);
       if (buildingEntrances.length > 0) {
         let nearest = buildingEntrances[0];
         let minDist = distance(currentUserLocation, [nearest.lng, nearest.lat]);
@@ -1598,7 +1597,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({
           }
         });
         navigationTargetCoordinate = [nearest.lng, nearest.lat];
-        console.log(`🧭 Rerouted target to nearest entrance: ${nearest.name}`);
+        console.log(`🧭 Rerouted target to nearest entrance for ${bId}: ${nearest.name}`);
         if (onEntranceSelected) onEntranceSelected(nearest);
       }
     }
@@ -1613,9 +1612,11 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({
       const routeCoords = routeFeature.geometry.coordinates;
 
       // Visual Fix: Ensure route connects to marker
-      // If markerLocation is different from destination, append it to create visual connection
+      // Only append if we haven't already rerouted to a specific entrance (rooms/buildings)
       let finalRouteCoords = [...routeCoords];
-      if (markerLocation && destination) {
+      const isEntranceUsed = (selectedLandmark?.type === "room" || selectedLandmark?.type === "building") && entrances.length > 0;
+      
+      if (!isEntranceUsed && markerLocation && destination) {
         const lastCoord = routeCoords[routeCoords.length - 1];
         const distToMarker = distance(lastCoord, markerLocation);
         // Only append if marker is at a different location (>1m away)
@@ -1658,15 +1659,14 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({
         destMarkerRef.current = null;
       }
 
-      // CRITICAL: Always use markerLocation if available (for landmarks with connectors)
-      // Only fall back to destination if markerLocation is explicitly undefined
+      // CRITICAL: Always use snapped coordinate if available, otherwise markerLocation
       let markerPos: [number, number] | undefined;
-      if (markerLocation) {
+      if (navigationTargetCoordinate) {
+        markerPos = navigationTargetCoordinate;
+      } else if (markerLocation) {
         markerPos = markerLocation;
-        console.log("🔴 Using markerLocation for marker:", markerLocation);
       } else if (destination) {
         markerPos = destination;
-        console.log("🔴 Using destination for marker (no markerLocation):", destination);
       }
 
       if (selectedLandmark?.type === "room") {

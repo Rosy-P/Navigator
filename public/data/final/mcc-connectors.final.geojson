@@ -29,6 +29,10 @@
 { "type": "Feature", "properties": { "id": "conn_mcc_farm", "landmarkId": "mcc_farm", "landmarkName": "MCC Farm", "type": "connector" }, "geometry": { "type": "LineString", "coordinates": [ [ 80.126068620456536, 12.915613365591808 ], [ 80.12586, 12.91562 ] ] } },
 { "type": "Feature", "properties": { "id": "conn_mcc_lake", "landmarkId": "mcc_lake", "landmarkName": "MCC Lake", "type": "connector" }, "geometry": { "type": "LineString", "coordinates": [ [ 80.116964240037092, 12.915746407118846 ], [ 80.11732, 12.91572 ] ] } },
 { "type": "Feature", "properties": { "id": "conn_mcc_international_guest_house", "landmarkId": "mcc_international_guest_house", "landmarkName": "MCC International Guest House", "type": "connector" }, "geometry": { "type": "LineString", "coordinates": [ [ 80.119781693603883, 12.918759801949168 ], [ 80.11978, 12.91873 ] ] } },
-{ "type": "Feature", "properties": { "id": "conn_mcc_indoor_stadium", "landmarkId": "mcc_indoor_stadium", "landmarkName": "MCC Indoor Stadium", "type": "connector" }, "geometry": { "type": "LineString", "coordinates": [ [ 80.119369826246981, 12.916483174514198 ], [ 80.1194, 12.91691 ] ] } }
+{ "type": "Feature", "properties": { "id": "conn_mcc_indoor_stadium", "landmarkId": "mcc_indoor_stadium", "landmarkName": "MCC Indoor Stadium", "type": "connector" }, "geometry": { "type": "LineString", "coordinates": [ [ 80.119369826246981, 12.916483174514198 ], [ 80.1194, 12.91691 ] ] } },
+{ "type": "Feature", "properties": { "id": "conn_science_entrance_1", "landmarkId": "science_block", "landmarkName": "Science Block (Entrance 1)", "type": "connector" }, "geometry": { "type": "LineString", "coordinates": [ [ 80.1237223, 12.9208191 ], [ 80.12353237566242, 12.921088433853683 ] ] } },
+{ "type": "Feature", "properties": { "id": "conn_science_entrance_2", "landmarkId": "science_block", "landmarkName": "Science Block (Entrance 2)", "type": "connector" }, "geometry": { "type": "LineString", "coordinates": [ [ 80.1235, 12.9217 ], [ 80.12347170040624, 12.921621320272422 ] ] } },
+{ "type": "Feature", "properties": { "id": "conn_science_entrance_3", "landmarkId": "science_block", "landmarkName": "Science Block (Entrance 3)", "type": "connector" }, "geometry": { "type": "LineString", "coordinates": [ [ 80.1226, 12.9212 ], [ 80.12267080554369, 12.921178535222936 ] ] } }
+
 ]
 }
