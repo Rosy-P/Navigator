@@ -251,28 +251,60 @@ function HomeContent() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [primaryRes, buildingsRes, entrancesRes, connectorsRes] = await Promise.all([
+        const [primaryRes, buildingsRes, entrancesRes, connectorsRes, facilitiesRes] = await Promise.all([
           fetch("/data/raw/mcc-landmarks.json"),
           fetch("/data/buildings.geojson"),
           fetch("/data/entrances.json"),
-          fetch("/data/final/mcc-connectors.final.geojson")
+          fetch("/data/final/mcc-connectors.final.geojson"),
+          fetch("http://localhost:8080/campus-navigator-backend/getfacilities.php")
         ]);
 
         const primaryData = await primaryRes.json();
         const buildingsGeoJSON = await buildingsRes.json();
-        const buildingsData = buildingsGeoJSON.features;
+        const buildingsData = buildingsGeoJSON.features.map((f: any) => {
+          if (f.geometry && f.geometry.coordinates && f.geometry.coordinates[0]) {
+            const coords = f.geometry.coordinates[0];
+            f.lng = coords.reduce((acc: number, curr: number[]) => acc + curr[0], 0) / coords.length;
+            f.lat = coords.reduce((acc: number, curr: number[]) => acc + curr[1], 0) / coords.length;
+          }
+          return f;
+        });
         const entrancesData = await entrancesRes.json();
         const connectorsData = await connectorsRes.json();
+
+        let dbFacilities: any[] = [];
+        try {
+          const rawFacilities = await facilitiesRes.json();
+          const fList = Array.isArray(rawFacilities) ? rawFacilities : (rawFacilities.data || []);
+          dbFacilities = fList.map((f: any) => ({
+            id: `db-facility-${f.id}`,
+            landmarkId: `db-facility-${f.id}`,
+            name: f.name,
+            category: f.category || "Facility",
+            type: "facility", // or 'landmark' depending on how we treat it
+            lat: parseFloat(f.latitude),
+            lng: parseFloat(f.longitude),
+            description: f.description,
+            status: f.status,
+            image: f.image,
+            navPrompt: `Navigating to ${f.name}`
+          }));
+        } catch (err) {
+          console.error("Failed to parse DB facilities:", err);
+        }
 
         const initialLandmarks = [
           ...(primaryData.classrooms || []),
           ...(primaryData.departments || []),
           ...(primaryData.facilities || []),
+          ...dbFacilities,
           ...buildingsData.map((f: any) => ({ 
             ...f.properties, 
             id: f.id || f.properties.id,
             category: "Building", 
-            type: "building" 
+            type: "building",
+            lng: f.lng,
+            lat: f.lat
           }))
         ];
 

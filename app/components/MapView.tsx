@@ -328,7 +328,11 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({
           });
 
         // 2. Landmarks (Restoring to raw data)
-        const landmarkRes = await fetch("/data/raw/mcc-landmarks.json");
+        const [landmarkRes, facilitiesRes] = await Promise.all([
+          fetch("/data/raw/mcc-landmarks.json"),
+          fetch("http://localhost:8080/campus-navigator-backend/getfacilities.php")
+        ]);
+        
         const rawLandmarks = await landmarkRes.json();
         const features: any[] = [];
         ["classrooms", "departments", "facilities"].forEach((cat) => {
@@ -346,6 +350,35 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({
             });
           }
         });
+
+        // Add dynamic facilities from DB
+        try {
+          const rawFacilities = await facilitiesRes.json();
+          const fList = Array.isArray(rawFacilities) ? rawFacilities : (rawFacilities.data || []);
+          fList.forEach((f: any) => {
+            const lat = parseFloat(f.latitude);
+            const lng = parseFloat(f.longitude);
+            if (!isNaN(lat) && !isNaN(lng)) {
+              features.push({
+                type: "Feature",
+                properties: {
+                  landmarkId: `db-facility-${f.id}`,
+                  id: `db-facility-${f.id}`,
+                  name: f.name,
+                  category: f.category || "Facility",
+                  type: "facility",
+                  description: f.description,
+                  status: f.status,
+                  image: f.image,
+                  navPrompt: `Navigating to ${f.name}`
+                },
+                geometry: { type: "Point", coordinates: [lng, lat] },
+              });
+            }
+          });
+        } catch (err) {
+          console.error("Failed to parse DB facilities in MapView:", err);
+        }
 
         map.addSource("landmarks", {
           type: "geojson",
@@ -859,8 +892,13 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({
       targetZoom = 18.5;
     }
 
+    if (!Array.isArray(targetDest) || targetDest.length !== 2 || isNaN(targetDest[0]) || isNaN(targetDest[1])) {
+      console.warn("Invalid targetDest for map.easeTo:", targetDest);
+      return;
+    }
+
     map.easeTo({
-      center: targetDest,
+      center: targetDest as [number, number],
       zoom: targetZoom,
       duration: 1200,
     });

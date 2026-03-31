@@ -134,8 +134,8 @@
         {
             "id": "thomas_hall",
             "name": "Thomas Hall",
-            "lat": 12.9221401,
-            "lng": 80.1199855,
+            "lat": 12.922089796282904,
+            "lng": 80.12050014752191,
             "floor": "ground",
             "rating": 4.3,
             "reviews": 45,
@@ -652,8 +652,8 @@
         {
             "id": "margaret_hall",
             "name": "Margaret Hall",
-            "lat": 12.919346285193512,
-            "lng": 80.11930984327296,
+            "lat": 12.919378360652075,
+            "lng": 80.11959864222007,
             "floor": "ground",
             "images": [
                 "/images/selaiyur hall.png"
@@ -739,8 +739,8 @@
         {
             "id": "macnicol_lounge",
             "name": "Macnicol Lounge For women",
-            "lat": 12.920767761075155,
-            "lng": 80.12238845799243,
+            "lat": 12.920885810754683,
+            "lng": 80.12239445878333,
             "floor": "ground",
             "rating": 4.6,
             "reviews": 42,
