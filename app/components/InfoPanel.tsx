@@ -57,6 +57,32 @@ export default function InfoPanel({
 }: InfoPanelProps) {
     const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error" | "exists">("idle");
     const [errorMessage, setErrorMessage] = useState("");
+    const [touchStartY, setTouchStartY] = useState<number | null>(null);
+
+    const handleTouchStart = (e: React.TouchEvent) => {
+        setTouchStartY(e.touches[0].clientY);
+    };
+
+    const handleTouchEnd = (e: React.TouchEvent) => {
+        if (!touchStartY || !onSetSheetState) return;
+        
+        const touchEndY = e.changedTouches[0].clientY;
+        const deltaY = touchEndY - touchStartY;
+        const threshold = 50; // Minimum drag distance to trigger state change
+
+        if (Math.abs(deltaY) > threshold) {
+            if (deltaY > 0) {
+                // Swiped Down - Minimize
+                if (sheetState === "FULL") onSetSheetState("HALF");
+                else if (sheetState === "HALF") onSetSheetState("PEEK");
+            } else {
+                // Swiped Up - Expand
+                if (sheetState === "PEEK") onSetSheetState("HALF");
+                else if (sheetState === "HALF") onSetSheetState("FULL");
+            }
+        }
+        setTouchStartY(null);
+    };
 
     // Sync saveStatus with savedLocations list
     useEffect(() => {
@@ -124,7 +150,7 @@ export default function InfoPanel({
     const hClasses = {
         PEEK: "max-md:h-[20vh]",
         HALF: "max-md:h-[50vh]",
-        FULL: "max-md:h-[80vh]"
+        FULL: "max-md:h-[94vh]"
     };
 
     // Helper to get image URL safely, handling potential GeoJSON stringification
@@ -170,8 +196,25 @@ export default function InfoPanel({
             }}
         >
             {/* Drag Handle - Mobile Only */}
-            <div className="w-full flex justify-center pt-3 pb-1 md:hidden flex-shrink-0 cursor-pointer">
+            <div 
+                className="relative w-full flex justify-center pt-3 pb-2 md:hidden flex-shrink-0 cursor-pointer border-b border-slate-50/50"
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
+            >
                 <div className="w-12 h-1.5 bg-slate-200 rounded-full" />
+                
+                {/* Secondary Close Button for Mobile (Top Right of Sheet) */}
+                {!isPlanning && (
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onClose();
+                        }}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 md:hidden active:scale-90 transition-transform"
+                    >
+                        <X size={16} />
+                    </button>
+                )}
             </div>
 
             {navigationPhase === "indoor" && destination.type === "room" ? (
@@ -208,29 +251,41 @@ export default function InfoPanel({
                 </div>
             ) : !isPlanning ? (
                 <>
-                    {/* Header Image */}
-                    <div className="relative h-[160px] md:h-[180px] 2xl:h-[220px] w-full overflow-hidden flex-shrink-0 bg-slate-200">
-                        <Image
-                            src={displayImage}
-                            alt={destination.name}
-                            fill
-                            className="object-cover"
-                            unoptimized={displayImage.includes("unsplash.com")}
-                        />
-
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onClose();
-                            }}
-                            className="absolute top-3 right-3 w-8 h-8 2xl:w-9 2xl:h-9 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-black/60 transition-all active:scale-90"
-                        >
-                            <X size={14} className="2xl:w-4 2xl:h-4" />
-                        </button>
-                    </div>
-
                     {/* Content Container */}
-                    <div className="flex-1 overflow-y-auto custom-scrollbar" onClick={(e) => e.stopPropagation()}>
+                    <div 
+                        className="flex-1 overflow-y-auto custom-scrollbar" 
+                        onClick={(e) => e.stopPropagation()}
+                        onScroll={(e) => {
+                            if (window.innerWidth < 768 && onSetSheetState && sheetState === "HALF") {
+                                const target = e.currentTarget;
+                                if (target.scrollTop > 10) {
+                                    onSetSheetState("FULL");
+                                }
+                            }
+                        }}
+                    >
+                        {/* Header Image - Now inside scrollable area for mobile */}
+                        <div className="relative h-[200px] md:h-[180px] 2xl:h-[220px] w-full overflow-hidden flex-shrink-0 bg-slate-200">
+                            <Image
+                                src={displayImage}
+                                alt={destination.name}
+                                fill
+                                className="object-cover"
+                                unoptimized={displayImage.includes("unsplash.com")}
+                                priority
+                            />
+
+                            {/* Desktop/Default Close Button (Inside Image) */}
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onClose();
+                                }}
+                                className="absolute top-3 right-3 w-8 h-8 2xl:w-9 2xl:h-9 bg-black/40 backdrop-blur-md rounded-full items-center justify-center text-white hover:bg-black/60 transition-all active:scale-90 hidden md:flex"
+                            >
+                                <X size={14} className="2xl:w-4 2xl:h-4" />
+                            </button>
+                        </div>
                         <div className="p-4 2xl:p-6 pb-8">
                             {/* Title & Category Info */}
                              <div className="mb-4 2xl:mb-5">
@@ -388,7 +443,11 @@ export default function InfoPanel({
             ) : (
                 <div className="flex flex-col h-full bg-white animate-in slide-in-from-right duration-300" onClick={(e) => e.stopPropagation()}>
                     {/* Plan Route Header */}
-                    <div className="p-4 2xl:p-5 border-b border-slate-50 flex items-center gap-2">
+                    <div 
+                        className="p-4 2xl:p-5 border-b border-slate-50 flex items-center gap-2 cursor-pointer"
+                        onTouchStart={handleTouchStart}
+                        onTouchEnd={handleTouchEnd}
+                    >
                         <button
                             onClick={() => onSetPlanning(false)}
                             className="p-1.5 text-slate-400 hover:text-[#fb923c] transition-colors"
@@ -398,7 +457,17 @@ export default function InfoPanel({
                         <h2 className="text-[17px] 2xl:text-xl font-black text-[#111827]">Plan Route</h2>
                     </div>
 
-                    <div className="flex-1 p-4 2xl:p-6 space-y-4 2xl:space-y-5 overflow-y-auto custom-scrollbar">
+                    <div 
+                        className="flex-1 p-4 2xl:p-6 space-y-4 2xl:space-y-5 overflow-y-auto custom-scrollbar"
+                        onScroll={(e) => {
+                            if (window.innerWidth < 768 && onSetSheetState && sheetState === "HALF") {
+                                const target = e.currentTarget;
+                                if (target.scrollTop > 10) {
+                                    onSetSheetState("FULL");
+                                }
+                            }
+                        }}
+                    >
                         {/* Starting Point Section */}
                         <div className="space-y-2.5 2xl:space-y-3">
                             <span className="text-[9px] 2xl:text-xs font-black text-slate-400 uppercase tracking-widest transition-all">From</span>
