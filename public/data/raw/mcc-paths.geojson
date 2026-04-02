@@ -1587,6 +1587,164 @@
         ],
         "type": "LineString"
       }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "path_072",
+        "category": "corridor",
+        "type": "walkway"
+      },
+      "geometry": {
+        "coordinates": [
+          [
+            80.12140108610242,
+            12.921278098400634
+          ],
+          [
+            80.12209888951651,
+            12.921208527481639
+          ],
+          [
+            80.1222494892877,
+            12.921195575831518
+          ],
+          [
+            80.12225096574537,
+            12.921211405610691
+          ],
+          [
+            80.12255511587051,
+            12.921189819548886
+          ],
+          [
+            80.12255511587387,
+            12.921168233483286
+          ],
+          [
+            80.12271647339423,
+            12.921155878929738
+          ],
+          [
+            80.12280168417857,
+            12.921148086488358
+          ],
+          [
+            80.1232948321678,
+            12.921098506746944
+          ]
+        ],
+        "type": "LineString"
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "path_073",
+        "category": "bridge",
+        "type": "walkway"
+      },
+      "geometry": {
+        "coordinates": [
+          [
+            80.1232948321678,
+            12.921098506746944
+          ],
+          [
+            80.12360926984275,
+            12.9211297797831
+          ]
+        ],
+        "type": "LineString"
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "path_074",
+        "category": "corridor",
+        "type": "walkway"
+      },
+      "geometry": {
+        "coordinates": [
+          [
+            80.12271647339423,
+            12.921155878929738
+          ],
+          [
+            80.1226906353985,
+            12.920960165182777
+          ],
+          [
+            80.12270539996717,
+            12.92096088471925
+          ]
+        ],
+        "type": "LineString"
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "path_075",
+        "category": "connector_path",
+        "type": "walkway"
+      },
+      "geometry": {
+        "coordinates": [
+          [
+            80.12360926984275,
+            12.9211297797831
+          ],
+          [
+            80.12373901322098,
+            12.92109365421534
+          ]
+        ],
+        "type": "LineString"
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "path_076",
+        "category": "connector_path",
+        "type": "walkway"
+      },
+      "geometry": {
+        "coordinates": [
+          [
+            80.12140108610242,
+            12.921278098400634
+          ],
+          [
+            80.12048946034918,
+            12.921142991523396
+          ]
+        ],
+        "type": "LineString"
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "path_077",
+        "category": "connector_path",
+        "type": "walkway"
+      },
+      "geometry": {
+        "coordinates": [
+          [
+            80.122650761448,
+            12.921705374560744
+          ],
+          [
+            80.1228937439792,
+            12.921932953825475
+          ]
+        ],
+        "type": "LineString"
+      }
     }
   ]
 }

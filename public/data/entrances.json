@@ -28,6 +28,13 @@
     "lng": 80.12084731565022
   },
   {
+    "id": "arts_entrance_4",
+    "buildingId": "arts_block",
+    "name": "Arts Entrance 4",
+    "lat": 12.921278098400634,
+    "lng": 80.12140108610242
+  },
+  {
     "id": "main_entrance_1",
     "buildingId": "main_building",
     "name": "Main Building Entrance 1",
@@ -45,22 +52,29 @@
     "id": "science_entrance_1",
     "buildingId": "science_block",
     "name": "Science Entrance 1",
-    "lat": 12.921088433853683,
-    "lng": 80.12353237566242
+    "lat": 12.921156361859886,
+    "lng": 80.12278146453741
   },
   {
     "id": "science_entrance_2",
     "buildingId": "science_block",
     "name": "Science Entrance 2",
-    "lat": 12.921621320272422,
-    "lng": 80.12347170040624
+    "lat": 12.921541019842238,
+    "lng": 80.12280232009641
   },
   {
     "id": "science_entrance_3",
     "buildingId": "science_block",
     "name": "Science Entrance 3",
-    "lat": 12.921178535222936,
-    "lng": 80.12267080554369
+    "lat": 12.921098506746944,
+    "lng": 80.1232948321678
+  },
+  {
+    "id": "science_entrance_4",
+    "buildingId": "science_block",
+    "name": "Science Entrance 4",
+    "lat": 12.9211297797831,
+    "lng": 80.12360926984275
   },
   {
     "id": "qsc_entrance_1",
