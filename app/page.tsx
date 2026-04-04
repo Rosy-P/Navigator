@@ -256,7 +256,7 @@ function HomeContent() {
           fetch("/data/buildings.geojson"),
           fetch("/data/entrances.json"),
           fetch("/data/final/mcc-connectors.final.geojson"),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/getfacilities.php`)
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/getfacilities.php`, { credentials: "include" })
         ]);
 
         const primaryData = await primaryRes.json();
