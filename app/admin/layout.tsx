@@ -56,7 +56,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         const checkAdmin = async () => {
             try {
                 const res = await fetch(
-                    "http://localhost:8080/campus-navigator-backend/check-admin.php",
+                    `${process.env.NEXT_PUBLIC_API_URL}/check-admin.php`,
                     { credentials: "include" }
                 );
 
@@ -96,7 +96,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const fetchUsers = async () => {
         try {
             const res = await fetch(
-                "http://localhost:8080/campus-navigator-backend/get-users.php",
+                `${process.env.NEXT_PUBLIC_API_URL}/get-users.php`,
                 { credentials: "include" }
             );
             const data = await res.json();
@@ -111,7 +111,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const fetchEvents = async () => {
         try {
             const res = await fetch(
-                "http://localhost:8080/campus-navigator-backend/get-events.php",
+                `${process.env.NEXT_PUBLIC_API_URL}/get-events.php`,
                 { credentials: "include" }
             );
             const data = await res.json();
@@ -131,7 +131,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     const handleLogout = async () => {
         try {
-            await fetch("http://localhost:8080/campus-navigator-backend/logout.php", {
+            await fetch(`${process.env.NEXT_PUBLIC_API_URL}/logout.php`, {
                 method: "POST",
                 credentials: "include"
             });

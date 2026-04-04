@@ -1,5 +1,6 @@
 const CACHE_NAME = 'mcc-navigator-v1';
 const POLLING_INTERVAL = 120000; // 2 minutes
+const API_URL = "http://localhost:8080";
 
 // Polling interval reference
 let pollInterval;
@@ -47,7 +48,7 @@ function startPolling() {
 async function checkNewEvents() {
     try {
         console.log('SW: Checking for new events...');
-        const response = await fetch('http://localhost:8080/campus-navigator-backend/get-events.php');
+        const response = await fetch(`${API_URL}/get-events.php`);
         const data = await response.json();
         
         if (data.status === 'success' && data.events && data.events.length > 0) {

@@ -269,7 +269,7 @@ export function FacilitiesModule({ isAdmin = false }: { isAdmin?: boolean }) {
             setIsDataLoading(true);
             setError(null);
 
-            const response = await fetch(`http://localhost:8080/campus-navigator-backend/getfacilities.php`);
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/getfacilities.php`);
             if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
 
             const data = await response.json();
@@ -365,7 +365,7 @@ export function FacilitiesModule({ isAdmin = false }: { isAdmin?: boolean }) {
 
         setRatingLoading(facilityId);
         try {
-            const response = await fetch('http://localhost:8080/campus-navigator-backend/submitRating.php', {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/submitRating.php`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ facility_id: facilityId, rating })
@@ -394,7 +394,7 @@ export function FacilitiesModule({ isAdmin = false }: { isAdmin?: boolean }) {
 
     const handleAddFacility = async (data: any) => {
         try {
-            const res = await fetch('http://localhost:8080/campus-navigator-backend/addFacility.php', {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/addFacility.php`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
@@ -409,7 +409,7 @@ export function FacilitiesModule({ isAdmin = false }: { isAdmin?: boolean }) {
 
     const handleUpdateFacility = async (data: any) => {
         try {
-            const res = await fetch('http://localhost:8080/campus-navigator-backend/updateFacility.php', {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/updateFacility.php`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
@@ -426,7 +426,7 @@ export function FacilitiesModule({ isAdmin = false }: { isAdmin?: boolean }) {
     const handleDeleteFacility = async (id: string) => {
         if (!confirm('Are you sure you want to delete this facility?')) return;
         try {
-            const res = await fetch('http://localhost:8080/campus-navigator-backend/deleteFacility.php', {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/deleteFacility.php`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id })

@@ -49,7 +49,7 @@ export default function SettingsPage() {
         const fetchData = async () => {
             try {
                 // Fetch Profile
-                const profileRes = await fetch("http://localhost:8080/campus-navigator-backend/get-admin-profile.php", { credentials: "include" });
+                const profileRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/get-admin-profile.php`, { credentials: "include" });
                 const profileData = await profileRes.json();
                 console.log("Profile Data:", profileData);
                 if (profileData.status === "success") {
@@ -59,7 +59,7 @@ export default function SettingsPage() {
                 }
 
                 // Fetch System Settings & Stats
-                const settingsRes = await fetch("http://localhost:8080/campus-navigator-backend/get-system-settings.php", { credentials: "include" });
+                const settingsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/get-system-settings.php`, { credentials: "include" });
                 const settingsData = await settingsRes.json();
                 console.log("Settings/Stats Data:", settingsData);
                 if (settingsData.status === "success") {
@@ -88,7 +88,7 @@ export default function SettingsPage() {
         e.preventDefault();
         setProfileUpdating(true);
         try {
-            const res = await fetch("http://localhost:8080/campus-navigator-backend/update-admin-profile.php", {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/update-admin-profile.php`, {
                 method: "POST",
                 credentials: "include",
                 headers: { "Content-Type": "application/json" },
@@ -122,7 +122,7 @@ export default function SettingsPage() {
 
         setPasswordUpdating(true);
         try {
-            const res = await fetch("http://localhost:8080/campus-navigator-backend/change-password.php", {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/change-password.php`, {
                 method: "POST",
                 credentials: "include",
                 headers: { "Content-Type": "application/json" },
@@ -146,7 +146,7 @@ export default function SettingsPage() {
         e.preventDefault();
         setNavUpdating(true);
         try {
-            const res = await fetch("http://localhost:8080/campus-navigator-backend/update-system-settings.php", {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/update-system-settings.php`, {
                 method: "POST",
                 credentials: "include",
                 headers: { "Content-Type": "application/json" },

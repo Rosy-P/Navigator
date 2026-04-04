@@ -64,7 +64,7 @@ export default function AuthProvider({ children, theme = 'light' }: AuthProvider
     useEffect(() => {
         const checkSession = async () => {
             try {
-                const res = await fetch("http://localhost:8080/campus-navigator-backend/check-auth.php", {
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/check-auth.php`, {
                     credentials: "include"
                 });
                 const data = await res.json();
@@ -90,7 +90,7 @@ export default function AuthProvider({ children, theme = 'light' }: AuthProvider
 
     const login = async (formData: any) => {
         try {
-            const res = await fetch("http://localhost:8080/campus-navigator-backend/login.php", {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/login.php`, {
                 method: "POST",
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),
@@ -128,7 +128,7 @@ export default function AuthProvider({ children, theme = 'light' }: AuthProvider
 
     const logout = async () => {
         try {
-            await fetch("http://localhost:8080/campus-navigator-backend/logout.php", {
+            await fetch(`${process.env.NEXT_PUBLIC_API_URL}/logout.php`, {
                 method: "POST",
                 credentials: "include"
             });
@@ -207,7 +207,7 @@ function AuthOverlayUI({ theme, onClose, modeProp }: { theme: 'light' | 'dark', 
                     throw new Error("Passwords do not match.");
                 }
 
-                const res = await fetch("http://localhost:8080/campus-navigator-backend/register.php", {
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/register.php`, {
                     method: "POST",
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

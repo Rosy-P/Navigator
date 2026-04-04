@@ -227,7 +227,7 @@ function HomeContent() {
       return;
     }
     try {
-      const res = await fetch("http://localhost:8080/campus-navigator-backend/get_saved_locations.php", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/get_saved_locations.php`, {
         credentials: "include"
       });
       const data = await res.json();
@@ -256,7 +256,7 @@ function HomeContent() {
           fetch("/data/buildings.geojson"),
           fetch("/data/entrances.json"),
           fetch("/data/final/mcc-connectors.final.geojson"),
-          fetch("http://localhost:8080/campus-navigator-backend/getfacilities.php")
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/getfacilities.php`)
         ]);
 
         const primaryData = await primaryRes.json();
