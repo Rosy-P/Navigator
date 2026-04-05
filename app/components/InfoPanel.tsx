@@ -111,7 +111,7 @@ export default function InfoPanel({
         setErrorMessage("");
 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/save_location.php`, {
+            const response = await fetch(`${(process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '')}/save_location.php`, {
                 method: "POST",
                 credentials: "include",
                 headers: {

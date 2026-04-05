@@ -227,7 +227,7 @@ function HomeContent() {
       return;
     }
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/get_saved_locations.php`, {
+      const res = await fetch(`${(process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '')}/get_saved_locations.php`, {
         credentials: "include"
       });
       const data = await res.json();
@@ -256,7 +256,7 @@ function HomeContent() {
           fetch("/data/buildings.geojson"),
           fetch("/data/entrances.json"),
           fetch("/data/final/mcc-connectors.final.geojson"),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/getfacilities.php`, { credentials: "include" })
+          fetch(`${(process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '')}/getfacilities.php`, { credentials: "include" })
         ]);
 
         const primaryData = await primaryRes.json();

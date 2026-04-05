@@ -19,7 +19,7 @@ export default function AdminFacilitiesPage() {
     const fetchFacilities = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/getfacilities.php`, { credentials: "include" });
+            const res = await fetch(`${(process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '')}/getfacilities.php`, { credentials: "include" });
             const data = await res.json();
             
             // Handle both array and object responses
@@ -62,7 +62,7 @@ export default function AdminFacilitiesPage() {
         if (!confirm("Are you sure you want to delete this facility? This action cannot be undone.")) return;
 
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/deleteFacility.php`, { credentials: "include",
+            const res = await fetch(`${(process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '')}/deleteFacility.php`, { credentials: "include",
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ id }),
@@ -82,7 +82,7 @@ export default function AdminFacilitiesPage() {
     const handleSave = async (data: any) => {
         const endpoint = selectedFacility ? 'updateFacility.php' : 'addFacility.php';
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/${endpoint}`, { credentials: "include",
+            const res = await fetch(`${(process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '')}/${endpoint}`, { credentials: "include",
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(data),

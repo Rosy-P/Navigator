@@ -330,7 +330,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({
         // 2. Landmarks (Restoring to raw data)
         const [landmarkRes, facilitiesRes] = await Promise.all([
           fetch("/data/raw/mcc-landmarks.json"),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/getfacilities.php`, { credentials: "include" })
+          fetch(`${(process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '')}/getfacilities.php`, { credentials: "include" })
         ]);
         
         const rawLandmarks = await landmarkRes.json();

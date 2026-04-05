@@ -98,7 +98,7 @@ export default function EventModal({ isOpen, onClose, selectedEvent, onSuccess }
         console.log("Submitting Event:", body); // Debug log
 
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/${endpoint}`, {
+            const res = await fetch(`${(process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '')}/${endpoint}`, {
                 method: "POST",
                 credentials: "include",
                 headers: { 

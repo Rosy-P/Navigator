@@ -44,7 +44,7 @@ export default function SavedPlacesPanel({ isOpen, onClose, onNavigate, onRefres
             setIsLoading(true);
             setError(null);
             try {
-                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/get_saved_locations.php`, {
+                const res = await fetch(`${(process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '')}/get_saved_locations.php`, {
                     credentials: "include"
                 });
                 const data = await res.json();
@@ -67,7 +67,7 @@ export default function SavedPlacesPanel({ isOpen, onClose, onNavigate, onRefres
         if (!user) return;
         
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/remove_saved_location.php`, {
+            const res = await fetch(`${(process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '')}/remove_saved_location.php`, {
                 method: "POST",
                 credentials: "include",
                 headers: { "Content-Type": "application/json" },
