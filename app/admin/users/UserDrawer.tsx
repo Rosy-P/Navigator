@@ -20,7 +20,7 @@ export default function UserDrawer({ user, isOpen, onClose, refreshUsers }: Prop
     useEffect(() => {
         const fetchCurrentAdmin = async () => {
             try {
-                const res = await fetch(`${(process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '')}/check-admin.php`, { credentials: "include" });
+                const res = await fetch(`/backend/check-admin.php`, { credentials: "include" });
                 const data = await res.json();
                 if (data.status === "success") {
                     setCurrentAdminId(data.user_id);
@@ -39,7 +39,7 @@ export default function UserDrawer({ user, isOpen, onClose, refreshUsers }: Prop
     const handleAction = async (endpoint: string, body: any) => {
         setIsUpdating(true);
         try {
-            const res = await fetch(`${(process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '')}/${endpoint}`, {
+            const res = await fetch(`/backend/${endpoint}`, {
                 method: "POST",
                 credentials: "include",
                 headers: { "Content-Type": "application/json" },
@@ -63,7 +63,7 @@ export default function UserDrawer({ user, isOpen, onClose, refreshUsers }: Prop
         if (!confirm("Are you sure you want to delete this user? This action cannot be undone.")) return;
         setIsDeleting(true);
         try {
-            const res = await fetch(`${(process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '')}/delete-user.php`, {
+            const res = await fetch(`/backend/delete-user.php`, {
                 method: "POST",
                 credentials: "include",
                 headers: { "Content-Type": "application/json" },

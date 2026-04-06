@@ -56,7 +56,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         const checkAdmin = async () => {
             try {
                 const res = await fetch(
-                    `${(process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '')}/check-admin.php`,
+                    `/backend/check-admin.php`,
                     { credentials: "include" }
                 );
 
@@ -96,7 +96,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const fetchUsers = async () => {
         try {
             const res = await fetch(
-                `${(process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '')}/get-users.php`,
+                `/backend/get-users.php`,
                 { credentials: "include" }
             );
             const data = await res.json();
@@ -111,7 +111,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const fetchEvents = async () => {
         try {
             const res = await fetch(
-                `${(process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '')}/get-events.php`,
+                `/backend/get-events.php`,
                 { credentials: "include" }
             );
             const data = await res.json();
@@ -131,7 +131,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     const handleLogout = async () => {
         try {
-            await fetch(`${(process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '')}/logout.php`, {
+            await fetch(`/backend/logout.php`, {
                 method: "POST",
                 credentials: "include"
             });

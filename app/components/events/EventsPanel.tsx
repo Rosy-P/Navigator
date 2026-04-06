@@ -20,7 +20,7 @@ export default function EventsPanel({ isOpen, onClose, onNavigate, theme }: Even
   useEffect(() => {
     if (isOpen) {
       setLoading(true);
-      fetch(`${(process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '')}/get-events.php`, {
+      fetch(`/backend/get-events.php`, {
         credentials: "include"
       })
         .then((res) => res.json())

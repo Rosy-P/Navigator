@@ -18,7 +18,7 @@ export default function ForgotPasswordPage() {
         setIsLoading(true);
 
         try {
-            const res = await fetch(`${(process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '')}/forgotPassword.php`, { credentials: "include",
+            const res = await fetch(`/backend/forgotPassword.php`, { credentials: "include",
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email }),

@@ -20,7 +20,7 @@ export default function EventsPage() {
     const fetchEvents = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await fetch(`${(process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '')}/get-events.php`, {
+            const res = await fetch(`/backend/get-events.php`, {
                 credentials: "include"
             });
             const data = await res.json();
@@ -52,7 +52,7 @@ export default function EventsPage() {
         if (!confirm("Are you sure you want to delete this event? This action cannot be undone.")) return;
 
         try {
-            const res = await fetch(`${(process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '')}/delete-event.php`, {
+            const res = await fetch(`/backend/delete-event.php`, {
                 method: "POST",
                 credentials: "include",
                 headers: { 
@@ -77,7 +77,7 @@ export default function EventsPage() {
         if (!confirm("Are you sure you want to delete all events created more than 30 days ago?")) return;
 
         try {
-            const res = await fetch(`${(process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '')}/cleanup-events.php`, {
+            const res = await fetch(`/backend/cleanup-events.php`, {
                 method: "POST",
                 credentials: "include",
                 headers: {

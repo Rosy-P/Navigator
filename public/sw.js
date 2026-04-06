@@ -1,6 +1,6 @@
 const CACHE_NAME = 'mcc-navigator-v1';
 const POLLING_INTERVAL = 120000; // 2 minutes
-const API_URL = "http://localhost:8080";
+const API_URL = "/backend";
 
 // Polling interval reference
 let pollInterval;

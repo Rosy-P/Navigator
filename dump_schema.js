@@ -1,4 +1,4 @@
-fetch('http://localhost:8080/campus-navigator-backend/getfacilities.php')
+fetch('/backend/getfacilities.php')
   .then(res => res.json())
   .then(json => {
     if (json.length > 0) {

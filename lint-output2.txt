@@ -1,0 +1,50 @@
+﻿
+> campus-navigator-nextjs@0.1.0 lint
+> eslint
+
+
+C:\Users\acer\OneDrive\Documents\FYP(ROSY)\Navigator\app\page.tsx
+  441:27  error  Error: Cannot access variable before it is declared
+
+`handleSelectLandmark` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+C:\Users\acer\OneDrive\Documents\FYP(ROSY)\Navigator\app\page.tsx:441:27
+  439 |       } else {
+  440 |         // Search: Continue to selection after login
+> 441 |         requireAuth(() => handleSelectLandmark(landmark, false));
+      |                           ^^^^^^^^^^^^^^^^^^^^ `handleSelectLandmark` accessed before it is declared
+  442 |       }
+  443 |       return;
+  444 |     }
+
+C:\Users\acer\OneDrive\Documents\FYP(ROSY)\Navigator\app\page.tsx:429:3
+  427 |   const isProcessingSelection = useRef(false);
+  428 |
+> 429 |   const handleSelectLandmark = useCallback((landmark: any, isFromMap: boolean = false) => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 430 |     if (isProcessingSelection.current) return;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 431 |     isProcessingSelection.current = true;
+      ΓÇª
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 504 |     setIsTourMode(false); // Exclusivity
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 505 |   }, [user, requireAuth, markerLocation, startLocation, connectors]);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `handleSelectLandmark` is declared here
+  506 |
+  507 |   // Auto-expand InfoPanel on indoor phase
+  508 |   useEffect(() => {  react-hooks/immutability
+
+C:\Users\acer\OneDrive\Documents\FYP(ROSY)\Navigator\fix-urls.js
+  1:12  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  2:14  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\acer\OneDrive\Documents\FYP(ROSY)\Navigator\scripts\generate-rooms.js
+  1:12  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\acer\OneDrive\Documents\FYP(ROSY)\Navigator\scripts\process-secondary-data.js
+  1:12  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  2:14  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+Γ£û 6 problems (6 errors, 0 warnings)
+
