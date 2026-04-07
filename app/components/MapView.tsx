@@ -1377,8 +1377,8 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({
           });
         }
       }
-    } else if (!isTourSimulation && !isGuidanceActive && mapInstance.current) {
-      // Clear sources when both are off
+    } else if (!isTourSimulation && !isGuidanceActive && !startLocation && mapInstance.current) {
+      // Clear sources only when both are off AND no startLocation is set (i.e. not in planning mode)
       const rSrc = mapInstance.current.getSource(
         "route",
       ) as maplibregl.GeoJSONSource;
@@ -1581,16 +1581,20 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({
       graphStat: graphRef.current ? `${graphRef.current.size} nodes` : "Not Ready"
     });
 
+    const effectiveStart: [number, number] = startLocation || defaultLocation;
     let navigationTargetCoordinate = destination;
 
-    if ((selectedLandmark?.type === "room" || selectedLandmark?.type === "building") && entrances.length > 0) {
+    const isRoomOrBuilding = selectedLandmark?.type === "room" || selectedLandmark?.type === "building";
+
+    if (isRoomOrBuilding && entrances.length > 0) {
       const bId = selectedLandmark.type === "building" ? selectedLandmark.id : selectedLandmark.buildingId;
+      console.log(`🔍 Routing to Building/Room: ${bId}, Type: ${selectedLandmark.type}`);
       const buildingEntrances = entrances.filter(e => e.buildingId === bId);
       if (buildingEntrances.length > 0) {
         let nearest = buildingEntrances[0];
-        let minDist = distance(currentUserLocation, [nearest.lng, nearest.lat]);
+        let minDist = distance(effectiveStart, [nearest.lng, nearest.lat]);
         buildingEntrances.forEach(ent => {
-          const d = distance(currentUserLocation, [ent.lng, ent.lat]);
+          const d = distance(effectiveStart, [ent.lng, ent.lat]);
           if (d < minDist) {
             minDist = d;
             nearest = ent;
