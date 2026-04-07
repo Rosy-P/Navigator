@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/backend/:path*",
-      "destination": "https://campusnavigator.ct.ws/:path*"
+      "destination": "https://campus-navigator-backend-production.up.railway.app/:path*"
     }
   ]
 }
