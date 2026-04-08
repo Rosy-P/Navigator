@@ -13,6 +13,7 @@ import {
   getManeuver,
   getRouteGeoJSON,
   pointToPathDistance,
+  findClosestPointOnPath,
 } from "../lib/routing";
 import { useVoiceNavigation } from "../hooks/useVoiceNavigation";
 import { Landmark } from "../lib/navigation/GuidanceSynthesizer";
@@ -184,6 +185,8 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({
   const offRouteCountRef = useRef<number>(0);
   const lastRerouteTriggerRef = useRef<number>(0);
   const lastRouteCalcDestinationRef = useRef<string>("");
+  const prevStartLocationRef = useRef<[number, number] | null>(null);
+  const lastRealBearingRef = useRef<number>(0);
 
   // Expose map control methods via ref
   useImperativeHandle(ref, () => ({
@@ -1293,11 +1296,111 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({
 
     // Auto-center during navigation if locked
     if (isGuidanceActive && !isDemoMode && isMapLocked && mapInstance.current) {
-      mapInstance.current.easeTo({
-        center: currentPos,
-        duration: 1000,
-        essential: true
-      });
+        const map = mapInstance.current;
+        const currentCoord = startLocation || defaultLocation;
+        const path = currentRouteRef.current;
+
+        // 1. Calculate Bearing & 3D Camera
+        let currentBearing = lastRealBearingRef.current;
+        if (prevStartLocationRef.current) {
+            const movementDist = distance(prevStartLocationRef.current, currentCoord);
+            if (movementDist > 2) { // 2m movement threshold for rotation to avoid jitter
+                const targetBearing = getBearing(prevStartLocationRef.current, currentCoord);
+                // Smoothing
+                const alpha = 0.15;
+                let diff = targetBearing - currentBearing;
+                while (diff > 180) diff -= 360;
+                while (diff < -180) diff += 360;
+                currentBearing = (currentBearing + diff * alpha + 360) % 360;
+                lastRealBearingRef.current = currentBearing;
+            }
+        }
+        prevStartLocationRef.current = currentCoord;
+
+        // Apply 3D EaseTo
+        const dynamicOffset = isMobile ? 0 : 150;
+        const rad = currentBearing * (Math.PI / 180);
+        const offsetX = -Math.sin(rad) * dynamicOffset;
+        const offsetY = Math.cos(rad) * dynamicOffset;
+
+        map.easeTo({
+            center: currentCoord,
+            bearing: currentBearing,
+            pitch: 60,
+            zoom: 19.5,
+            offset: [offsetX, offsetY],
+            duration: 1200,
+            essential: true
+        });
+
+        // 2. Gray-out Path Logic (Real GPS)
+        if (path && path.length >= 2) {
+            const { point, index } = findClosestPointOnPath(currentCoord, path);
+            const cSrc = map.getSource("route-covered") as maplibregl.GeoJSONSource;
+            const rSrc = map.getSource("route") as maplibregl.GeoJSONSource;
+
+            if (cSrc) {
+                const covered = [...path.slice(0, index + 1), point];
+                cSrc.setData({
+                    type: "Feature",
+                    geometry: { type: "LineString", coordinates: covered },
+                } as any);
+            }
+            if (rSrc) {
+                const remaining = [point, ...path.slice(index + 1)];
+                rSrc.setData({
+                    type: "Feature",
+                    geometry: { type: "LineString", coordinates: remaining },
+                } as any);
+            }
+
+            // 3. Update Guidance State for Voice (Real GPS)
+            let instruction = "Continue straight";
+            let distToManeuver = 0;
+            let targetManeuverCoord: [number, number] | null = null;
+            
+            // Re-use simulation logic for finding next maneuver
+            if (index < path.length - 2) {
+                const b1 = getBearing(path[index], path[index + 1]);
+                const bNext = getBearing(path[index + 1], path[index + 2]);
+                const nextManeuver = getManeuver(b1, bNext);
+
+                if (nextManeuver !== "Continue straight") {
+                    instruction = nextManeuver;
+                    distToManeuver = distance(currentCoord, path[index + 1]);
+                    targetManeuverCoord = path[index + 1];
+                } else {
+                    let lookaheadDist = distance(currentCoord, path[index + 1]);
+                    for (let i = index + 1; i < path.length - 1; i++) {
+                        const bCurr = getBearing(path[i - 1], path[i]);
+                        const bNextCheck = getBearing(path[i], path[i + 1]);
+                        const m = getManeuver(bCurr, bNextCheck);
+                        if (m !== "Continue straight") {
+                            instruction = m;
+                            targetManeuverCoord = path[i];
+                            break;
+                        }
+                        lookaheadDist += distance(path[i], path[i + 1]);
+                    }
+                    distToManeuver = lookaheadDist;
+                }
+            } else if (index === path.length - 2) {
+                instruction = "You have arrived";
+                distToManeuver = distance(currentCoord, path[path.length - 1]);
+                targetManeuverCoord = path[path.length - 1];
+            }
+
+            setCurrentNavManeuver(instruction);
+            setCurrentDistToManeuver(distToManeuver);
+            setCurrentManeuverCoord(targetManeuverCoord);
+
+            if (onSimulationUpdate) {
+                const distText = distToManeuver >= 1000 
+                    ? `${(distToManeuver/1000).toFixed(1)}km` 
+                    : `${Math.round(distToManeuver)}m`;
+                onSimulationUpdate(currentCoord, [], instruction, distText);
+            }
+        }
     }
   }, [startLocation, isGuidanceActive, isDemoMode, destination, navigationPhase, selectedLandmark, onPhaseChange, isMapLocked]);
 
