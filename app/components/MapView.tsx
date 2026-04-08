@@ -12,6 +12,7 @@ import {
   getBearing,
   getManeuver,
   getRouteGeoJSON,
+  pointToPathDistance,
 } from "../lib/routing";
 import { useVoiceNavigation } from "../hooks/useVoiceNavigation";
 import { Landmark } from "../lib/navigation/GuidanceSynthesizer";
@@ -176,6 +177,13 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({
   const currentUserLocationRef = useRef<[number, number]>(defaultLocation);
   const hasArrivedRef = useRef(false);
   const [isMapLocked, setIsMapLocked] = useState(true);
+
+  // Rerouting State & Refs
+  const [rerouteTrigger, setRerouteTrigger] = useState(0);
+  const lastRerouteTimeRef = useRef<number>(0);
+  const offRouteCountRef = useRef<number>(0);
+  const lastRerouteTriggerRef = useRef<number>(0);
+  const lastRouteCalcDestinationRef = useRef<string>("");
 
   // Expose map control methods via ref
   useImperativeHandle(ref, () => ({
@@ -1319,6 +1327,36 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({
     }
   }, [recenterCount]);
 
+  // ===============================
+  // REAL-TIME REROUTE MONITOR
+  // ===============================
+  // Continuously monitors user deviation from the active route
+  useEffect(() => {
+    if (!isGuidanceActive || isDemoMode || !startLocation || !currentRouteRef.current.length || navigationPhase !== 'outdoor') {
+      offRouteCountRef.current = 0;
+      return;
+    }
+
+    const distToPath = pointToPathDistance(startLocation, currentRouteRef.current);
+    const REROUTE_THRESHOLD = 15; // 15 meters deviation triggers recalculation
+    const RECALC_COOLDOWN = 5000; // 5 seconds between API/A* calls
+
+    if (distToPath > REROUTE_THRESHOLD) {
+      offRouteCountRef.current += 1;
+      
+      const now = Date.now();
+      // Require 2 consecutive off-route detections to avoid GPS noise
+      if (offRouteCountRef.current >= 2 && (now - lastRerouteTimeRef.current > RECALC_COOLDOWN)) {
+        console.log(`🔀 Deviation detected (${distToPath.toFixed(1)}m). Triggering reroute #${rerouteTrigger + 1}`);
+        lastRerouteTimeRef.current = now;
+        offRouteCountRef.current = 0;
+        setRerouteTrigger(prev => prev + 1);
+      }
+    } else {
+      offRouteCountRef.current = 0;
+    }
+  }, [startLocation, isGuidanceActive, isDemoMode, navigationPhase, rerouteTrigger]);
+
   // Handle Tour Simulation Route Generation
   useEffect(() => {
     if (
@@ -1573,6 +1611,26 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({
 
     if (isDemoMode || isTourSimulation) return;
 
+    // OPTIMIZATION: If guidance is active, we only want to recalculate on explicit reroute triggers
+    // or when the destination itself changes. Trivial GPS updates should be ignored.
+    if (isGuidanceActive && !isDemoMode) {
+      const destKey = JSON.stringify(destination);
+      const wasRerouted = rerouteTrigger !== (lastRerouteTriggerRef.current || 0);
+      const destChanged = destKey !== lastRouteCalcDestinationRef.current;
+      const isInitialStart = lastRouteCalcDestinationRef.current === "";
+
+      if (!wasRerouted && !destChanged && !isInitialStart) {
+        // Just a normal GPS update while on track, skip aStar calculation
+        return;
+      }
+      
+      lastRerouteTriggerRef.current = rerouteTrigger;
+      lastRouteCalcDestinationRef.current = destKey;
+    } else {
+      // Reset tracking when not in active guidance to ensure fresh start next time
+      lastRouteCalcDestinationRef.current = "";
+    }
+
     console.log("🛣️ Calculating Route:", {
       originType: isSelectingStart ? "Picking" : "Standard",
       start: currentUserLocation,
@@ -1687,15 +1745,16 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({
       mapInstance.current.fitBounds(b, { padding: 100, duration: 1000 });
     }
   }, [
-    startLocation,
-    destination,
+    startLocation,  // Back in deps for pre-guidance dynamic updates
+    rerouteTrigger, // Explicitly trigger on deviation
+    destination,    // Trigger on destination change
     markerLocation,
     pendingLocation,
     isSelectingStart,
     isDemoMode,
     mapStyle,
     isGraphReady,
-    isGuidanceActive,
+    isGuidanceActive, // Trigger when navigation starts
     isTourSimulation,
     selectedLandmark,
     entrances,

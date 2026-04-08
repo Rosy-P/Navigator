@@ -500,3 +500,49 @@ export function getRouteGeoJSON(
     };
 
 }
+
+/**
+ * Calculates the perpendicular distance from a point to a line segment [a, b].
+ */
+export function pointToSegmentDistance(
+    p: [number, number],
+    a: [number, number],
+    b: [number, number]
+): number {
+    const x0 = p[0], y0 = p[1];
+    const x1 = a[0], y1 = a[1];
+    const x2 = b[0], y2 = b[1];
+
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+
+    if (dx === 0 && dy === 0) return distance(p, a);
+
+    // Calculate projection factor t
+    let t = ((x0 - x1) * dx + (y0 - y1) * dy) / (dx * dx + dy * dy);
+
+    if (t < 0) return distance(p, a);
+    if (t > 1) return distance(p, b);
+
+    // Projection point
+    const proj: [number, number] = [x1 + t * dx, y1 + t * dy];
+    return distance(p, proj);
+}
+
+/**
+ * Calculates the minimum distance from a point to a path (collection of segments).
+ */
+export function pointToPathDistance(
+    point: [number, number],
+    path: [number, number][]
+): number {
+    if (!path || path.length < 2) return Infinity;
+    let minD = Infinity;
+
+    for (let i = 0; i < path.length - 1; i++) {
+        const d = pointToSegmentDistance(point, path[i], path[i + 1]);
+        if (d < minD) minD = d;
+    }
+
+    return minD;
+}
